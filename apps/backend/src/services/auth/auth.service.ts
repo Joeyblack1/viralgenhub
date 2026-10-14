@@ -21,6 +21,14 @@ const activationEmail = (url: string) => `
 <p style="font-size:13px;color:#6b7280">If you did not sign up, you can ignore this email and no account will be activated.</p>
 `;
 
+// ViralGenHub: same self-explanatory style as the activation email.
+const resetEmail = (url: string) => `
+<p>We received a request to reset the password for your ${process.env.EMAIL_FROM_NAME || 'ViralGenHub'} account.</p>
+<p><a href="${url}" style="display:inline-block;background:#6d28d9;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Reset my password</a></p>
+<p style="font-size:13px;color:#6b7280">The link expires in 20 minutes. If the button does not work, copy this link into your browser:<br><span style="word-break:break-all">${url}</span></p>
+<p style="font-size:13px;color:#6b7280">If you did not ask to reset your password, you can ignore this email; your password stays the same.</p>
+`;
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -235,7 +243,7 @@ export class AuthService {
     await this._emailService.sendEmailSync(
       user.email,
       'Reset your password',
-      `You have requested to reset your password. <br />Click <a href="${process.env.FRONTEND_URL}/auth/forgot/${resetValues}">here</a> to reset your password<br />The link will expire in 20 minutes`
+      resetEmail(`${process.env.FRONTEND_URL}/auth/forgot/${resetValues}`)
     );
   }
 
