@@ -1,8 +1,49 @@
 import {
-  IsBoolean, ValidateIf, IsIn, IsString, MaxLength, IsOptional, IsDefined, IsNumber, Min, Max, ValidateNested
+  IsBoolean, ValidateIf, IsIn, IsString, MaxLength, IsOptional, IsDefined, IsNumber, Min, Max, ValidateNested,
+  registerDecorator, ValidationArguments,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { JSONSchema } from 'class-validator-jsonschema';
+
+// TikTok Content Sharing Guidelines: when the disclosure toggle is on, at least
+// one of "Your brand" / "Branded content" must be ticked.
+function DisclosureNeedsChoice() {
+  return (object: object, propertyName: string) =>
+    registerDecorator({
+      name: 'disclosureNeedsChoice',
+      target: object.constructor,
+      propertyName,
+      validator: {
+        validate(_: unknown, args: ValidationArguments) {
+          const o = args.object as TikTokDto;
+          if (!o.disclose) return true;
+          return !!(o.brand_organic_toggle || o.brand_content_toggle);
+        },
+        defaultMessage() {
+          return "You need to indicate if your content promotes yourself, a third party, or both.";
+        },
+      },
+    });
+}
+
+// TikTok Content Sharing Guidelines: branded content cannot be private.
+function BrandedNotPrivate() {
+  return (object: object, propertyName: string) =>
+    registerDecorator({
+      name: 'brandedNotPrivate',
+      target: object.constructor,
+      propertyName,
+      validator: {
+        validate(value: unknown, args: ValidationArguments) {
+          const o = args.object as TikTokDto;
+          return !(o.brand_content_toggle && value === 'SELF_ONLY');
+        },
+        defaultMessage() {
+          return "Branded content visibility cannot be set to private.";
+        },
+      },
+    });
+}
 
 export class TikTokMusic {
   @IsDefined()
@@ -77,16 +118,18 @@ export class TikTokDto {
   })
   title: string;
 
+  @ValidateIf((p) => p.content_posting_method !== 'UPLOAD')
   @IsIn([
     'PUBLIC_TO_EVERYONE',
     'MUTUAL_FOLLOW_FRIENDS',
     'FOLLOWER_OF_CREATOR',
     'SELF_ONLY',
   ])
+  @BrandedNotPrivate()
   @IsString()
   @JSONSchema({
     description:
-      'Applied only when content_posting_method=DIRECT_POST. Ignored by TikTok on UPLOAD.',
+      'Required when content_posting_method=DIRECT_POST, and there is no default: the creator must pick one of the options TikTok offers for their account. Ignored by TikTok on UPLOAD.',
   })
   privacy_level:
     | 'PUBLIC_TO_EVERYONE'
@@ -123,6 +166,25 @@ export class TikTokDto {
       'on legacy TikTok, "yes" lets TikTok auto-add its recommended music.',
   })
   autoAddMusic: 'yes' | 'no';
+
+  // Set by the composer: true while TikTok creator_info is loading, says the
+  // creator cannot post, or the video is longer than their limit.
+  @IsOptional()
+  @ValidateIf((p) => p.creator_blocked === true)
+  @IsIn([false], {
+    message:
+      'TikTok cannot accept this post right now (account cannot post, or the video is too long).',
+  })
+  creator_blocked?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  @DisclosureNeedsChoice()
+  @JSONSchema({
+    description:
+      'Content disclosure toggle. When true, brand_organic_toggle and/or brand_content_toggle must be true.',
+  })
+  disclose?: boolean;
 
   @IsBoolean()
   @JSONSchema({

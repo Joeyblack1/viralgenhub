@@ -417,6 +417,45 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
     };
   }
 
+  // Live creator_info/query. TikTok's Content Sharing Guidelines require the
+  // composer to read this every time it opens: nickname, which privacy options
+  // this creator may use, which interactions they disabled in the TikTok app,
+  // and the max video length. `canPost` is false when TikTok says the creator
+  // cannot post right now.
+  async creatorInfo(accessToken: string) {
+    const res = await fetch(
+      'https://open.tiktokapis.com/v2/post/publish/creator_info/query/',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
+    const json = await res.json().catch(() => ({}));
+    const data = json?.data;
+    const errorCode = json?.error?.code;
+    if (!res.ok || !data || (errorCode && errorCode !== 'ok')) {
+      return {
+        canPost: false,
+        errorCode: errorCode || `http_${res.status}`,
+        errorMessage: json?.error?.message || 'Could not reach TikTok',
+      };
+    }
+    return {
+      canPost: true,
+      nickname: data.creator_nickname as string,
+      username: data.creator_username as string,
+      avatar: data.creator_avatar_url as string,
+      privacyLevelOptions: (data.privacy_level_options || []) as string[],
+      commentDisabled: !!data.comment_disabled,
+      duetDisabled: !!data.duet_disabled,
+      stitchDisabled: !!data.stitch_disabled,
+      maxVideoPostDurationSec: data.max_video_post_duration_sec as number,
+    };
+  }
+
   async maxVideoLength(accessToken: string) {
     const {
       data: { max_video_post_duration_sec },
@@ -559,6 +598,18 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
     }
   }
 
+  private requirePrivacy(level?: string): string {
+    if (!level) {
+      throw new BadBody(
+        'tiktok',
+        'privacy_level is required',
+        JSON.stringify({ privacy_level: level }),
+        'Choose who can see this video before publishing to TikTok.'
+      );
+    }
+    return level;
+  }
+
   private buildTikokPostInfoBody(firstPost: PostDetails<TikTokDto>) {
     const isPhoto = !hasExtension(firstPost?.media?.[0]?.path, 'mp4');
     const method = this.contentPostingMethod(firstPost);
@@ -573,8 +624,9 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
             ? { title: firstPost.message }
             : {}),
           ...(isPhoto ? { description: firstPost.message } : {}),
-          privacy_level:
-            firstPost.settings.privacy_level || 'PUBLIC_TO_EVERYONE',
+          // No default: TikTok requires the creator to choose. The composer and
+          // DTO block publishing without one; this guards the API/MCP path.
+          privacy_level: this.requirePrivacy(firstPost.settings.privacy_level),
           ...(isPhoto
             ? {}
             : { disable_duet: !this.assetBoolean(firstPost.settings.duet) }),
