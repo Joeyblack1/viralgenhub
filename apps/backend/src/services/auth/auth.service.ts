@@ -11,6 +11,16 @@ import { ForgotReturnPasswordDto } from '@gitroom/nestjs-libraries/dtos/auth/for
 import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
 import { NewsletterService } from '@gitroom/nestjs-libraries/newsletter/newsletter.service';
 
+// ViralGenHub: a self-explanatory activation email. A bare "click here" link
+// with no context is a strong spam signal for Gmail and Outlook.
+const activationEmail = (url: string) => `
+<p>Thanks for signing up to ${process.env.EMAIL_FROM_NAME || 'ViralGenHub'}.</p>
+<p>Please confirm your email address to activate your account:</p>
+<p><a href="${url}" style="display:inline-block;background:#6d28d9;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Activate my account</a></p>
+<p style="font-size:13px;color:#6b7280">If the button does not work, copy this link into your browser:<br><span style="word-break:break-all">${url}</span></p>
+<p style="font-size:13px;color:#6b7280">If you did not sign up, you can ignore this email and no account will be activated.</p>
+`;
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -74,7 +84,7 @@ export class AuthService {
         await this._emailService.sendEmailSync(
           body.email,
           'Activate your account',
-          `Click <a href="${process.env.FRONTEND_URL}/auth/activate/${obj.jwt}">here</a> to activate your account`
+          activationEmail(`${process.env.FRONTEND_URL}/auth/activate/${obj.jwt}`)
         );
         return obj;
       }
@@ -278,7 +288,7 @@ export class AuthService {
     await this._emailService.sendEmailSync(
       user.email,
       'Activate your account',
-      `Click <a href="${process.env.FRONTEND_URL}/auth/activate/${jwt}">here</a> to activate your account`
+      activationEmail(`${process.env.FRONTEND_URL}/auth/activate/${jwt}`)
     );
 
     return true;

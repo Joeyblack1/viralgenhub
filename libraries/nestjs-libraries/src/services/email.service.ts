@@ -120,6 +120,7 @@ export class EmailService {
                     <div style="font-size: 12px">
                       You can change your notification preferences in your <a href="${process.env.FRONTEND_URL}/settings">account settings.</a>
                      </div>
+                    ${process.env.EMAIL_COMPANY_FOOTER ? `<div style="font-size: 11px; color: #6b7280; margin-top: 8px">${process.env.EMAIL_COMPANY_FOOTER}</div>` : ''}
                 </div>
             </div>
         </div>
