@@ -314,7 +314,7 @@
     "typescript": "5.5.4",
     "vite": "^8.2.1",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "3.1.4"
+    "vitest": "4.1.11"
   },
   "volta": {
     "node": "20.17.0"
