@@ -1,3 +1,4 @@
+import { TRIALS_ENABLED } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import {
   Body,
   Controller,
@@ -109,7 +110,7 @@ export class BillingController {
       org.id,
       user.id,
       body,
-      org.allowTrial
+      org.allowTrial && TRIALS_ENABLED
     );
   }
 
@@ -130,7 +131,7 @@ export class BillingController {
       org.id,
       user.id,
       body,
-      org.allowTrial
+      org.allowTrial && TRIALS_ENABLED
     );
   }
 

@@ -142,3 +142,8 @@ export const formatPrice = (amount: number) =>
 // Tiers shown on the billing pages. PRO and ULTIMATE stay in `pricing` for
 // upstream compatibility but are not sold.
 export const SOLD_TIERS = ['FREE', 'STANDARD', 'TEAM'];
+
+// Free-trial length for paid plans. Upstream uses 7; ViralGenHub sets
+// STRIPE_TRIAL_DAYS=0 (no trial; the Free plan is the try-before-you-buy).
+export const TRIAL_DAYS = Number(process.env.STRIPE_TRIAL_DAYS ?? 7);
+export const TRIALS_ENABLED = TRIAL_DAYS > 0;

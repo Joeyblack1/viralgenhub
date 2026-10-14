@@ -6,7 +6,11 @@ import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/o
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { BillingSubscribeDto } from '@gitroom/nestjs-libraries/dtos/billing/billing.subscribe.dto';
 import { groupBy } from 'lodash';
-import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
+import {
+  pricing,
+  TRIAL_DAYS,
+  TRIALS_ENABLED,
+} from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { TrackService } from '@gitroom/nestjs-libraries/track/track.service';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
@@ -94,7 +98,7 @@ export class StripeService extends PaymentProviderAbstract {
         event.data.object.customer as string
       );
 
-    if (!getOrgFromCustomer?.allowTrial) {
+    if (!getOrgFromCustomer?.allowTrial || !TRIALS_ENABLED) {
       return true;
     }
 
@@ -662,7 +666,9 @@ body.period === 'MONTHLY'
         `/launches?onboarding=true&trialStart=true&check=${uniqueId}${isUtm}`,
       mode: 'subscription',
       subscription_data: {
-        ...(allowTrial ? { trial_period_days: 7 } : {}),
+        ...(allowTrial && TRIALS_ENABLED
+          ? { trial_period_days: TRIAL_DAYS }
+          : {}),
         metadata: {
           service: 'gitroom',
           ...body,
@@ -723,7 +729,9 @@ body.period === 'MONTHLY'
         `/launches?onboarding=true&trialStart=true&check=${uniqueId}${isUtm}`,
       mode: 'subscription',
       subscription_data: {
-        ...(allowTrial ? { trial_period_days: 7 } : {}),
+        ...(allowTrial && TRIALS_ENABLED
+          ? { trial_period_days: TRIAL_DAYS }
+          : {}),
         metadata: {
           service: 'gitroom',
           ...body,
