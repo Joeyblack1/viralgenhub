@@ -22,6 +22,8 @@ interface VariableContextInterface {
   facebookPixel: string;
   telegramBotName: string;
   neynarClientId: string;
+  // ViralGenHub: Google login needs YOUTUBE_CLIENT_ID; hide the button when unset.
+  googleLogin?: boolean;
   appleClientId: string;
   isSecured: boolean;
   disableImageCompression: boolean;
@@ -59,6 +61,7 @@ const VariableContext = createContext({
   telegramBotName: '',
   facebookPixel: '',
   neynarClientId: '',
+  googleLogin: false,
   appleClientId: '',
   disableImageCompression: false,
   disableXAnalytics: false,
