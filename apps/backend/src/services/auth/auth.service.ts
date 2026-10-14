@@ -7,6 +7,10 @@ import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/o
 import { AuthService as AuthChecker } from '@gitroom/helpers/auth/auth.service';
 import { AuthProviderManager } from '@gitroom/backend/services/auth/providers/providers.manager';
 import dayjs from 'dayjs';
+import {
+  signPurposeToken,
+  verifyPurposeToken,
+} from '@gitroom/helpers/auth/purpose.tokens';
 import { ForgotReturnPasswordDto } from '@gitroom/nestjs-libraries/dtos/auth/forgot-return.password.dto';
 import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
 import { NewsletterService } from '@gitroom/nestjs-libraries/newsletter/newsletter.service';
@@ -92,7 +96,12 @@ export class AuthService {
         await this._emailService.sendEmailSync(
           body.email,
           'Activate your account',
-          activationEmail(`${process.env.FRONTEND_URL}/auth/activate/${obj.jwt}`)
+          activationEmail(
+            `${process.env.FRONTEND_URL}/auth/activate/${signPurposeToken(
+              'activate',
+              { id: create.users[0].user.id, email: body.email }
+            )}`
+          )
         );
         return obj;
       }
@@ -235,10 +244,7 @@ export class AuthService {
       return false;
     }
 
-    const resetValues = AuthChecker.signJWT({
-      id: user.id,
-      expires: dayjs().add(20, 'minutes').format('YYYY-MM-DD HH:mm:ss'),
-    });
+    const resetValues = signPurposeToken('reset', { id: user.id });
 
     await this._emailService.sendEmailSync(
       user.email,
@@ -248,11 +254,8 @@ export class AuthService {
   }
 
   forgotReturn(body: ForgotReturnPasswordDto) {
-    const user = AuthChecker.verifyJWT(body.token) as {
-      id: string;
-      expires: string;
-    };
-    if (dayjs(user.expires).isBefore(dayjs())) {
+    const user = verifyPurposeToken(body.token, 'reset');
+    if (!user) {
       return false;
     }
 
@@ -260,14 +263,18 @@ export class AuthService {
   }
 
   async activate(code: string, tracking: string) {
-    const user = AuthChecker.verifyJWT(code) as {
+    const token = verifyPurposeToken(code, 'activate');
+    if (!token?.email) {
+      return false;
+    }
+    const user = { ...token, activated: false } as {
       id: string;
       activated: boolean;
       email: string;
     };
     if (user.id && !user.activated) {
       const getUserAgain = await this._userService.getUserByEmail(user.email);
-      if (getUserAgain.activated) {
+      if (!getUserAgain || getUserAgain.id !== user.id || getUserAgain.activated) {
         return false;
       }
       await this._userService.activateUser(user.id);
@@ -291,12 +298,15 @@ export class AuthService {
       throw new Error('Account is already activated');
     }
 
-    const jwt = await this.jwt(user);
-
     await this._emailService.sendEmailSync(
       user.email,
       'Activate your account',
-      activationEmail(`${process.env.FRONTEND_URL}/auth/activate/${jwt}`)
+      activationEmail(
+        `${process.env.FRONTEND_URL}/auth/activate/${signPurposeToken(
+          'activate',
+          { id: user.id, email: user.email }
+        )}`
+      )
     );
 
     return true;

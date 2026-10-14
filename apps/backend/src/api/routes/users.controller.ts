@@ -1,3 +1,4 @@
+import { isPurposeToken } from '@gitroom/helpers/auth/purpose.tokens';
 import {
   Body,
   Controller,
@@ -223,6 +224,9 @@ export class UsersController {
     try {
       const auth = (req.headers.auth as string) || req.cookies?.auth;
       const payload = AuthChecker.verifyJWT(auth) as { id?: string } | null;
+      if (isPurposeToken(payload)) {
+        return null;
+      }
       return payload?.id || null;
     } catch {
       return null;

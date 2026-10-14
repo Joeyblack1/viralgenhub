@@ -1,3 +1,4 @@
+import { isPurposeToken } from '@gitroom/helpers/auth/purpose.tokens';
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
@@ -43,7 +44,8 @@ export class AuthMiddleware implements NestMiddleware {
       const payload = AuthService.verifyJWT(auth) as User | null;
       const orgHeader = req.cookies.showorg || req.headers.showorg;
 
-      if (!payload?.id) {
+      // ViralGenHub: emailed activation / reset tokens are never sessions.
+      if (!payload?.id || isPurposeToken(payload)) {
         throw new HttpForbiddenException();
       }
 
