@@ -22,6 +22,12 @@ import { STRIPE_PROVIDER } from '@gitroom/nestjs-libraries/services/payment/paym
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_nothing');
 
+// ViralGenHub: charge in our own currency (STRIPE_CURRENCY, e.g. gbp), and
+// convert prices to the smallest unit with rounding (67.2 * 100 is not an
+// integer in floating point, and Stripe rejects non-integer amounts).
+const STRIPE_CURRENCY = (process.env.STRIPE_CURRENCY || 'usd').toLowerCase();
+const toMinor = (amount: number) => Math.round(amount * 100);
+
 @PaymentProvider({ provider: STRIPE_PROVIDER })
 export class StripeService extends PaymentProviderAbstract {
   platform: PaymentPlatform = 'web';
@@ -116,7 +122,7 @@ export class StripeService extends PaymentProviderAbstract {
     try {
       const paymentIntent = await stripe.paymentIntents.create({
         amount: 100,
-        currency: 'usd',
+        currency: STRIPE_CURRENCY,
         payment_method: latestMethod.id,
         customer: event.data.object.customer as string,
         off_session: true,
@@ -366,20 +372,21 @@ export class StripeService extends PaymentProviderAbstract {
             (body.period === 'MONTHLY' ? 'month' : 'year') &&
           p?.nickname === body.billing + ' ' + body.period &&
           p?.unit_amount ===
-            (body.period === 'MONTHLY'
+            toMinor(
+body.period === 'MONTHLY'
               ? priceData.month_price
-              : priceData.year_price) *
-              100
+              : priceData.year_price)
       ) ||
       (await stripe.prices.create({
         active: true,
         product: findProduct!.id,
-        currency: 'usd',
+        currency: STRIPE_CURRENCY,
         nickname: body.billing + ' ' + body.period,
         unit_amount:
-          (body.period === 'MONTHLY'
+          toMinor(
+body.period === 'MONTHLY'
             ? priceData.month_price
-            : priceData.year_price) * 100,
+            : priceData.year_price),
         recurring: {
           interval: body.period === 'MONTHLY' ? 'month' : 'year',
         },
@@ -945,20 +952,21 @@ export class StripeService extends PaymentProviderAbstract {
           p?.recurring?.interval?.toLowerCase() ===
             (body.period === 'MONTHLY' ? 'month' : 'year') &&
           p?.unit_amount ===
-            (body.period === 'MONTHLY'
+            toMinor(
+body.period === 'MONTHLY'
               ? priceData.month_price
-              : priceData.year_price) *
-              100
+              : priceData.year_price)
       ) ||
       (await stripe.prices.create({
         active: true,
         product: findProduct!.id,
-        currency: 'usd',
+        currency: STRIPE_CURRENCY,
         nickname: body.billing + ' ' + body.period,
         unit_amount:
-          (body.period === 'MONTHLY'
+          toMinor(
+body.period === 'MONTHLY'
             ? priceData.month_price
-            : priceData.year_price) * 100,
+            : priceData.year_price),
         recurring: {
           interval: body.period === 'MONTHLY' ? 'month' : 'year',
         },
@@ -1011,20 +1019,21 @@ export class StripeService extends PaymentProviderAbstract {
           p?.recurring?.interval?.toLowerCase() ===
             (body.period === 'MONTHLY' ? 'month' : 'year') &&
           p?.unit_amount ===
-            (body.period === 'MONTHLY'
+            toMinor(
+body.period === 'MONTHLY'
               ? priceData.month_price
-              : priceData.year_price) *
-              100
+              : priceData.year_price)
       ) ||
       (await stripe.prices.create({
         active: true,
         product: findProduct!.id,
-        currency: 'usd',
+        currency: STRIPE_CURRENCY,
         nickname: body.billing + ' ' + body.period,
         unit_amount:
-          (body.period === 'MONTHLY'
+          toMinor(
+body.period === 'MONTHLY'
             ? priceData.month_price
-            : priceData.year_price) * 100,
+            : priceData.year_price),
         recurring: {
           interval: body.period === 'MONTHLY' ? 'month' : 'year',
         },
@@ -1329,7 +1338,7 @@ export class StripeService extends PaymentProviderAbstract {
       name: `Admin coupon for ${org!.name}`,
       ...(body.type === 'percentage'
         ? { percent_off: body.value }
-        : { amount_off: Math.round(body.value * 100), currency: 'usd' }),
+        : { amount_off: Math.round(body.value * 100), currency: STRIPE_CURRENCY }),
       ...(body.months === 1
         ? { duration: 'once' }
         : { duration: 'repeating', duration_in_months: body.months }),
