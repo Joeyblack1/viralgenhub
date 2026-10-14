@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#4c1d95"/>
+    </linearGradient>
+  </defs>
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+  <!-- V whose right arm continues into a growth arrow (arrowhead on the arm's own axis) -->
+  <path d="M282 350 L482 760 L690 360" fill="none" stroke="#ffffff" stroke-width="112" stroke-linecap="round" stroke-linejoin="round"/>
+  <polygon points="768,209 801,418 579,302" fill="#ffffff"/>
+  <!-- spark inside the V -->
+  <path d="M486 258 L504 304 L550 322 L504 340 L486 386 L468 340 L422 322 L468 304 Z" fill="#fde68a"/>
+</svg>

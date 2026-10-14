@@ -1,5 +1,6 @@
 'use client';
 
+import { SourceFooter } from '@gitroom/frontend/components/layout/source.footer';
 import React, { ReactNode, useCallback, useEffect, useState } from 'react';
 import { Logo } from '@gitroom/frontend/components/new-layout/logo';
 import { Plus_Jakarta_Sans } from 'next/font/google';
@@ -189,6 +190,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                       </div>
                       <div className="flex flex-1 min-w-0 gap-[1px] mobile:flex-col">
                         {children}
+                        <SourceFooter />
                       </div>
                     </div>
                   </div>
