@@ -33,6 +33,9 @@ import {
   Disconnect,
 } from '@gitroom/nestjs-libraries/integrations/social.abstract';
 
+// ViralGenHub has a Free plan: no subscription is required to publish.
+const FREE_PLAN = true;
+
 // Drops fields the workflow and downstream activities never read — biggest wins are `error` (grows per retry) and `childrenPost` (Prisma side-loads it on every recursive row).
 function slimPost(post: any) {
   if (!post) return post;
@@ -153,7 +156,10 @@ export class PostActivity {
 
   @ActivityMethod()
   async getPost(orgId: string, postId: string) {
-    if (process.env.STRIPE_SECRET_KEY) {
+    // ViralGenHub: orgs without a paid subscription are on the Free plan and
+    // their posts must publish. Plan limits are enforced when posts and
+    // channels are created (PermissionsService), not here.
+    if (process.env.STRIPE_SECRET_KEY && !FREE_PLAN) {
       const subscription = await this._subscriptionService.getSubscription(
         orgId
       );
@@ -171,7 +177,7 @@ export class PostActivity {
 
   @ActivityMethod()
   async getPostsList(orgId: string, postId: string) {
-    if (process.env.STRIPE_SECRET_KEY) {
+    if (process.env.STRIPE_SECRET_KEY && !FREE_PLAN) {
       const subscription = await this._subscriptionService.getSubscription(
         orgId
       );
@@ -331,7 +337,7 @@ export class PostActivity {
     // the ones on their own HTTP client (x, youtube, bluesky) are still
     // narrowed down to the step they hung on.
     setHeartbeatDetails('subscription lookup');
-    if (process.env.STRIPE_SECRET_KEY) {
+    if (process.env.STRIPE_SECRET_KEY && !FREE_PLAN) {
       const subscription = await this._subscriptionService.getSubscription(
         integration.organizationId
       );

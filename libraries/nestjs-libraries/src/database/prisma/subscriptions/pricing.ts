@@ -139,3 +139,6 @@ export const planDisplayName = (tier: string) =>
 // 7 -> "7", 67.2 -> "67.20"
 export const formatPrice = (amount: number) =>
   Number.isInteger(amount) ? String(amount) : amount.toFixed(2);
+// Tiers shown on the billing pages. PRO and ULTIMATE stay in `pricing` for
+// upstream compatibility but are not sold.
+export const SOLD_TIERS = ['FREE', 'STANDARD', 'TEAM'];

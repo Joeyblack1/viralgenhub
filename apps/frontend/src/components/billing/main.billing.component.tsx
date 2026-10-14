@@ -16,6 +16,7 @@ import {
   CURRENCY_SYMBOL,
   planDisplayName,
   formatPrice,
+  SOLD_TIERS,
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { FAQComponent } from '@gitroom/frontend/components/billing/faq.component';
 import { useBillingFeatures } from '@gitroom/frontend/components/billing/first.billing.component';
@@ -786,7 +787,7 @@ export const MainBillingComponent: FC<{
     );
   }
   const yearly = monthlyOrYearly === 'on';
-  const tiers = Object.keys(pricing);
+  const tiers = Object.keys(pricing).filter((t) => SOLD_TIERS.includes(t));
   const currentTier = subscription?.subscriptionTier || 'FREE';
   const plans = tiers.filter((name) => !isGeneral || name !== 'FREE');
 

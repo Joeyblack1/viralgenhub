@@ -109,7 +109,10 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
               )}
             >
               <div>{user?.admin ? <Impersonate /> : <div />}</div>
-              {user.tier === 'FREE' && isGeneral && billingEnabled ? (
+              {/* ViralGenHub has a real Free plan (limits are enforced by the
+                  backend policies), so FREE users get the app, not a paywall;
+                  upgrades live under Billing. */}
+              {false ? (
                 <FirstBillingComponent />
               ) : (
                 <>

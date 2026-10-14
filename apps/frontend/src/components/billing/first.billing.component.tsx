@@ -16,6 +16,7 @@ import {
   CURRENCY_SYMBOL,
   planDisplayName,
   formatPrice,
+  SOLD_TIERS,
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { capitalize } from 'lodash';
 import clsx from 'clsx';
@@ -122,7 +123,10 @@ export const FirstBillingComponent = () => {
   }, [data?.blocked, mutate]);
 
   const price = useMemo(
-    () => Object.entries(pricing).filter(([key, value]) => key !== 'FREE'),
+    () =>
+      Object.entries(pricing).filter(
+        ([key]) => key !== 'FREE' && SOLD_TIERS.includes(key)
+      ),
     []
   );
 
