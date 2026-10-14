@@ -1,0 +1,57 @@
+---
+name: "Upstream Postiz sync"
+
+# Checks gitroomhq/postiz-app once a month (and on demand). When upstream has
+# new commits, it merges them into a branch and opens a PR against main. If the
+# merge conflicts, it opens an issue instead. GitHub emails the repo owner
+# either way, which is how we find out it is time to update.
+
+on:
+  schedule:
+    - cron: '17 6 1 * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Compare with upstream
+        id: cmp
+        run: |
+          git remote add upstream https://github.com/gitroomhq/postiz-app.git
+          git fetch upstream main --quiet
+          BEHIND=$(git rev-list --count HEAD..upstream/main)
+          echo "behind=$BEHIND" >> "$GITHUB_OUTPUT"
+          echo "Behind upstream by $BEHIND commits"
+
+      - name: Merge upstream and open a PR
+        if: steps.cmp.outputs.behind != '0'
+        run: |
+          BRANCH="sync/upstream-$(date +%Y-%m)"
+          BEHIND="${{ steps.cmp.outputs.behind }}"
+          git config user.name "viralgenhub-sync"
+          git config user.email "sync@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          if git merge upstream/main -m "Merge upstream Postiz ($BEHIND commits)"; then
+            git push origin "$BRANCH" --force
+            gh pr create --base main --head "$BRANCH" \
+              --title "Sync upstream Postiz ($BEHIND commits)" \
+              --body "Monthly sync. Before merging: run the TikTok guideline tests (tiktok.dto.spec.ts) and re-check the TikTok composer in a browser. Our patch is isolated to the TikTok provider, branding and tracking removal." \
+              || gh pr list --head "$BRANCH"
+          else
+            git merge --abort
+            gh issue create \
+              --title "Upstream Postiz sync has conflicts ($BEHIND commits behind)" \
+              --body "The automatic merge of upstream/main failed. Merge it by hand: git fetch upstream && git merge upstream/main. Conflicts are most likely in the TikTok provider, layout.tsx or the logo components."
+          fi
