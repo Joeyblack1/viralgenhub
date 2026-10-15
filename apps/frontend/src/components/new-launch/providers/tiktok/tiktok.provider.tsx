@@ -410,7 +410,10 @@ const TikTokSettings: FC<{
               value: false,
             })}
           />
-          {disclose && (
+          {/* TikTok: the label follows the choice - "Promotional content" for
+              Your brand only, "Paid partnership" once Branded content is ticked,
+              and nothing until one of them is chosen */}
+          {disclose && (brand_organic_toggle || brand_content_toggle) && (
             <div className="bg-tableBorder p-[10px] mt-[10px] rounded-[10px] flex gap-[20px] items-center">
               <div>
                 <svg

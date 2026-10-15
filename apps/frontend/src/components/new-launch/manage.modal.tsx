@@ -776,7 +776,12 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
         if (!addEditSets) {
           mutate();
           toaster.show(
-            !existingData.integration
+            type === 'now'
+              ? t(
+                  'published_may_take_minutes',
+                  'Sent for publishing. It may take a few minutes for your post to appear on each platform.'
+                )
+              : !existingData.integration
               ? t('added_successfully', 'Added successfully')
               : t('updated_successfully', 'Updated successfully')
           );
