@@ -4,6 +4,7 @@ import {
   FC,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -60,18 +61,25 @@ const TikTokSettings: FC<{
   const hasMedia = (value?.[0]?.image?.length ?? 0) > 0;
   const isVideo = hasMedia && !isTitle;
 
+  // Once per channel each time the composer opens. useCustomProviderFunction()
+  // returns a new object on every render, so it must not be a dependency: that
+  // re-ran this effect on every render and looped creator_info requests.
+  const getRef = useRef(customFunc.get);
+  getRef.current = customFunc.get;
+  const integrationId = integration?.id;
   useEffect(() => {
+    if (!integrationId) return;
     let alive = true;
     setCreatorLoading(true);
-    customFunc
-      .get('creatorInfo')
+    getRef
+      .current('creatorInfo')
       .then((info) => alive && setCreator(info || { canPost: false }))
       .catch(() => alive && setCreator({ canPost: false }))
       .finally(() => alive && setCreatorLoading(false));
     return () => {
       alive = false;
     };
-  }, [customFunc]);
+  }, [integrationId]);
 
   const videoPath = isVideo ? value?.[0]?.image?.[0]?.path : undefined;
   useEffect(() => {
@@ -439,7 +447,7 @@ const TikTokSettings: FC<{
           <div className="text-[14px] my-[10px] text-balance">
             {t(
               'turn_on_to_disclose_video_promotes',
-              'Turn on to disclose that this video promotes goods or services in\n          exchange for something of value. You video could promote yourself, a\n          third party, or both.'
+              'Turn on to disclose that this video promotes goods or services in\n          exchange for something of value. Your video could promote yourself, a\n          third party, or both.'
             )}
           </div>
         </div>
