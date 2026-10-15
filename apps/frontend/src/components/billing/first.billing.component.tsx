@@ -382,10 +382,8 @@ export const useBillingFeatures = (tier: string) => {
         defaultValue: 'AI Autocomplete',
       });
     }
-    list.push({
-      key: 'billing_advanced_picture_editor',
-      defaultValue: 'Advanced Picture Editor',
-    });
+    // ViralGenHub: the picture editor (Polotno) needs a licence key we have
+    // not configured, so it is not advertised as a plan feature.
     if (currentPricing?.image_generator) {
       list.push({
         key: 'billing_ai_images_per_month',

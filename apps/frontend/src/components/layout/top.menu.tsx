@@ -71,6 +71,8 @@ export const useMenuItem = () => {
         </svg>
       ),
       path: '/agents',
+      // ViralGenHub: AI agent needs AI provider keys we have not configured.
+      hide: true,
     },
     {
       name: t('analytics', 'Analytics'),
@@ -217,6 +219,8 @@ export const useMenuItem = () => {
       role: ['ADMIN', 'SUPERADMIN', 'USER'],
       requireBilling: true,
       onClick: handleAgentMediaClick,
+      // ViralGenHub: 'Make UGC' is Postiz's own paid service.
+      hide: true,
     },
     {
       name: t('affiliate', 'Affiliate'),
@@ -275,6 +279,8 @@ export const useMenuItem = () => {
       path: 'https://affiliate.postiz.com',
       role: ['ADMIN', 'SUPERADMIN', 'USER'],
       requireBilling: true,
+      // ViralGenHub: Postiz's affiliate programme, not ours.
+      hide: true,
     },
     {
       name: t('billing', 'Billing'),
