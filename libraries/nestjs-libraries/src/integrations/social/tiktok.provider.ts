@@ -6,6 +6,7 @@ import {
   PostResponse,
   SocialProvider,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
+import { Logger } from '@nestjs/common';
 import dayjs from 'dayjs';
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
 import {
@@ -35,6 +36,7 @@ const creatorInfoCache = new Map<string, { at: number; info: any }>();
   ].join(' ')
 )
 export class TiktokProvider extends SocialAbstract implements SocialProvider {
+  private readonly logger = new Logger(TiktokProvider.name);
   identifier = 'tiktok';
   name = 'TikTok';
   isBetweenSteps = false;
@@ -539,6 +541,11 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
       // Transient API error while checking the status: the post may already
       // be live, so keep polling instead of failing it - if the API stays
       // broken the caller exhausts its checks and warns the user properly.
+      this.logger.warn(
+        `TikTok status fetch failed for publish_id=${pendingData.publishId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
       return { status: 'pending', pendingData };
     }
 
@@ -576,6 +583,15 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
       );
     }
 
+    // PROCESSING_UPLOAD / PROCESSING_DOWNLOAD are expected while TikTok works;
+    // anything else (or an error body) is what we need to see in the logs.
+    this.logger.log(
+      `TikTok publish_id=${pendingData.publishId} still pending: status=${
+        status ?? 'none'
+      } error_code=${post?.error?.code ?? 'none'} fail_reason=${
+        post?.data?.fail_reason ?? 'none'
+      }`
+    );
     return { status: 'pending', pendingData };
   }
 
