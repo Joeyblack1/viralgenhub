@@ -23,6 +23,9 @@ import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/s
 import { Integration } from '@prisma/client';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
 
+const CREATOR_INFO_TTL_MS = 15_000;
+const creatorInfoCache = new Map<string, { at: number; info: any }>();
+
 @Rules(
   [
     'TikTok can have one video or one picture or multiple pictures, it cannot be without an attachment.',
@@ -428,6 +431,21 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
   // and the max video length. `canPost` is false when TikTok says the creator
   // cannot post right now.
   async creatorInfo(accessToken: string) {
+    // Reuse an answer for a few seconds so a misbehaving client cannot flood
+    // TikTok's API (and get the app rate-limited); still live for each opening.
+    const cached = creatorInfoCache.get(accessToken);
+    if (cached && cached.at > Date.now() - CREATOR_INFO_TTL_MS) {
+      return cached.info;
+    }
+    const info = await this.fetchCreatorInfo(accessToken);
+    creatorInfoCache.set(accessToken, { at: Date.now(), info });
+    if (creatorInfoCache.size > 500) {
+      creatorInfoCache.delete(creatorInfoCache.keys().next().value!);
+    }
+    return info;
+  }
+
+  private async fetchCreatorInfo(accessToken: string) {
     const res = await fetch(
       'https://open.tiktokapis.com/v2/post/publish/creator_info/query/',
       {
