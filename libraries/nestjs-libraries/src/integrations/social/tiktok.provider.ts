@@ -885,6 +885,10 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
         duplex: 'half',
       } as any);
 
+      this.logger.log(
+        `TikTok upload chunk ${i + 1}/${totalChunkCount} bytes ${start}-${end}/${videoSize}: HTTP ${upload.status}`
+      );
+
       if (
         upload.status !== 200 &&
         upload.status !== 201 &&
@@ -976,6 +980,12 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
       )
     ).json();
 
+    if (!isPhoto && (!upload_url || !videoSize)) {
+      this.logger.warn(
+        `TikTok init for publish_id=${publish_id} returned no upload_url (videoSize=${videoSize}), no bytes were sent`
+      );
+    }
+
     // Videos: stream the bytes to the upload_url returned by the init call.
     if (!isPhoto && upload_url && videoSize) {
       try {
@@ -990,6 +1000,12 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
         if (err instanceof BadBody) {
           throw err;
         }
+
+        this.logger.warn(
+          `TikTok upload threw before completing publish_id=${publish_id}: ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        );
 
         // A network error here is ambiguous - TikTok may have received all
         // the bytes and still publish. Return pending and let checkPostStatus
