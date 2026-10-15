@@ -26,6 +26,11 @@ export const StreakComponent: FC = () => {
     return `You're on a ${streakDays} day posting streak! Keep it going!`;
   }, [streakDays]);
 
+  // ViralGenHub hides the posting streak; set NEXT_PUBLIC_SHOW_STREAK to restore.
+  if (!process.env.NEXT_PUBLIC_SHOW_STREAK) {
+    return null;
+  }
+
   if (!user?.streakSince || streakDays <= 0) {
     return null;
   }
