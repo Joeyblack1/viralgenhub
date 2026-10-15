@@ -21,3 +21,5 @@ dist
 .git
 .github
 reports
+# ViralGenHub: never bake a local .env into an image
+.env
