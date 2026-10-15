@@ -19,7 +19,7 @@ export const SourceFooter = () => (
     </a>{' '}
     ·{' '}
     <a
-      href="https://viralgenhub.com/privacy.html"
+      href="https://viralgenhub.com/privacy"
       target="_blank"
       rel="noreferrer"
       className="underline"

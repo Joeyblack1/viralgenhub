@@ -783,8 +783,8 @@ const PublicApiContent = () => {
         )}
         <br />
         {t(
-          'api_auth_note_line4',
-          'and you will receive a pos_ prefixed token that works with the API, MCP, and CLI — just like an API Key.'
+          'api_auth_note_line4_api_mcp',
+          'and you will receive a pos_ prefixed token that works with the API and MCP, just like an API Key.'
         )}
       </div>
       <div className="bg-newBgColorInnerInner rounded-[12px] border border-newBorder overflow-hidden">
@@ -926,7 +926,7 @@ export const PublicComponent = () => {
 
   return (
     <div className="flex flex-col gap-[20px]">
-      <h3 className="text-[20px]">{t('agents', 'Agents')}</h3>
+      <h3 className="text-[20px]">{t('api_and_mcp', 'API & MCP')}</h3>
       <PublicApiContent />
     </div>
   );
