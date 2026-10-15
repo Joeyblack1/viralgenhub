@@ -55,7 +55,7 @@ export const LogoutComponent: FC<{ isIcon?: boolean }> = ({ isIcon }) => {
         ) : (
           <span className="text-red-400">
             {t('logout_from', 'Logout from')}
-             ViralGenHub
+            {' ViralGenHub'}
           </span>
         )}
       </div>
