@@ -36,14 +36,12 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
   name = 'TikTok';
   isBetweenSteps = false;
   convertToJPEG = true;
-  scopes = [
-    'video.list',
-    'user.info.basic',
-    'video.publish',
-    'video.upload',
-    'user.info.profile',
-    'user.info.stats',
-  ];
+  // ViralGenHub: only the three scopes our TikTok app is approved for. TikTok
+  // rejects the whole authorize request (invalid_scope) if we ask for more.
+  // Without user.info.profile the username comes from creator_info (covered by
+  // video.publish); without video.list/user.info.stats the TikTok analytics
+  // and share-URL lookups are unavailable.
+  scopes = ['user.info.basic', 'video.publish', 'video.upload'];
   override maxConcurrentJob = 10000;
   dto = TikTokDto;
   editor = 'normal' as const;
@@ -313,11 +311,11 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
 
     const {
       data: {
-        user: { avatar_url, display_name, open_id, username },
+        user: { avatar_url, display_name, open_id },
       },
     } = await (
       await fetch(
-        'https://open.tiktokapis.com/v2/user/info/?fields=open_id,avatar_url,display_name,union_id,username',
+        'https://open.tiktokapis.com/v2/user/info/?fields=open_id,avatar_url,display_name,union_id',
         {
           method: 'GET',
           headers: {
@@ -334,7 +332,7 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
       id: open_id.replace(/-/g, ''),
       name: display_name,
       picture: avatar_url || '',
-      username: username,
+      username: await this.tiktokUsername(access_token, display_name),
     };
   }
 
@@ -392,11 +390,11 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
 
     const {
       data: {
-        user: { avatar_url, display_name, open_id, username },
+        user: { avatar_url, display_name, open_id },
       },
     } = await (
       await fetch(
-        'https://open.tiktokapis.com/v2/user/info/?fields=open_id,avatar_url,display_name,union_id,username',
+        'https://open.tiktokapis.com/v2/user/info/?fields=open_id,avatar_url,display_name,union_id',
         {
           method: 'GET',
           headers: {
@@ -413,8 +411,15 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
       refreshToken: refresh_token,
       expiresIn: dayjs().add(23, 'hours').unix() - dayjs().unix(),
       picture: avatar_url,
-      username: username,
+      username: await this.tiktokUsername(access_token, display_name),
     };
+  }
+
+  // The @handle needs user.info.profile, which we do not request; creator_info
+  // returns it under the video.publish scope.
+  private async tiktokUsername(accessToken: string, fallback: string) {
+    const info = await this.creatorInfo(accessToken);
+    return (info.canPost && info.username) || fallback;
   }
 
   // Live creator_info/query. TikTok's Content Sharing Guidelines require the
