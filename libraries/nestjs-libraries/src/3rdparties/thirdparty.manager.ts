@@ -14,8 +14,15 @@ export class ThirdPartyManager {
   ) {}
 
   getAllThirdParties(): any[] {
-    return (Reflect.getMetadata('third:party', ThirdPartyAbstract) || []).map(
-      (p: any) => ({
+    // ViralGenHub: HeyGen and Reel.Farm are not configured and AI is off, so hide
+    // them. Override with HIDDEN_THIRD_PARTIES=comma,list (empty string shows all).
+    const hidden = (process.env.HIDDEN_THIRD_PARTIES ?? 'heygen,reelfarm')
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+    return (Reflect.getMetadata('third:party', ThirdPartyAbstract) || [])
+      .filter((p: any) => !hidden.includes(p.identifier))
+      .map((p: any) => ({
         identifier: p.identifier,
         title: p.title,
         description: p.description,

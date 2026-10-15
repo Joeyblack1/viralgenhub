@@ -749,7 +749,7 @@ export const LaunchesComponent = () => {
               )}
               <div>
                 {process.env.NEXT_PUBLIC_VERSION
-                  ? process.env.NEXT_PUBLIC_VERSION
+                  ? process.env.NEXT_PUBLIC_VERSION.slice(0, 7)
                   : ''}
               </div>
             </div>
