@@ -17,6 +17,7 @@ import { Select } from '@gitroom/react/form/select';
 import { Checkbox } from '@gitroom/react/form/checkbox';
 import clsx from 'clsx';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useIntegration } from '@gitroom/frontend/components/launches/helpers/use.integration';
 import { Input } from '@gitroom/react/form/input';
 import { useCustomProviderFunction } from '@gitroom/frontend/components/launches/helpers/use.custom.provider.function';
@@ -123,6 +124,22 @@ const TikTokSettings: FC<{
   const brand_content_toggle = watch('brand_content_toggle');
   const content_posting_method = watch('content_posting_method');
   const isUploadMode = content_posting_method === 'UPLOAD';
+
+  // Content Sharing Guidelines: with "Disclose video content" on and neither
+  // "Your brand" nor "Branded content" ticked, publishing is disabled and the
+  // composer shows this sentence as the button's hover text.
+  const setPublishBlocked = useLaunchStore((state) => state.setPublishBlocked);
+  const disclosureReason =
+    !isUploadMode && disclose && !brand_organic_toggle && !brand_content_toggle
+      ? t(
+          'tiktok_disclosure_hover',
+          'You need to indicate if your content promotes yourself, a third party, or both.'
+        )
+      : undefined;
+  useEffect(() => {
+    setPublishBlocked(integration?.id, disclosureReason);
+    return () => setPublishBlocked(integration?.id, undefined);
+  }, [integration?.id, disclosureReason, setPublishBlocked]);
 
   // TikTok ignores every setting except the title / content when the posting
   // method is UPLOAD, so we hide them rather than pretend they apply. The fields
@@ -302,7 +319,7 @@ const TikTokSettings: FC<{
           </option>
         ))}
       </Select>
-      {isUploadMode && <div className="-mt-[23px] mb-[23px] text-red-600">After posting you fill find a notification inside your Inbox about your post (not content studio)</div>}
+      {isUploadMode && <div className="-mt-[23px] mb-[23px] text-red-600">After posting you will find a notification inside your Inbox about your post (not content studio)</div>}
       <div className={clsx('flex flex-col', directPostOnly)}>
         <Select
           label={
