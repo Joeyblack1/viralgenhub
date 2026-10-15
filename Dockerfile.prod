@@ -67,6 +67,21 @@ RUN set -eux; \
     find node_modules -type f \( -name '*.d.ts' -o -name '*.d.mts' -o -name '*.d.cts' \) \
       -not -path '*/typescript/*' -delete
 
+# Build and dev tools that sit in "dependencies" but never run in the
+# container (about 240 MB):
+#  - @next/swc-*: `next start` does not load SWC (only `next build`/`next dev`)
+#  - @nestjs/cli: only `nest build`; the apps start with plain `node`
+#  - sentry-cli binaries: only used to upload source maps during a build
+#  - React Native tooling binaries pulled in by a frontend dependency
+#    (Hermes compiler, dotslash, debugger frontend)
+RUN set -eux; \
+    rm -rf node_modules/@next/swc-linux-* \
+           node_modules/@nestjs/cli \
+           node_modules/hermes-compiler/hermesc \
+           node_modules/fb-dotslash/bin \
+           node_modules/@react-native/debugger-frontend; \
+    find node_modules -type f -path '*/@sentry/cli-linux-*/bin/sentry-cli' -delete
+
 # ---------------------------------------------------------------- runtime ---
 FROM ${NODE_IMAGE} AS runtime
 
