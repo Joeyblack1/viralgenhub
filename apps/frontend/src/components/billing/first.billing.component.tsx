@@ -314,10 +314,20 @@ type FeatureItem = {
   prefix?: string | number;
 };
 
+// ViralGenHub: plans read "Everything in <previous plan>, plus:" and list only
+// what they add, so this is the plan sold just below `tier` (null for the first).
+export const previousSoldTier = (tier: string) => {
+  const sold = Object.keys(pricing).filter((key) => SOLD_TIERS.includes(key));
+  const index = sold.indexOf(tier);
+  return index > 0 ? sold[index - 1] : null;
+};
+
 export const useBillingFeatures = (tier: string) => {
   const t = useT();
   const features = useMemo(() => {
     const currentPricing = pricing[tier];
+    const previousTier = previousSoldTier(tier);
+    const previous = previousTier ? pricing[previousTier] : undefined;
     const channelsOr = currentPricing.channel;
     const list: FeatureItem[] = [];
 
@@ -327,19 +337,50 @@ export const useBillingFeatures = (tier: string) => {
       prefix: channelsOr,
     });
 
-    list.push({
-      key: 'billing_posts_per_month',
-      defaultValue: 'posts per month',
-      prefix:
-        currentPricing.posts_per_month > 10000
-          ? 'unlimited'
-          : currentPricing.posts_per_month,
-    });
+    if (
+      !previous ||
+      previous.posts_per_month !== currentPricing.posts_per_month
+    ) {
+      list.push({
+        key: 'billing_posts_per_month',
+        defaultValue: 'posts per month',
+        prefix:
+          currentPricing.posts_per_month > 10000
+            ? 'unlimited'
+            : currentPricing.posts_per_month,
+      });
+    }
 
-    if (currentPricing.team_members) {
+    if (!previous) {
+      list.push({
+        key: 'billing_calendar_scheduling_media',
+        defaultValue: 'Calendar, scheduling and media library',
+      });
+    }
+
+    if (currentPricing.public_api && !previous?.public_api) {
+      list.push({ key: 'billing_public_api', defaultValue: 'Public API' });
+    }
+
+    if (currentPricing.webhooks > (previous?.webhooks || 0)) {
+      list.push({
+        key: 'billing_webhooks',
+        defaultValue: 'webhooks',
+        prefix: currentPricing.webhooks,
+      });
+    }
+
+    if (currentPricing.team_members && !previous?.team_members) {
       list.push({
         key: 'billing_unlimited_team_members',
         defaultValue: 'Unlimited team members',
+      });
+    }
+
+    if (currentPricing.autoPost && !previous?.autoPost) {
+      list.push({
+        key: 'billing_rss_auto_post',
+        defaultValue: 'Auto-post from RSS feeds',
       });
     }
     if (currentPricing?.ai) {

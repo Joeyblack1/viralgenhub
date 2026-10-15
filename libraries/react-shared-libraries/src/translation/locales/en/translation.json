@@ -879,5 +879,10 @@
   "post_now_all_channels": "Post all channels now",
   "schedule_post_in_all_channels_question": "This post was created for more than one channel. Do you want to schedule all of them?",
   "schedule_all_channels": "Schedule all channels",
-  "only_channel": "Only"
+  "only_channel": "Only",
+  "billing_everything_in_plus": "Everything in {{plan}}, plus:",
+  "billing_calendar_scheduling_media": "Calendar, scheduling and media library",
+  "billing_public_api": "Public API",
+  "billing_webhooks": "webhooks",
+  "billing_rss_auto_post": "Auto-post from RSS feeds"
 }

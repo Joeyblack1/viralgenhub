@@ -19,7 +19,10 @@ import {
   SOLD_TIERS,
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { FAQComponent } from '@gitroom/frontend/components/billing/faq.component';
-import { useBillingFeatures } from '@gitroom/frontend/components/billing/first.billing.component';
+import {
+  useBillingFeatures,
+  previousSoldTier,
+} from '@gitroom/frontend/components/billing/first.billing.component';
 import { BillingHistory } from '@gitroom/frontend/components/billing/billing.history.component';
 import useSWR, { useSWRConfig } from 'swr';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
@@ -196,10 +199,8 @@ const BillingCycle: FC<{
               {'. '}
             </>
           )}
-          {t(
-            'billing_ai_credits_reset_monthly',
-            'AI credits reset every month.'
-          )}
+          {!!usage.length &&
+            t('billing_ai_credits_reset_monthly', 'AI credits reset every month.')}
         </div>
       </div>
       <div className="flex gap-[8px] mobile:flex-col">
@@ -251,6 +252,7 @@ const PlanCard: FC<{
     props;
   const t = useT();
   const features = useBillingFeatures(name);
+  const includes = previousSoldTier(name);
 
   return (
     <div
@@ -348,6 +350,18 @@ const PlanCard: FC<{
         )}
       />
       <div className="flex flex-col gap-[12px] text-[14px] leading-[20px]">
+        {!!includes && (
+          <div
+            className={clsx(
+              'font-[600]',
+              current ? 'text-white' : 'text-newTextColor'
+            )}
+          >
+            {t('billing_everything_in_plus', 'Everything in {{plan}}, plus:', {
+              plan: planDisplayName(includes),
+            })}
+          </div>
+        )}
         {features.map((feature) => (
           <div
             key={feature.key}
@@ -789,7 +803,8 @@ export const MainBillingComponent: FC<{
   const yearly = monthlyOrYearly === 'on';
   const tiers = Object.keys(pricing).filter((t) => SOLD_TIERS.includes(t));
   const currentTier = subscription?.subscriptionTier || 'FREE';
-  const plans = tiers.filter((name) => !isGeneral || name !== 'FREE');
+  // ViralGenHub: Free is shown too, so paid plans can read "Everything in Free, plus".
+  const plans = tiers;
 
   const planAction = (name: string): PlanAction => {
     if (currentPackage === name && subscription?.cancelAt) {
@@ -900,7 +915,11 @@ export const MainBillingComponent: FC<{
       <div
         className={clsx(
           'grid gap-[16px] tablet:grid-cols-2 mobile:!grid-cols-1',
-          plans.length > 4 ? 'grid-cols-5' : 'grid-cols-4'
+          plans.length > 4
+            ? 'grid-cols-5'
+            : plans.length === 4
+            ? 'grid-cols-4'
+            : 'grid-cols-3'
         )}
       >
         {plans.map((name) => {
