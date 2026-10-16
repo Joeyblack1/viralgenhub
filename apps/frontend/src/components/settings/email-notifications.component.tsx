@@ -99,9 +99,7 @@ const EmailNotificationsComponent = () => {
   if (isLoading) {
     return (
       <div className="my-[16px] mt-[16px] bg-sixth border-fifth border rounded-[4px] p-[24px]">
-        <div className="animate-pulse">
-          {t('loading', 'Loading...')}
-        </div>
+        <div className="animate-pulse">{t('loading', 'Loading...')}</div>
       </div>
     );
   }
@@ -147,27 +145,28 @@ const EmailNotificationsComponent = () => {
           fill={true}
         />
       </div>
-      <div className="flex items-center justify-between">
-        <div className="flex flex-col">
-          <div className="text-[14px]">
-            {t('streak_emails', 'Streak Reminder Emails')}
+      {!!process.env.NEXT_PUBLIC_SHOW_STREAK && (
+        <div className="flex items-center justify-between">
+          <div className="flex flex-col">
+            <div className="text-[14px]">
+              {t('streak_emails', 'Streak Reminder Emails')}
+            </div>
+            <div className="text-[12px] text-customColor18">
+              {t(
+                'streak_emails_description',
+                'Receive email reminders when your posting streak is about to end'
+              )}
+            </div>
           </div>
-          <div className="text-[12px] text-customColor18">
-            {t(
-              'streak_emails_description',
-              'Receive email reminders when your posting streak is about to end'
-            )}
-          </div>
+          <Slider
+            value={localSettings.sendStreakEmails ? 'on' : 'off'}
+            onChange={handleStreakEmailsChange}
+            fill={true}
+          />
         </div>
-        <Slider
-          value={localSettings.sendStreakEmails ? 'on' : 'off'}
-          onChange={handleStreakEmailsChange}
-          fill={true}
-        />
-      </div>
+      )}
     </div>
   );
 };
 
 export default EmailNotificationsComponent;
-

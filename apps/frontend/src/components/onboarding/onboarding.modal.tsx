@@ -30,18 +30,34 @@ interface OnboardingModalProps {
 }
 
 export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
   const modals = useModals();
   const t = useT();
+  const user = useUser();
+  const agentsAvailable = !!user?.publicApi && !!user?.tier?.public_api;
+  const tutorialUrl = process.env.NEXT_PUBLIC_ONBOARDING_TUTORIAL_URL;
 
   const steps = useMemo(
-    () => [
-      t('connect_channels', 'Connect Channels'),
-      t('connect_agents', 'Connect Agents'),
-      t('watch_tutorial', 'Watch Tutorial'),
-    ],
-    [t]
+    () =>
+      [
+        { id: 'channels', label: t('connect_channels', 'Connect Channels') },
+        agentsAvailable && {
+          id: 'agents',
+          label: t('connect_agents', 'Connect Agents'),
+        },
+        tutorialUrl && {
+          id: 'tutorial',
+          label: t('watch_tutorial', 'Watch Tutorial'),
+        },
+      ].filter(Boolean) as { id: string; label: string }[],
+    [t, agentsAvailable, tutorialUrl]
   );
+
+  const current = Math.min(step, steps.length - 1);
+  const currentId = steps[current].id;
+  const next = () =>
+    current < steps.length - 1 ? setStep(current + 1) : onClose();
+  const back = () => setStep(Math.max(current - 1, 0));
 
   return (
     <div className="w-full min-h-full flex-1 p-[24px] flex relative">
@@ -71,8 +87,8 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
           <div className="flex flex-col gap-[24px] flex-1">
             {/* Step indicators */}
             <div className="flex items-center justify-center gap-[16px]">
-              {steps.map((label, index) => (
-                <Fragment key={label}>
+              {steps.map(({ id, label }, index) => (
+                <Fragment key={id}>
                   {index > 0 && (
                     <div className="w-[40px] h-[2px] bg-boxFocused" />
                   )}
@@ -80,7 +96,7 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
                     <div
                       className={clsx(
                         'w-[32px] h-[32px] rounded-full flex items-center justify-center text-[14px] font-semibold transition-colors',
-                        step === index + 1
+                        current === index
                           ? 'bg-boxFocused text-textItemFocused'
                           : 'bg-newTableHeader'
                       )}
@@ -90,7 +106,7 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
                     <span
                       className={clsx(
                         'text-[14px]',
-                        step === index + 1 ? 'font-medium' : 'text-textColor'
+                        current === index ? 'font-medium' : 'text-textColor'
                       )}
                     >
                       {label}
@@ -101,20 +117,18 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
             </div>
 
             {/* Step content */}
-            {step === 1 && (
-              <OnboardingStep1
-                onNext={() => setStep(2)}
-                onSkip={() => setStep(2)}
-              />
+            {currentId === 'channels' && (
+              <OnboardingStep1 onNext={next} onSkip={next} />
             )}
-            {step === 2 && (
-              <OnboardingStep2
-                onBack={() => setStep(1)}
-                onNext={() => setStep(3)}
-              />
+            {currentId === 'agents' && (
+              <OnboardingStep2 onBack={back} onNext={next} />
             )}
-            {step === 3 && (
-              <OnboardingStep3 onBack={() => setStep(2)} onFinish={onClose} />
+            {currentId === 'tutorial' && tutorialUrl && (
+              <OnboardingStep3
+                url={tutorialUrl}
+                onBack={back}
+                onFinish={onClose}
+              />
             )}
           </div>
         </div>
@@ -629,7 +643,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
         <div className="bg-newTableHeader rounded-[8px] p-[16px] text-[14px] text-customColor18 text-center w-full max-w-[860px] mx-auto">
           {t(
             'agent_access_unavailable',
-            'Agent access is not available for your current plan or role. You can set it up later under Settings > Agents.'
+            'Agent access is not available for your current plan or role. You can set it up later under Settings > API & MCP.'
           )}
         </div>
       )}
@@ -660,7 +674,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
         <div className="text-[13px] text-customColor18 text-center">
           {t(
             'agent_settings_later',
-            'More agents and full instructions are available under Settings > Agents'
+            'More agents and full instructions are available under Settings > API & MCP'
           )}
         </div>
         <button
@@ -689,27 +703,37 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
   );
 };
 
-const OnboardingStep3: FC<{ onBack: () => void; onFinish: () => void }> = ({
-  onBack,
-  onFinish,
-}) => {
+const OnboardingStep3: FC<{
+  url: string;
+  onBack: () => void;
+  onFinish: () => void;
+}> = ({ url, onBack, onFinish }) => {
   const t = useT();
 
   return (
     <div className="flex flex-col gap-[24px] flex-1">
       <div className="flex gap-[4px] flex-col text-center">
         <div className="text-[24px] font-semibold">
-          {t('onboarding_ready_title', 'You are ready to go')}
+          {t('watch_tutorial_title', 'Learn How to Use ViralGenHub')}
         </div>
         <div className="text-[14px] text-customColor18">
           {t(
-            'onboarding_ready_description',
-            'Connect a channel and schedule your first post.'
+            'watch_tutorial_description',
+            'Watch this short video to learn how to get the most out of ViralGenHub'
           )}
         </div>
       </div>
 
-      <div className="flex-1" />
+      <div className="relative flex-1 rounded-[12px] overflow-hidden">
+        <div className="absolute left-0 top-0 w-full h-full flex justify-center">
+          <iframe
+            className="h-full aspect-video"
+            src={url}
+            title={t('watch_tutorial', 'Watch Tutorial')}
+            allowFullScreen
+          />
+        </div>
+      </div>
 
       {/* Action buttons */}
       <div className="flex justify-between pt-[24px] mt-[8px]">
