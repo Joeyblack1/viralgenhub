@@ -125,17 +125,26 @@ const TikTokSettings: FC<{
   const content_posting_method = watch('content_posting_method');
   const isUploadMode = content_posting_method === 'UPLOAD';
 
+  const privacy_level = watch('privacy_level');
+
   // Content Sharing Guidelines: with "Disclose video content" on and neither
   // "Your brand" nor "Branded content" ticked, publishing is disabled and the
-  // composer shows this sentence as the button's hover text.
+  // composer shows this sentence as the button's hover text. Branded content
+  // cannot be private, so "Only me" blocks publishing the same way.
   const setPublishBlocked = useLaunchStore((state) => state.setPublishBlocked);
-  const disclosureReason =
-    !isUploadMode && disclose && !brand_organic_toggle && !brand_content_toggle
-      ? t(
-          'tiktok_disclosure_hover',
-          'You need to indicate if your content promotes yourself, a third party, or both.'
-        )
-      : undefined;
+  const disclosureReason = isUploadMode
+    ? undefined
+    : disclose && !brand_organic_toggle && !brand_content_toggle
+    ? t(
+        'tiktok_disclosure_hover',
+        'You need to indicate if your content promotes yourself, a third party, or both.'
+      )
+    : disclose && brand_content_toggle && privacy_level === 'SELF_ONLY'
+    ? t(
+        'tiktok_branded_not_private',
+        'Branded content visibility cannot be set to private.'
+      )
+    : undefined;
   useEffect(() => {
     setPublishBlocked(integration?.id, disclosureReason);
     return () => setPublishBlocked(integration?.id, undefined);
@@ -183,7 +192,6 @@ const TikTokSettings: FC<{
   const privacyLevel = allPrivacyLevels.filter((p) =>
     creator?.privacyLevelOptions?.includes(p.value)
   );
-  const privacy_level = watch('privacy_level');
   const contentPostingMethod = [
     {
       value: 'DIRECT_POST',
