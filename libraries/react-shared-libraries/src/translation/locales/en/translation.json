@@ -886,5 +886,18 @@
   "billing_webhooks": "webhooks",
   "billing_rss_auto_post": "Auto-post from RSS feeds",
   "api_and_mcp": "API & MCP",
-  "api_auth_note_line4_api_mcp": "and you will receive a pos_ prefixed token that works with the API and MCP, just like an API Key."
+  "api_auth_note_line4_api_mcp": "and you will receive a pos_ prefixed token that works with the API and MCP, just like an API Key.",
+  "billing_cancel_feedback_optional": "Optional: what could we have done better?",
+  "billing_switch_to_free": "Switch to Free",
+  "billing_switch_to_free_confirm": "Switch to Free",
+  "billing_switch_to_free_title": "Cancel subscription and switch to Free?",
+  "billing_switch_to_free_until": "Your {{plan}} plan stays active until {{date}}. After that your account moves to the Free plan and you will not be charged again.",
+  "billing_switch_to_free_end": "Your {{plan}} plan stays active until the end of the period you have paid for. After that your account moves to the Free plan and you will not be charged again.",
+  "billing_switch_to_free_limits": "Free includes {{channels}} channels and {{posts}} posts a month. If you have more channels, the extra ones are paused until you upgrade again.",
+  "billing_keep_plan": "Keep {{plan}}",
+  "billing_switched_to_free": "Subscription cancelled. Your account moves to the Free plan on {{date}}.",
+  "billing_moves_to_free_on": "Moves to Free on {{date}}",
+  "billing_free_from": "From {{date}}, when your current plan ends",
+  "billing_plan_ends_on": "Your {{plan}} plan ends on",
+  "billing_then_free": "Your account then moves to the Free plan and you will not be charged again."
 }

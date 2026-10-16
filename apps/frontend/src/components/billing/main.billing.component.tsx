@@ -453,8 +453,8 @@ const Info: FC<{
     <div className="relative flex gap-[20px] flex-col flex-1 rounded-[4px]">
       <div>
         {t(
-          'would_you_mind_shortly_tell_us_what_we_could_have_done_better',
-          'Would you mind shortly tell us what we could have done better?'
+          'billing_cancel_feedback_optional',
+          'Optional: what could we have done better?'
         )}
       </div>
       <div>
@@ -468,10 +468,8 @@ const Info: FC<{
         />
       </div>
       <div>
-        <Button disabled={feedback.length < 20} onClick={cancel}>
-          {feedback.length < 20
-            ? t('please_add_at_least', 'Please add at least 20 chars')
-            : t('cancel_subscription', 'Cancel Subscription')}
+        <Button onClick={cancel}>
+          {t('billing_switch_to_free_confirm', 'Switch to Free')}
         </Button>
       </div>
     </div>
@@ -525,6 +523,11 @@ export const MainBillingComponent: FC<{
     setSubscription(sub);
   }, [sub]);
   const loadCredits = useLoadCredits();
+  const { data: renewal } = useRenewal();
+  // the paid plan runs to the end of the period it was paid for, then the account is on Free
+  const paidUntil = renewal?.renewsAt
+    ? newDayjs(renewal.renewsAt * 1000).local().format('D MMM, YYYY')
+    : '';
   // credits follow the plan stored by the Stripe webhook: wait for it, then
   // show the new plan's totals and credits together
   const showConfirmedPlan = useCallback(
@@ -622,14 +625,35 @@ export const MainBillingComponent: FC<{
           }
         }
         if (billing === 'FREE') {
+          const plan = planDisplayName(subscription?.subscriptionTier || '');
           if (
             subscription?.cancelAt ||
             (await deleteDialog(
-              `Are you sure you want to cancel your subscription?
-              ${messages.join(', ')}`,
-              'Yes, cancel',
-              'Cancel Subscription',
-              'No, keep it'
+              [
+                paidUntil
+                  ? t(
+                      'billing_switch_to_free_until',
+                      'Your {{plan}} plan stays active until {{date}}. After that your account moves to the Free plan and you will not be charged again.',
+                      { plan, date: paidUntil }
+                    )
+                  : t(
+                      'billing_switch_to_free_end',
+                      'Your {{plan}} plan stays active until the end of the period you have paid for. After that your account moves to the Free plan and you will not be charged again.',
+                      { plan }
+                    ),
+                t(
+                  'billing_switch_to_free_limits',
+                  'Free includes {{channels}} channels and {{posts}} posts a month. If you have more channels, the extra ones are paused until you upgrade again.',
+                  {
+                    channels: pricing.FREE.channel,
+                    posts: pricing.FREE.posts_per_month,
+                  }
+                ),
+                ...messages.map((m) => `${m}.`),
+              ].join(' '),
+              t('billing_switch_to_free_confirm', 'Switch to Free'),
+              t('billing_switch_to_free_title', 'Cancel subscription and switch to Free?'),
+              t('billing_keep_plan', 'Keep {{plan}}', { plan })
             ))
           ) {
             const checkDiscount = await (
@@ -686,7 +710,13 @@ export const MainBillingComponent: FC<{
             }));
             toast.show(
               cancel_at
-                ? 'Subscription set to canceled successfully'
+                ? t(
+                    'billing_switched_to_free',
+                    'Subscription cancelled. Your account moves to the Free plan on {{date}}.',
+                    {
+                      date: newDayjs(cancel_at).local().format('D MMM, YYYY'),
+                    }
+                  )
                 : 'Your subscription was already set to cancel, so it has been reactivated. Click Cancel subscription again to cancel it.'
             );
             setLoading(false);
@@ -770,7 +800,7 @@ export const MainBillingComponent: FC<{
         }
         setLoading(false);
       },
-    [monthlyOrYearly, subscription, user, utm]
+    [monthlyOrYearly, subscription, user, utm, paidUntil]
   );
   if (user?.isLifetime) {
     router.replace('/');
@@ -824,16 +854,16 @@ export const MainBillingComponent: FC<{
     if (name === 'FREE') {
       return {
         label: subscription?.cancelAt
-          ? t('billing_downgrade_on', 'Downgrade on {{date}}', {
+          ? t('billing_moves_to_free_on', 'Moves to Free on {{date}}', {
               date: dayjs
                 .utc(subscription.cancelAt)
                 .local()
                 .format('D MMM, YYYY'),
             })
-          : t('cancel_subscription_1', 'Cancel subscription'),
+          : t('billing_switch_to_free', 'Switch to Free'),
         onClick: moveToCheckout('FREE'),
         disabled: !!subscription?.cancelAt,
-        variant: 'danger',
+        variant: 'simple',
       };
     }
     const direction = tiers.indexOf(name) - tiers.indexOf(currentTier);
@@ -897,17 +927,16 @@ export const MainBillingComponent: FC<{
         <div className="flex items-center gap-[12px] rounded-[12px] border border-[#FFAC30]/30 bg-[#FFAC30]/10 px-[16px] py-[12px] text-[14px]">
           <div className="w-[8px] h-[8px] rounded-full bg-[#FFAC30] shrink-0" />
           <div>
-            {t(
-              'your_subscription_will_be_canceled_at',
-              'Your subscription will be canceled at'
-            )}{' '}
+            {t('billing_plan_ends_on', 'Your {{plan}} plan ends on', {
+              plan: planDisplayName(subscription.subscriptionTier),
+            })}{' '}
             <bdi className="font-[600]">
               {newDayjs(subscription.cancelAt).local().format('D MMM, YYYY')}
             </bdi>
             {'. '}
             {t(
-              'you_will_never_be_charged_again',
-              'You will never be charged again'
+              'billing_then_free',
+              'Your account then moves to the Free plan and you will not be charged again.'
             )}
           </div>
         </div>
@@ -945,12 +974,18 @@ export const MainBillingComponent: FC<{
               note={
                 !!subscription &&
                 currentPackage !== name &&
-                name !== 'FREE' && (
+                (name === 'FREE' ? (
+                  !subscription.cancelAt &&
+                  !!paidUntil &&
+                  t('billing_free_from', 'From {{date}}, when your current plan ends', {
+                    date: paidUntil,
+                  })
+                ) : (
                   <Prorate
                     period={yearly ? 'YEARLY' : 'MONTHLY'}
                     pack={name as 'STANDARD' | 'PRO'}
                   />
-                )
+                ))
               }
             />
           );
