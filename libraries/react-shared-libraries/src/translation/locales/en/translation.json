@@ -778,7 +778,7 @@
   "official_connector": "Official connector",
   "connector_self_hosted_description": "The official connector works with self-hosted ViralGenHub too. When asked to sign in, choose \"Use self-hosted\" and enter {{url}} with your API key.",
   "mcp_onboarding_description": "Give your agent ViralGenHub tools to create, schedule and manage posts",
-  "cli_onboarding_description": "Install the ViralGenHub CLI and the skill that teaches your agent how to use it",
+  "cli_onboarding_description": "Install the CLI, point it at ViralGenHub with your API key, and add the skill that teaches your agent how to use it",
   "agent_settings_later": "More agents and full instructions are available under Settings > API & MCP",
   "agents": "Agents",
   "watch_tutorial": "Watch Tutorial",

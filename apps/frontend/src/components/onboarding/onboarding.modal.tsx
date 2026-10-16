@@ -17,11 +17,13 @@ import {
   getMcpConfig,
   isChatOnlyMcpClient,
   isSelfHosted,
-  localCliSteps,
+  cliSteps,
+  fillCliStep,
   McpAuth,
   McpClient,
   mcpClients,
   mcpConnectorUrls,
+  upstreamConnectors,
 } from '@gitroom/frontend/components/public-api/public.component';
 import { McpClientIcon } from '@gitroom/frontend/components/public-api/mcp.client.icons';
 
@@ -279,6 +281,11 @@ const onboardingAgents = [
 
 type OnboardingAgent = (typeof onboardingAgents)[number];
 
+// Grok Bot only works through Postiz's own connector and CLI (upstreamConnectors)
+const shownAgents = onboardingAgents.filter(
+  (agent) => upstreamConnectors || agent !== 'Grok Bot'
+);
+
 // Every other MCP client, grouped under one tab with its own picker
 const otherTab = 'Other agents' as const;
 const otherAgents = mcpClients.filter(
@@ -288,8 +295,6 @@ const otherAgents = mcpClients.filter(
 // Not an agent, a tab showing the raw API key for people integrating by hand
 const apiTab = 'API' as const;
 type OnboardingTab = OnboardingAgent | typeof otherTab | typeof apiTab;
-
-const cliCommands = localCliSteps.map((step) => step.code);
 
 const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
   onBack,
@@ -309,7 +314,8 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
   const apiKey = user?.publicApi || '';
   const available = !!apiKey && !!user?.tier?.public_api;
   // the official connectors work for self-hosted installs too
-  const officialConnectors = billingEnabled || isSelfHosted;
+  const officialConnectors =
+    upstreamConnectors && (billingEnabled || isSelfHosted);
 
   const { config, hint } =
     agent === apiTab
@@ -407,7 +413,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
         </div>
         <a
           className="cursor-pointer px-[24px] h-[44px] bg-[#612BD3] hover:bg-[#5520CB] text-white transition-colors rounded-[8px] text-[14px] font-[600] flex items-center gap-[8px] shrink-0"
-          href="https://viralgenhub.com/faq"
+          href="https://viralgenhub.com/developers"
           target="_blank"
         >
           <McpClientIcon client={apiTab} size={18} />
@@ -547,17 +553,24 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
         <div className="text-[13px] text-customColor18 mt-[2px]">
           {t(
             'cli_onboarding_description',
-            'Install the ViralGenHub CLI and the skill that teaches your agent how to use it'
+            'Install the CLI, point it at ViralGenHub with your API key, and add the skill that teaches your agent how to use it'
           )}
         </div>
       </div>
       <div className="p-[20px] flex flex-col gap-[8px] flex-1">
         <pre className="bg-newBgColorInner border border-newBorder rounded-[8px] p-[12px] text-[12px] whitespace-pre-wrap break-all overflow-x-auto leading-[1.5] flex-1">
-          {cliCommands.join('\n')}
+          {cliSteps
+            .map((step) =>
+              fillCliStep(step.code, backendUrl, '*'.repeat(apiKey.length))
+            )
+            .join('\n')}
         </pre>
         <div className="flex gap-[8px]">
           <CopyButton
-            text={cliCommands.join(' && ')}
+            text={cliSteps
+              .map((step) => fillCliStep(step.code, backendUrl, apiKey))
+              .join('\n')
+              .replace(/\n/g, ' && ')}
             label={t('copy', 'Copy')}
           />
         </div>
@@ -582,7 +595,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
       {available ? (
         <div className="flex flex-col gap-[16px] w-full max-w-[1100px] mx-auto">
           <div className="flex flex-wrap justify-center gap-[6px]">
-            {[...onboardingAgents, otherTab, apiTab].map((item) => (
+            {[...shownAgents, otherTab, apiTab].map((item) => (
               <button
                 key={item}
                 type="button"
