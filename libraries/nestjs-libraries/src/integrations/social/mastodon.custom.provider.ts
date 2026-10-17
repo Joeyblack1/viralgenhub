@@ -11,7 +11,7 @@ import { Integration } from '@prisma/client';
 
 export class MastodonCustomProvider extends MastodonProvider {
   override identifier = 'mastodon-custom';
-  override name = 'M. Instance';
+  override name = 'Mastodon'; // any instance; the user enters its address
   override maxConcurrentJob = 5; // Custom Mastodon instances typically have generous limits
   editor = 'normal' as const;
 
