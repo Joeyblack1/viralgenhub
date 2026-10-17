@@ -19,6 +19,8 @@ export class ThirdPartyRepository {
 
   deleteIntegration(org: string, id: string) {
     return this._thirdParty.model.thirdParty.update({
+      // the row holds the encrypted apiKey; the caller only needs the id
+      select: { id: true },
       where: { id, organizationId: org },
       data: { deletedAt: new Date() },
     });

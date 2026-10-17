@@ -76,12 +76,16 @@ export class OAuthService {
   }
 
   async updateApp(orgId: string, dto: UpdateOAuthAppDto) {
-    return this._oauthRepository.updateApp(orgId, {
+    const app = await this._oauthRepository.updateApp(orgId, {
       ...(dto.name && { name: dto.name }),
       ...(dto.description !== undefined && { description: dto.description }),
       ...(dto.pictureId !== undefined && { pictureId: dto.pictureId }),
       ...(dto.redirectUrl && { redirectUrl: dto.redirectUrl }),
     });
+    if (!app) return app;
+    // the stored secret never goes back out (same as getApp)
+    const { clientSecret, ...rest } = app;
+    return rest;
   }
 
   async deleteApp(orgId: string) {

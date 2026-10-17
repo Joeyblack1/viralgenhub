@@ -14,6 +14,23 @@ import {
   warnIfTokenEncryptionDisabled,
 } from '@gitroom/helpers/auth/token.encryption';
 
+// What an HTTP response may carry about a channel: never token, refreshToken or
+// customInstanceDetails. Writes whose result goes straight back to the caller
+// use this as their `select` (see CLAUDE.md: no raw Integration rows out).
+export const integrationResponseSelect = {
+  id: true,
+  name: true,
+  picture: true,
+  customName: true,
+  providerIdentifier: true,
+  profile: true,
+  type: true,
+  disabled: true,
+  refreshNeeded: true,
+  inBetweenSteps: true,
+  customerId: true,
+} as const;
+
 @Injectable()
 export class IntegrationRepository {
   private storage = UploadFactory.createStorage();
@@ -468,6 +485,7 @@ export class IntegrationRepository {
 
   updateNameAndUrl(id: string, name: string, url: string) {
     return this._integration.model.integration.update({
+      select: integrationResponseSelect,
       where: {
         id,
       },
@@ -475,7 +493,7 @@ export class IntegrationRepository {
         ...(name ? { name } : {}),
         ...(url ? { picture: url } : {}),
       },
-    }).then((r) => decryptIntegrationTokens(r));
+    });
   }
 
   getIntegrationById(org: string, id: string) {
@@ -540,6 +558,7 @@ export class IntegrationRepository {
         }));
 
     return this._integration.model.integration.update({
+      select: integrationResponseSelect,
       where: {
         id,
         organizationId: org,
@@ -553,11 +572,12 @@ export class IntegrationRepository {
               },
             },
       },
-    }).then((r) => decryptIntegrationTokens(r));
+    });
   }
 
   updateIntegrationGroup(org: string, id: string, group: string) {
     return this._integration.model.integration.update({
+      select: integrationResponseSelect,
       where: {
         id,
         organizationId: org,
@@ -575,7 +595,7 @@ export class IntegrationRepository {
               },
             },
           },
-    }).then((r) => decryptIntegrationTokens(r));
+    });
   }
 
   getCustomerByName(orgId: string, name: string) {
