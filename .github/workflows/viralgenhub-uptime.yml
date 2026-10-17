@@ -1,0 +1,54 @@
+name: ViralGenHub uptime
+
+# Every 30 minutes, check that app.viralgenhub.com and viralgenhub.com answer.
+# Down: open one issue (which emails the owner). Back up: comment and close it.
+# One issue per outage, so a long outage sends one alert, not one per check.
+# Runs here, not on our servers, so it still works when they are down.
+# It lives in the public repo because Actions minutes are free here.
+
+on:
+  schedule:
+    - cron: "7,37 * * * *"
+  workflow_dispatch:
+
+permissions:
+  issues: write
+
+concurrency:
+  group: viralgenhub-uptime
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check the app and the site
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -u
+          TITLE="[uptime] ViralGenHub is down"
+          down=""
+          for url in https://app.viralgenhub.com/auth https://viralgenhub.com/; do
+            code=000
+            # Three tries, 30 s apart, so one slow answer is not an outage.
+            for try in 1 2 3; do
+              code=$(curl -s -o /dev/null -w '%{http_code}' --max-time 20 "$url" || true)
+              [ "$code" = 200 ] && break
+              sleep 30
+            done
+            echo "$url $code"
+            [ "$code" = 200 ] || down="$down- $url answered $code"$'\n'
+          done
+
+          open=$(gh issue list --state open --search "in:title \"$TITLE\"" --json number --jq '.[0].number // empty')
+          now=$(date -u '+%Y-%m-%d %H:%M UTC')
+          if [ -n "$down" ] && [ -z "$open" ]; then
+            gh issue create --title "$TITLE" --body "$(printf '@Joeyblack1 down since %s (checked from GitHub):\n\n%s\nThis issue closes itself when both answer 200 again.' "$now" "$down")"
+          elif [ -n "$down" ]; then
+            echo "still down; issue #$open already open"
+          elif [ -n "$open" ]; then
+            gh issue comment "$open" --body "@Joeyblack1 back up at $now (both answer 200)."
+            gh issue close "$open"
+          fi
