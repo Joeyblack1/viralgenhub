@@ -4,7 +4,7 @@ This policy covers the ViralGenHub service at app.viralgenhub.com and viralgenhu
 
 ## Reporting a problem
 
-Email **support@viralgenhub.com** with "Security" in the subject. Please include:
+Use GitHub's private reporting ([Report a vulnerability](https://github.com/Joeyblack1/viralgenhub/security/advisories/new)), or email **support@viralgenhub.com** with "Security" in the subject. Please include:
 
 - what the problem is and what it could let someone do;
 - the steps to reproduce it;

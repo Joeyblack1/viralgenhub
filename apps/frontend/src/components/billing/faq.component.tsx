@@ -6,6 +6,7 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import DeleteAccountComponent from '@gitroom/frontend/components/settings/delete-account.component';
+import { SOURCE_URL } from '@gitroom/frontend/components/layout/source.footer';
 const useFaqList = () => {
   const { isGeneral } = useVariables();
   const user = useUser();
@@ -29,7 +30,7 @@ const useFaqList = () => {
       title: t('faq_can_i_trust_viralgenhub', 'Is ViralGenHub open source?'),
       description: t(
         'faq_viralgenhub_open_source',
-        `Yes. ViralGenHub is open source under the AGPL-3.0 licence and is built on Postiz. You can read the source code of the version you are using at <a href="https://github.com/Joeyblack1/viralgenhub" target="_blank" style="text-decoration: underline;">github.com/Joeyblack1/viralgenhub</a>.`
+        `Yes. ViralGenHub is open source under the AGPL-3.0 licence and is built on Postiz. You can read the source code of the version you are using at <a href="${SOURCE_URL}" target="_blank" style="text-decoration: underline;">github.com/Joeyblack1/viralgenhub</a>.`
       ),
     },
     {
