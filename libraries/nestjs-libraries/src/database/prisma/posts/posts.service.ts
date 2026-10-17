@@ -1477,6 +1477,30 @@ export class PostsService {
       this.guardAgainstRepublish(getPostById, 'changeDate');
     }
 
+    // A draft stays a draft and an 'update' of a published post only edits its
+    // date, so neither costs a post; anything else is counted in the month of
+    // the NEW date
+    if (
+      getPostById.state !== 'DRAFT' &&
+      !(getPostById.state === 'PUBLISHED' && action === 'update')
+    ) {
+      await this.checkPlanPostsLimits(orgId, [
+        {
+          type: 'schedule',
+          date,
+          posts: [
+            {
+              settings: { __type: getPostById.integration.providerIdentifier },
+              // a republish is a new post on the platform: count it
+              value: [
+                { id: getPostById.state === 'PUBLISHED' ? undefined : id },
+              ],
+            },
+          ],
+        } as unknown as CreatePostDto,
+      ]);
+    }
+
     // schedule: Set status to QUEUE and change date (reschedule the post)
     // update: Just change the date without changing the status
     const newDate = await this._postRepository.changeDate(
