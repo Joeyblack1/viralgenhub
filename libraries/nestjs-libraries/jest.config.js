@@ -16,7 +16,7 @@ module.exports = {
   // only the specs that run without a database or network
   testMatch: [
     '<rootDir>/libraries/nestjs-libraries/src/**/*.spec.ts',
-    '<rootDir>/apps/backend/src/api/routes/users.controller.impersonate.spec.ts',
+    '<rootDir>/apps/backend/src/api/routes/users.controller.*.spec.ts',
   ],
   transform: {
     '^.+\\.ts$': [
