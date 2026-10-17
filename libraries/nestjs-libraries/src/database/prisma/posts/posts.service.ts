@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  HttpException,
   Injectable,
   NotFoundException,
   ValidationPipe,
@@ -21,7 +22,10 @@ import { GetPostsListDto } from '@gitroom/nestjs-libraries/dtos/posts/get.posts.
 import { groupBy, shuffle, uniqBy } from 'lodash';
 import { v4 as uuidv4 } from 'uuid';
 import { CreateGeneratedPostsDto } from '@gitroom/nestjs-libraries/dtos/generator/create.generated.posts.dto';
-import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
+import {
+  IntegrationService,
+  PlugPostCap,
+} from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import utc from 'dayjs/plugin/utc';
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
@@ -942,9 +946,25 @@ export class PostsService {
           excludeIds: [],
         };
         months[key].adding += (post.value || []).length;
-        months[key].excludeIds.push(
-          ...(post.value || []).map((p) => p.id).filter(Boolean)
-        );
+
+        // The saved posts a save overwrites are not counted twice, except a
+        // PUBLISHED one that is republished: it already used a post on the
+        // platform and the republish is a new one (same as changeDate)
+        for (const item of post.value || []) {
+          if (!item.id) {
+            continue;
+          }
+          if (body.republish) {
+            const saved = await this._postRepository.getPostById(
+              item.id,
+              orgId
+            );
+            if (saved?.state === 'PUBLISHED') {
+              continue;
+            }
+          }
+          months[key].excludeIds.push(item.id);
+        }
       }
     }
 
@@ -957,19 +977,21 @@ export class PostsService {
         ?.subscriptionTier || 'FREE';
 
     for (const month of Object.values(months)) {
-      const used = await this._postRepository.countProviderPostsBetween(
-        orgId,
-        this._integrationManager
-          .getAllowedSocialsIntegrations()
-          .filter(
-            (identifier) =>
-              this._integrationManager.getSocialIntegration(identifier)
-                ?.planPostsLimit === month.limit
-          ),
-        month.from.toDate(),
-        month.from.add(1, 'month').toDate(),
-        month.excludeIds
-      );
+      const used =
+        (await this.countPlugPosts(orgId, month.limit, month.from)) +
+        (await this._postRepository.countProviderPostsBetween(
+          orgId,
+          this._integrationManager
+            .getAllowedSocialsIntegrations()
+            .filter(
+              (identifier) =>
+                this._integrationManager.getSocialIntegration(identifier)
+                  ?.planPostsLimit === month.limit
+            ),
+          month.from.toDate(),
+          month.from.add(1, 'month').toDate(),
+          month.excludeIds
+        ));
 
       const message = planPostsLimitError(
         tier,
@@ -987,6 +1009,73 @@ export class PostsService {
       }
     }
   }
+
+  // Follow-up posts made by plugs (X 'Auto plug post') are billed like any
+  // post but are not Post rows, so the count above cannot see them. They are
+  // counted in a Redis counter per org, plan field and UTC month (no schema
+  // change); it expires 62 days after its last increment.
+  private plugPostsKey(
+    orgId: string,
+    limit: PlanPostsLimit,
+    from: dayjs.Dayjs
+  ) {
+    return `plug-posts:${orgId}:${limit}:${from.format('YYYY-MM')}`;
+  }
+
+  private async countPlugPosts(
+    orgId: string,
+    limit: PlanPostsLimit,
+    from: dayjs.Dayjs
+  ) {
+    try {
+      return +((await ioRedis.get(this.plugPostsKey(orgId, limit, from))) || 0);
+    } catch (err) {
+      return 0;
+    }
+  }
+
+  // Used by IntegrationService.processPlugs before/after a plug that creates a
+  // new post runs. Never throws: a plug that cannot be checked is skipped.
+  // x-autoRepostPost (a retweet of the user's own post) is not a new post and
+  // never goes through here.
+  plugPostCap: PlugPostCap = {
+    allow: async (orgId, providerIdentifier) => {
+      try {
+        await this.checkPlanPostsLimits(orgId, [
+          {
+            type: 'now',
+            posts: [{ settings: { __type: providerIdentifier }, value: [{}] }],
+          } as unknown as CreatePostDto,
+        ]);
+        return true;
+      } catch (err) {
+        if (!(err instanceof HttpException && err.getStatus() === 402)) {
+          console.log('Plug post cap check failed, skipping the plug', err);
+        }
+        return false;
+      }
+    },
+    record: async (orgId, providerIdentifier) => {
+      try {
+        const limit =
+          this._integrationManager.getSocialIntegration(
+            providerIdentifier
+          )?.planPostsLimit;
+        if (!limit) {
+          return;
+        }
+        const key = this.plugPostsKey(
+          orgId,
+          limit,
+          dayjs().utc().startOf('month')
+        );
+        await ioRedis.incr(key);
+        await ioRedis.expire(key, 62 * 24 * 60 * 60);
+      } catch (err) {
+        console.log('Could not record a plug post', err);
+      }
+    },
+  };
 
   getPostByForWebhookId(id: string, integrationId: string) {
     return this._postRepository.getPostByForWebhookId(id, integrationId);

@@ -31,6 +31,14 @@ import { TemporalService } from 'nestjs-temporal-core';
 
 dayjs.extend(utc);
 
+// Lets the caller (the orchestrator activity, which can reach PostsService;
+// IntegrationService cannot, PostsService depends on it) enforce the plan's
+// monthly post cap on plugs that create a new post.
+export interface PlugPostCap {
+  allow(orgId: string, providerIdentifier: string): Promise<boolean>;
+  record(orgId: string, providerIdentifier: string): Promise<void>;
+}
+
 @Injectable()
 export class IntegrationService {
   private storage = UploadFactory.createStorage();
@@ -613,13 +621,16 @@ export class IntegrationService {
     return;
   }
 
-  async processPlugs(data: {
-    plugId: string;
-    postId: string;
-    delay: number;
-    totalRuns: number;
-    currentRun: number;
-  }) {
+  async processPlugs(
+    data: {
+      plugId: string;
+      postId: string;
+      delay: number;
+      totalRuns: number;
+      currentRun: number;
+    },
+    cap?: PlugPostCap
+  ) {
     const getPlugById = await this._integrationRepository.getPlug(data.plugId);
     if (!getPlugById) {
       return true;
@@ -628,6 +639,29 @@ export class IntegrationService {
     const integration = this._integrationManager.getSocialIntegration(
       getPlugById.integration.providerIdentifier
     );
+
+    const createsPost =
+      !!cap &&
+      (
+        Reflect.getMetadata(
+          'custom:plug',
+          integration!.constructor.prototype
+        ) || []
+      ).some(
+        (p: any) => p.methodName === getPlugById.plugFunction && p.createsPost
+      );
+    const providerIdentifier = getPlugById.integration.providerIdentifier;
+
+    // over the plan cap: skip (true = done, the later runs are dropped too)
+    if (
+      createsPost &&
+      !(await cap!.allow(getPlugById.organizationId, providerIdentifier))
+    ) {
+      console.log(
+        `Plug ${getPlugById.plugFunction} on integration ${getPlugById.integrationId} skipped, org ${getPlugById.organizationId} is over its plan post limit`
+      );
+      return true;
+    }
 
     // @ts-ignore
     const process = await integration[getPlugById.plugFunction](
@@ -640,6 +674,9 @@ export class IntegrationService {
     );
 
     if (process) {
+      if (createsPost) {
+        await cap!.record(getPlugById.organizationId, providerIdentifier);
+      }
       return true;
     }
 

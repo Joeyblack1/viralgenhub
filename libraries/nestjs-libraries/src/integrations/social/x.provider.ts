@@ -301,6 +301,9 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   }
 
   @Plug({
+    // A retweet of the user's own post is not a new post (X bills it as a
+    // read/engage call, not post creation), so it is NOT counted against the
+    // x_posts_per_month cap; only x-autoPlugPost below is (createsPost).
     identifier: 'x-autoRepostPost',
     title: 'Auto Repost Posts',
     disabled: !!process.env.DISABLE_X_ANALYTICS,
@@ -352,6 +355,7 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   @Plug({
     identifier: 'x-autoPlugPost',
     title: 'Auto plug post',
+    createsPost: true,
     disabled: !!process.env.DISABLE_X_ANALYTICS,
     description:
       'When a post reached a certain number of likes, add another post to it so you followers get a notification about your promotion',

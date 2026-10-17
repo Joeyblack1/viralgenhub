@@ -138,3 +138,102 @@ describe('PostsService.changeDate, monthly X cap', () => {
     expect(repo.countProviderPostsBetween.mock.calls[0][4]).toEqual([]);
   });
 });
+
+describe('PostsService.checkPlanPostsLimits, republish and plugs', () => {
+  beforeEach(() => {
+    process.env.STRIPE_PUBLISHABLE_KEY = 'pk_test';
+  });
+  afterEach(() => {
+    delete process.env.STRIPE_PUBLISHABLE_KEY;
+  });
+
+  const body = (republish?: boolean) =>
+    ({
+      type: 'schedule',
+      date: '2026-12-02T09:00:00Z',
+      republish,
+      posts: [
+        {
+          settings: { __type: 'x' },
+          value: [{ id: 'p1', content: 'hi' }],
+        },
+      ],
+    } as any);
+
+  it('counts a republish of a PUBLISHED post as a new post', async () => {
+    const { service, repo } = setup(queued('x', 'PUBLISHED'), 'STANDARD', 100);
+    await expect(
+      service.checkPlanPostsLimits('org', [body(true)])
+    ).rejects.toMatchObject({ status: 402 });
+    // the published row stays in the count: it is not excluded
+    expect(repo.countProviderPostsBetween.mock.calls[0][4]).toEqual([]);
+  });
+
+  it('still excludes the post a republish of a queued post overwrites', async () => {
+    const { service, repo } = setup(queued('x', 'QUEUE'), 'STANDARD', 99);
+    await service.checkPlanPostsLimits('org', [body(true)]);
+    expect(repo.countProviderPostsBetween.mock.calls[0][4]).toEqual(['p1']);
+  });
+
+  it('a normal edit of a post excludes it and never looks it up', async () => {
+    const { service, repo } = setup(queued('x'), 'STANDARD', 99);
+    await service.checkPlanPostsLimits('org', [body()]);
+    expect(repo.countProviderPostsBetween.mock.calls[0][4]).toEqual(['p1']);
+    expect(repo.getPostById).not.toHaveBeenCalled();
+  });
+
+  describe('plugPostCap', () => {
+    const redis = require('@gitroom/nestjs-libraries/redis/redis.service')
+      .ioRedis as any;
+    afterEach(() => {
+      delete redis.get;
+      delete redis.incr;
+      delete redis.expire;
+    });
+
+    it('counts recorded plug posts against the cap', async () => {
+      const { service } = setup(queued('x'), 'STANDARD', 99);
+      redis.get = jest.fn().mockResolvedValue('1');
+      await expect(service.plugPostCap.allow('org', 'x')).resolves.toBe(false);
+      expect(redis.get.mock.calls[0][0]).toMatch(
+        /^plug-posts:org:x_posts_per_month:\d{4}-\d{2}$/
+      );
+    });
+
+    it('allows a plug while there is room and on Redis errors reading the count', async () => {
+      const { service } = setup(queued('x'), 'STANDARD', 98);
+      redis.get = jest.fn().mockResolvedValue('1');
+      await expect(service.plugPostCap.allow('org', 'x')).resolves.toBe(true);
+      redis.get = jest.fn().mockRejectedValue(new Error('down'));
+      await expect(service.plugPostCap.allow('org', 'x')).resolves.toBe(true);
+    });
+
+    it('refuses Free and never throws', async () => {
+      const { service, repo } = setup(queued('x'), 'FREE', 0);
+      await expect(service.plugPostCap.allow('org', 'x')).resolves.toBe(false);
+      repo.countProviderPostsBetween.mockRejectedValue(new Error('db'));
+      const paid = setup(queued('x'), 'STANDARD', 0);
+      paid.repo.countProviderPostsBetween.mockRejectedValue(new Error('db'));
+      jest.spyOn(console, 'log').mockImplementation(() => {});
+      await expect(paid.service.plugPostCap.allow('org', 'x')).resolves.toBe(
+        false
+      );
+    });
+
+    it('records a plug post in the month counter', async () => {
+      const { service } = setup(queued('x'));
+      redis.incr = jest.fn().mockResolvedValue(1);
+      redis.expire = jest.fn().mockResolvedValue(1);
+      await service.plugPostCap.record('org', 'x');
+      expect(redis.incr).toHaveBeenCalledTimes(1);
+      expect(redis.expire).toHaveBeenCalledWith(
+        redis.incr.mock.calls[0][0],
+        62 * 24 * 60 * 60
+      );
+      // a channel without a cap is not counted
+      redis.incr.mockClear();
+      await service.plugPostCap.record('org', 'bluesky');
+      expect(redis.incr).not.toHaveBeenCalled();
+    });
+  });
+});

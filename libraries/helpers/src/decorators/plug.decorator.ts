@@ -7,6 +7,9 @@ export function Plug(params: {
   runEveryMilliseconds: number;
   totalRuns: number;
   disabled?: boolean;
+  // The plug creates a NEW post on the platform: it is counted against the
+  // plan's monthly post cap for that platform (see PostsService)
+  createsPost?: boolean;
   fields: {
     name: string;
     description: string;
