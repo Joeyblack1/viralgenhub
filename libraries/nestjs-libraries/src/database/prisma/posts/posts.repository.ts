@@ -603,6 +603,49 @@ export class PostsRepository {
     });
   }
 
+  // Same posts as countPostsFromDay, only on the given platforms and between
+  // two dates. `excludeIds` are the posts a save is about to overwrite.
+  countProviderPostsBetween(
+    orgId: string,
+    providerIdentifiers: string[],
+    from: Date,
+    to: Date,
+    excludeIds: string[]
+  ) {
+    return this._post.model.post.count({
+      where: {
+        organizationId: orgId,
+        integration: {
+          providerIdentifier: {
+            in: providerIdentifiers,
+          },
+        },
+        publishDate: {
+          gte: from,
+          lt: to,
+        },
+        ...(excludeIds.length
+          ? {
+              id: {
+                notIn: excludeIds,
+              },
+            }
+          : {}),
+        OR: [
+          {
+            deletedAt: null,
+            state: {
+              in: ['QUEUE'],
+            },
+          },
+          {
+            state: 'PUBLISHED',
+          },
+        ],
+      },
+    });
+  }
+
   async createOrUpdatePost(
     state: 'draft' | 'schedule' | 'now' | 'update',
     orgId: string,

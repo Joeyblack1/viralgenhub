@@ -78,6 +78,8 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   isBetweenSteps = false;
   scopes = [] as string[];
   stripLinks = () => !!process.env.STRIP_LINKS_FROM_X_POSTS;
+  // X bills every post through its API: plans cap them a month
+  planPostsLimit = 'x_posts_per_month' as const;
   // X rate limits are per user (300 posts / 3 hours), not per app, so the cap
   // only needs to keep bursts polite. With the pending flow the slot is held
   // for actual API work only (processing waits live in workflow timers), so a

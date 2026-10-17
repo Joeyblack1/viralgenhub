@@ -1,12 +1,13 @@
 import { AgentToolInterface } from '@gitroom/nestjs-libraries/chat/agent.tool.interface';
 import { createTool } from '@mastra/core/tools';
 import { z } from 'zod';
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { PostsService } from '@gitroom/nestjs-libraries/database/prisma/posts/posts.service';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { AllProvidersSettings } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/all.providers.settings';
 import { Integration } from '@prisma/client';
+import { CreatePostDto } from '@gitroom/nestjs-libraries/dtos/posts/create.post.dto';
 import { checkAuth } from '@gitroom/nestjs-libraries/chat/auth.context';
 import {
   ValidUrlExtension,
@@ -215,6 +216,7 @@ If validation fails, the result contains output.errors describing what to fix; t
           }
         }
 
+        const bodies: CreatePostDto[] = [];
         for (const post of inputData.socialPost) {
           const integration = integrations[post.integrationId];
 
@@ -222,7 +224,7 @@ If validation fails, the result contains output.errors describing what to fix; t
             throw new Error('Integration not found');
           }
 
-          const output = await this._postsService.createPost(organizationId, {
+          bodies.push({
             date: post.date,
             type: post.type as 'draft' | 'schedule' | 'now',
             shortLink: post.shortLink,
@@ -251,7 +253,30 @@ If validation fails, the result contains output.errors describing what to fix; t
                 })),
               },
             ],
-          }, 'MCP');
+          });
+        }
+
+        // Same plan caps as the dashboard / public API, checked for every
+        // post before any is created
+        try {
+          await this._postsService.checkPlanPostsLimits(organizationId, bodies);
+        } catch (err) {
+          if (err instanceof HttpException && err.getStatus() === 402) {
+            return {
+              output: {
+                errors: err.message,
+              },
+            };
+          }
+          throw err;
+        }
+
+        for (const body of bodies) {
+          const output = await this._postsService.createPost(
+            organizationId,
+            body,
+            'MCP'
+          );
           // Same public preview page the calendar "Preview Post" button opens.
           finalOutput.push(
             ...output.map((p) => ({

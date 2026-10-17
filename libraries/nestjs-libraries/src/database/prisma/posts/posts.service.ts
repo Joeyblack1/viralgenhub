@@ -57,6 +57,16 @@ import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validatio
 import { postContentPlainText } from '@gitroom/helpers/utils/sanitize.post.content';
 import { CreatePublicCommentDto } from '@gitroom/nestjs-libraries/dtos/comments/add.comment.dto';
 import { countLength } from '@gitroom/helpers/utils/count.length';
+import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
+import {
+  PlanPostsLimit,
+  planPostsLimitError,
+} from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
+import {
+  AuthorizationActions,
+  Sections,
+  SubscriptionException,
+} from '@gitroom/backend/services/auth/permissions/permission.exception.class';
 
 type PostWithConditionals = Post & {
   integration?: Integration;
@@ -74,7 +84,8 @@ export class PostsService {
     private _shortLinkService: ShortLinkService,
     private _openaiService: OpenaiService,
     private _temporalService: TemporalService,
-    private _refreshIntegrationService: RefreshIntegrationService
+    private _refreshIntegrationService: RefreshIntegrationService,
+    private _subscriptionService: SubscriptionService
   ) {}
 
   searchForMissingThreeHoursPosts() {
@@ -881,6 +892,100 @@ export class PostsService {
 
   async countPostsFromDay(orgId: string, date: Date) {
     return this._postRepository.countPostsFromDay(orgId, date);
+  }
+
+  // Plans cap the posts of some platforms a month (a provider names the plan
+  // field in `planPostsLimit`), counted in the calendar month (UTC) of each
+  // post's publish date; every item of a thread is a post. Checked here and
+  // not by @CheckPolicies: the PoliciesGuard runs before the body is mapped,
+  // so it cannot see which channels or dates a request targets.
+  async checkPlanPostsLimits(orgId: string, bodies: CreatePostDto[]) {
+    if (!process.env.STRIPE_PUBLISHABLE_KEY) {
+      return;
+    }
+
+    const months = {} as Record<
+      string,
+      {
+        limit: PlanPostsLimit;
+        platform: string;
+        from: dayjs.Dayjs;
+        adding: number;
+        excludeIds: string[];
+      }
+    >;
+    for (const body of bodies) {
+      // a draft is not published, it is checked once it is scheduled
+      if (body.type === 'draft') {
+        continue;
+      }
+
+      for (const post of body.posts || []) {
+        const provider = this._integrationManager.getSocialIntegration(
+          (post.settings as any)?.__type
+        );
+        if (!provider?.planPostsLimit) {
+          continue;
+        }
+
+        const from: dayjs.Dayjs = dayjs(
+          body.type === 'now' ? undefined : post.date || body.date
+        )
+          .utc()
+          .startOf('month');
+        const key = `${provider.planPostsLimit}:${from.toISOString()}`;
+        months[key] = months[key] || {
+          limit: provider.planPostsLimit,
+          platform: provider.name,
+          from,
+          adding: 0,
+          excludeIds: [],
+        };
+        months[key].adding += (post.value || []).length;
+        months[key].excludeIds.push(
+          ...(post.value || []).map((p) => p.id).filter(Boolean)
+        );
+      }
+    }
+
+    if (!Object.keys(months).length) {
+      return;
+    }
+
+    const tier =
+      (await this._subscriptionService.getSubscriptionByOrganizationId(orgId))
+        ?.subscriptionTier || 'FREE';
+
+    for (const month of Object.values(months)) {
+      const used = await this._postRepository.countProviderPostsBetween(
+        orgId,
+        this._integrationManager
+          .getAllowedSocialsIntegrations()
+          .filter(
+            (identifier) =>
+              this._integrationManager.getSocialIntegration(identifier)
+                ?.planPostsLimit === month.limit
+          ),
+        month.from.toDate(),
+        month.from.add(1, 'month').toDate(),
+        month.excludeIds
+      );
+
+      const message = planPostsLimitError(
+        tier,
+        month.limit,
+        month.platform,
+        used,
+        month.adding
+      );
+      if (message) {
+        throw new SubscriptionException({
+          action: AuthorizationActions.Create,
+          section: Sections.PLATFORM_POSTS_PER_MONTH,
+          message,
+        });
+      }
+    }
   }
 
   getPostByForWebhookId(id: string, integrationId: string) {

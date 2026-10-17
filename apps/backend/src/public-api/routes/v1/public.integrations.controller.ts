@@ -214,6 +214,7 @@ export class PublicIntegrationsController {
       ? (rawBody.creationMethod as 'CLI' | 'API')
       : 'API';
 
+    await this._postsService.checkPlanPostsLimits(org.id, [body]);
     return this._postsService.createPost(org.id, body, creationMethod);
   }
 

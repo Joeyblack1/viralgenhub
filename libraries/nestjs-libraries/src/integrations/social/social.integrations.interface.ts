@@ -1,4 +1,5 @@
 import { Integration } from '@prisma/client';
+import { PlanPostsLimit } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 
 export interface ClientInformation {
   client_id: string;
@@ -183,6 +184,8 @@ export interface SocialProvider
   refreshWait?: boolean;
   convertToJPEG?: boolean;
   stripLinks?: () => boolean;
+  // Plan field that caps this platform's posts a month (see pricing.ts)
+  planPostsLimit?: PlanPostsLimit;
   refreshCron?: boolean;
   refreshErrorMessage?(err: any): string | undefined;
   dto?: any;

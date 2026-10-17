@@ -884,6 +884,7 @@
   "billing_calendar_scheduling_media": "Calendar, scheduling and media library",
   "billing_public_api": "Public API",
   "billing_webhooks": "webhooks",
+  "billing_x_posts_per_month": "X posts per month",
   "billing_rss_auto_post": "Auto-post from RSS feeds",
   "api_and_mcp": "API & MCP",
   "api_auth_note_line4_api_mcp": "and you will receive a pos_ prefixed token that works with the API and MCP, just like an API Key.",
