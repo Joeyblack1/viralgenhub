@@ -38,7 +38,7 @@ const useFaqList = () => {
       description: t(
         'faq_viralgenhub_what_it_does',
         `ViralGenHub lets you plan and schedule your posts across your connected channels.
-A channel is a social account or page you connect to ViralGenHub, such as TikTok, YouTube, Instagram, Facebook, Threads, X or Bluesky.`
+A channel is a social account or page you connect to ViralGenHub, such as a TikTok or Bluesky account. More platforms are being added; the list of what you can connect today is on viralgenhub.com.`
       ),
     },
     {
