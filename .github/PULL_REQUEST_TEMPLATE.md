@@ -1,5 +1,3 @@
-<!-- Remember to first apply via [the contribution form](https://contribute.postiz.com/p/postiz) and sign the [CLA](https://contribute.postiz.com/p/postiz/cla) before submitting a PR. -->
-
 # What kind of change does this PR introduce?
 
 <!--
