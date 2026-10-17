@@ -4,6 +4,7 @@ import {
   Controller,
   Get,
   HttpException,
+  Logger,
   Post,
   Query,
   Req,
@@ -43,6 +44,8 @@ import {
 @ApiTags('User')
 @Controller('/user')
 export class UsersController {
+  private readonly _audit = new Logger('Audit');
+
   constructor(
     private _subscriptionService: SubscriptionService,
     private _paymentService: PaymentService,
@@ -165,11 +168,17 @@ export class UsersController {
   async setImpersonate(
     @GetUserFromRequest() user: User,
     @Body('id') id: string,
-    @Res({ passthrough: true }) response: Response
+    @Res({ passthrough: true }) response: Response,
+    @Req() req: Request,
+    @RealIP() ip: string
   ) {
     if (!user.isSuperAdmin) {
+      await this.auditImpersonation('denied', user, req, ip);
       throw new HttpException('Unauthorized', 400);
     }
+
+    // an empty id is the "stop impersonating" call
+    await this.auditImpersonation(id ? 'start' : 'end', user, req, ip, id);
 
     response.cookie('impersonate', id, {
       domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
@@ -221,6 +230,59 @@ export class UsersController {
     await this._paymentService.syncCustomerEmailsAfterSwitch([kept, switched]);
 
     return { success: true };
+  }
+
+  // Append-only audit trail of super-admin impersonation: one structured log
+  // line per event, grep for "AUDIT impersonation". It records who (admin id and
+  // email), whom (target user, org and the user-organization row), when (the log
+  // timestamp, plus an ISO time in the line) and the IP. It never records the
+  // auth/impersonate cookies or any token; the user-organization id is the
+  // cookie's payload, not a credential. Never throws: a failed lookup must not
+  // block (or fail) the impersonation call itself.
+  private async auditImpersonation(
+    action: 'start' | 'end' | 'denied',
+    user: User,
+    req: Request,
+    ip: string,
+    userOrgId?: string
+  ) {
+    try {
+      // while an impersonation is active `user` is the impersonated account,
+      // so the admin is the one in the auth token
+      const adminId = this.getRequestUserId(req) || user.id;
+      let adminEmail = user.id === adminId ? user.email : undefined;
+      if (!adminEmail && adminId) {
+        adminEmail = (await this._userService.getUserById(adminId))?.email;
+      }
+
+      let target: Record<string, string | undefined> | undefined;
+      if (action === 'start') {
+        const found = await this._orgService.getUserOrg(userOrgId!);
+        target = {
+          targetUserId: found?.user?.id,
+          targetEmail: found?.user?.email,
+          targetOrgId: found?.organization?.id,
+          targetUserOrgId: userOrgId,
+        };
+      }
+
+      this._audit.log(
+        `AUDIT impersonation ${action} ${JSON.stringify({
+          at: new Date().toISOString(),
+          // a denied call comes from a user who is not a super admin
+          [action === 'denied' ? 'userId' : 'adminId']: adminId,
+          [action === 'denied' ? 'email' : 'adminEmail']: adminEmail,
+          ...target,
+          ip,
+        })}`
+      );
+    } catch (err: any) {
+      this._audit.error(
+        `AUDIT impersonation ${action} could not be fully recorded: ${
+          err?.message || err
+        }`
+      );
+    }
   }
 
   private getRequestUserId(req: Request): string | null {
