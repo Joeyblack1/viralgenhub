@@ -20,17 +20,8 @@ import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { useTrack } from '@gitroom/react/helpers/use.track';
 import { TrackEnum } from '@gitroom/nestjs-libraries/user/track.enum';
 import { FarcasterProvider } from '@gitroom/frontend/components/auth/providers/farcaster.provider';
-import dynamic from 'next/dynamic';
-import { WalletUiProvider } from '@gitroom/frontend/components/auth/providers/placeholder/wallet.ui.provider';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import useCookie from 'react-use-cookie';
-const WalletProvider = dynamic(
-  () => import('@gitroom/frontend/components/auth/providers/wallet.provider'),
-  {
-    ssr: false,
-    loading: () => <WalletUiProvider />,
-  }
-);
 type Inputs = {
   email: string;
   password: string;
@@ -97,17 +88,16 @@ export function RegisterAfter({
     genericOauth,
     neynarClientId,
     appleClientId,
-    billingEnabled,
     googleLogin,
   } = useVariables();
   // ViralGenHub: show the "Continue with" block only when a provider is set up.
+  // No wallet (crypto) login: upstream shows it whenever billing is on (#166).
   const hasProviders =
     !isGeneral ||
     (genericOauth && isGeneral) ||
     !!googleLogin ||
     !!appleClientId ||
-    !!neynarClientId ||
-    billingEnabled;
+    !!neynarClientId;
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const fireEvents = useFireEvents();
@@ -189,7 +179,6 @@ export function RegisterAfter({
                   )}
                   {!!appleClientId && <AppleProvider />}
                   {!!neynarClientId && <FarcasterProvider />}
-                  {billingEnabled && <WalletProvider />}
                 </div>
               ))}
             {!isAfterProvider && hasProviders && (
