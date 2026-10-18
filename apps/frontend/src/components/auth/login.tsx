@@ -14,7 +14,6 @@ import { GoogleProvider } from '@gitroom/frontend/components/auth/providers/goog
 import { AppleProvider } from '@gitroom/frontend/components/auth/providers/apple.provider';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { FarcasterProvider } from '@gitroom/frontend/components/auth/providers/farcaster.provider';
-import WalletProvider from '@gitroom/frontend/components/auth/providers/wallet.provider';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 type Inputs = {
   email: string;
@@ -30,18 +29,17 @@ export function Login() {
     isGeneral,
     neynarClientId,
     appleClientId,
-    billingEnabled,
     genericOauth,
     googleLogin,
   } = useVariables();
   // ViralGenHub: show the "Continue with" block only when a provider is set up.
+  // No wallet (crypto) login: upstream shows it whenever billing is on (#166).
   const hasProviders =
     (isGeneral && genericOauth) ||
     !isGeneral ||
     !!googleLogin ||
     !!appleClientId ||
-    !!neynarClientId ||
-    billingEnabled;
+    !!neynarClientId;
   const resolver = useMemo(() => {
     return classValidatorResolver(LoginUserDto);
   }, []);
@@ -99,7 +97,6 @@ export function Login() {
                 {!!googleLogin && <GoogleProvider />}
                 {!!appleClientId && <AppleProvider />}
                 {!!neynarClientId && <FarcasterProvider />}
-                {billingEnabled && <WalletProvider />}
               </div>
             )}
             {hasProviders && (
