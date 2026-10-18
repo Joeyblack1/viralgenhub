@@ -2,9 +2,12 @@
 name: "Upstream Postiz sync"
 
 # Checks gitroomhq/postiz-app once a month (and on demand). When upstream has
-# new commits, it merges them into a branch and opens a PR against main. If the
+# new commits, it merges them into a branch and opens a PR against
+# viralgenhub/next, our integration branch, which runs on staging first. If the
 # merge conflicts, it opens an issue instead. GitHub emails the repo owner
 # either way, which is how we find out it is time to update.
+# (main is only the default branch that hosts scheduled workflows; production
+# runs a release branch cut from next.)
 
 on:
   schedule:
@@ -24,6 +27,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: viralgenhub/next
           fetch-depth: 0
 
       - name: Compare with upstream
@@ -45,13 +49,13 @@ jobs:
           git checkout -b "$BRANCH"
           if git merge upstream/main -m "Merge upstream Postiz ($BEHIND commits)"; then
             git push origin "$BRANCH" --force
-            gh pr create --base main --head "$BRANCH" \
+            gh pr create --base viralgenhub/next --head "$BRANCH" \
               --title "Sync upstream Postiz ($BEHIND commits)" \
-              --body "Monthly sync. Before merging: run the TikTok guideline tests (tiktok.dto.spec.ts) and re-check the TikTok composer in a browser. Our patch is isolated to the TikTok provider, branding and tracking removal." \
+              --body "Monthly sync into viralgenhub/next. Before merging: CI green (Build, nestjs-libraries tests incl. tiktok.dto.spec.ts). After merging: build the image, update staging, run the staging smoke test (deploy/staging/smoke_post.py in the ops repo) and re-check the TikTok composer in a browser. Production only moves when a release branch is cut from next." \
               || gh pr list --head "$BRANCH"
           else
             git merge --abort
             gh issue create \
               --title "Upstream Postiz sync has conflicts ($BEHIND commits behind)" \
-              --body "The automatic merge of upstream/main failed. Merge it by hand: git fetch upstream && git merge upstream/main. Conflicts are most likely in the TikTok provider, layout.tsx or the logo components."
+              --body "The automatic merge of upstream/main into viralgenhub/next failed. Merge it by hand on next: git fetch upstream && git checkout viralgenhub/next && git merge upstream/main. Conflicts are most likely in the TikTok provider, layout.tsx or the logo components."
           fi
