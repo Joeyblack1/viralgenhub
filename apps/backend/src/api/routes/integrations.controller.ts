@@ -68,6 +68,11 @@ export class IntegrationsController {
     return this._integrationService.customers(org.id);
   }
 
+  @Get('/preview')
+  getPreviewIntegrations(@GetOrgFromRequest() org: Organization) {
+    return this._integrationManager.getPreviewIntegrations(org.id);
+  }
+
   @Put('/customers/:id')
   async updateCustomerName(
     @GetOrgFromRequest() org: Organization,
@@ -235,6 +240,23 @@ export class IntegrationsController {
     // A provider migrated via MIGRATE_PROVIDERS reconnects through its target
     // provider's OAuth: the callback lands on the target and the channel is
     // migrated in place (see migrateIntegration).
+    // A hidden provider can only be connected by a preview organization;
+    // reconnecting a channel this organization already has stays possible.
+    const reconnecting =
+      !!refresh &&
+      (
+        await this._integrationService.getIntegrationByInternalId(
+          org.id,
+          refresh
+        )
+      )?.providerIdentifier === integration;
+    if (
+      !reconnecting &&
+      !this._integrationManager.isAvailableTo(integration, org.id)
+    ) {
+      throw new Error('Integration not allowed');
+    }
+
     const migrateTo = refresh
       ? this._integrationManager.getMigrationTarget(integration)
       : undefined;

@@ -93,6 +93,16 @@ export class NoAuthIntegrationsController {
       await ioRedis.del(`refresh:${body.state}`);
     }
 
+    // Same rule as starting the connect (integrations.controller): a hidden
+    // provider only for preview organizations, or a reconnect the server
+    // already checked when it stored refresh: for this state.
+    if (
+      !refresh &&
+      !this._integrationManager.isAvailableTo(integration, org?.id)
+    ) {
+      throw new Error('Integration not allowed');
+    }
+
     const onboarding = await ioRedis.get(`onboarding:${body.state}`);
     if (onboarding) {
       await ioRedis.del(`onboarding:${body.state}`);

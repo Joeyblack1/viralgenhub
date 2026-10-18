@@ -26,6 +26,9 @@ export const useAddProvider = (update?: () => void, invite?: boolean) => {
   const fetch = useFetch();
   return useCallback(async () => {
     const data = await (await fetch('/integrations')).json();
+    // Hidden platforms this organization may still connect (PREVIEW_PROVIDERS)
+    const preview = await (await fetch('/integrations/preview')).json();
+    data.social = [...(data.social || []), ...(preview?.social || [])];
     modal.openModal({
       title: 'Add Channel',
       withCloseButton: true,

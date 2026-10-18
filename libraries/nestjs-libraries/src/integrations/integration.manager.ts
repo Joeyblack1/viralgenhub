@@ -92,6 +92,28 @@ export class IntegrationManager {
       .includes(identifier);
   }
 
+  // PREVIEW_PROVIDERS ("facebook,instagram") are hidden providers that the
+  // organizations in PREVIEW_ORGS (comma list of organization ids) can still
+  // connect, e.g. while the platform's public app review is pending. Everyone
+  // else cannot start or finish a connect of a hidden provider: hiding it from
+  // the list alone would leave the connect endpoints open.
+  isPreviewProvider(identifier: string, orgId?: string) {
+    const list = (name: string) =>
+      (process.env[name] || '').split(',').map((p) => p.trim());
+    return (
+      !!orgId &&
+      list('PREVIEW_PROVIDERS').includes(identifier) &&
+      list('PREVIEW_ORGS').includes(orgId)
+    );
+  }
+
+  isAvailableTo(identifier: string, orgId?: string) {
+    return (
+      !this.isHiddenProvider(identifier) ||
+      this.isPreviewProvider(identifier, orgId)
+    );
+  }
+
   // Note: a target provider that implements `reConnect` is not supported - the
   // connect callback would run reConnect with the old app-scoped id before the
   // migration is attempted.
@@ -127,25 +149,42 @@ export class IntegrationManager {
 
   async getAllIntegrations() {
     return {
-      social: await Promise.all(
-        socialIntegrationList
-          .filter((p) => !this.isHiddenProvider(p.identifier))
-          .map(async (p) => ({
-            name: p.name,
-            identifier: p.identifier,
-            toolTip: p.toolTip,
-            editor: p.editor,
-            isExternal: !!p.externalUrl,
-            isWeb3: !!p.isWeb3,
-            isChromeExtension: !!p.isChromeExtension,
-            ...(p.extensionCookies
-              ? { extensionCookies: p.extensionCookies }
-              : {}),
-            ...(p.customFields ? { customFields: await p.customFields() } : {}),
-          }))
+      social: await this.describeIntegrations(
+        socialIntegrationList.filter(
+          (p) => !this.isHiddenProvider(p.identifier)
+        )
       ),
       article: [] as any[],
     };
+  }
+
+  // Hidden providers this organization may connect (PREVIEW_PROVIDERS).
+  async getPreviewIntegrations(orgId: string) {
+    return {
+      social: await this.describeIntegrations(
+        socialIntegrationList.filter(
+          (p) =>
+            this.isHiddenProvider(p.identifier) &&
+            this.isPreviewProvider(p.identifier, orgId)
+        )
+      ),
+    };
+  }
+
+  private describeIntegrations(list: typeof socialIntegrationList) {
+    return Promise.all(
+      list.map(async (p) => ({
+        name: p.name,
+        identifier: p.identifier,
+        toolTip: p.toolTip,
+        editor: p.editor,
+        isExternal: !!p.externalUrl,
+        isWeb3: !!p.isWeb3,
+        isChromeExtension: !!p.isChromeExtension,
+        ...(p.extensionCookies ? { extensionCookies: p.extensionCookies } : {}),
+        ...(p.customFields ? { customFields: await p.customFields() } : {}),
+      }))
+    );
   }
 
   getAllTools(): {
