@@ -8,6 +8,7 @@ on:
     paths:
       - 'libraries/nestjs-libraries/**'
       - 'libraries/helpers/**'
+      - 'apps/backend/src/api/routes/users.controller*'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - '.github/workflows/nestjs-libraries-tests.yml'
@@ -15,6 +16,7 @@ on:
     paths:
       - 'libraries/nestjs-libraries/**'
       - 'libraries/helpers/**'
+      - 'apps/backend/src/api/routes/users.controller*'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - '.github/workflows/nestjs-libraries-tests.yml'

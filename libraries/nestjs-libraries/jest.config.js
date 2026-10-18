@@ -14,7 +14,11 @@ module.exports = {
   rootDir: root,
   testEnvironment: 'node',
   // only the specs that run without a database or network
-  testMatch: ['<rootDir>/libraries/nestjs-libraries/src/**/*.spec.ts'],
+  testMatch: [
+    '<rootDir>/libraries/nestjs-libraries/src/**/*.spec.ts',
+    '<rootDir>/libraries/helpers/src/auth/token.encryption.spec.ts',
+    '<rootDir>/apps/backend/src/api/routes/users.controller.*.spec.ts',
+  ],
   transform: {
     '^.+\\.ts$': [
       'ts-jest',

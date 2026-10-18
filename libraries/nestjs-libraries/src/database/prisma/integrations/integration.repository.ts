@@ -7,6 +7,29 @@ import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { IntegrationTimeDto } from '@gitroom/nestjs-libraries/dtos/integrations/integration.time.dto';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { PlugDto } from '@gitroom/nestjs-libraries/dtos/plugs/plug.dto';
+import {
+  decryptIntegrationRelation,
+  decryptIntegrationTokens,
+  encryptToken,
+  warnIfTokenEncryptionDisabled,
+} from '@gitroom/helpers/auth/token.encryption';
+
+// What an HTTP response may carry about a channel: never token, refreshToken or
+// customInstanceDetails. Writes whose result goes straight back to the caller
+// use this as their `select` (see CLAUDE.md: no raw Integration rows out).
+export const integrationResponseSelect = {
+  id: true,
+  name: true,
+  picture: true,
+  customName: true,
+  providerIdentifier: true,
+  profile: true,
+  type: true,
+  disabled: true,
+  refreshNeeded: true,
+  inBetweenSteps: true,
+  customerId: true,
+} as const;
 
 @Injectable()
 export class IntegrationRepository {
@@ -18,7 +41,9 @@ export class IntegrationRepository {
     private _exisingPlugData: PrismaRepository<'exisingPlugData'>,
     private _customers: PrismaRepository<'customer'>,
     private _mentions: PrismaRepository<'mentions'>
-  ) {}
+  ) {
+    warnIfTokenEncryptionDisabled();
+  }
 
   getMentions(platform: string, q: string) {
     return this._mentions.model.mentions.findMany({
@@ -101,7 +126,7 @@ export class IntegrationRepository {
       data: {
         additionalSettings: settings,
       },
-    });
+    }).then((r) => decryptIntegrationTokens(r));
   }
 
   updateCustomName(org: string, id: string, name: string) {
@@ -135,14 +160,16 @@ export class IntegrationRepository {
   }
 
   getPlug(plugId: string) {
-    return this._plugs.model.plugs.findFirst({
-      where: {
-        id: plugId,
-      },
-      include: {
-        integration: true,
-      },
-    });
+    return this._plugs.model.plugs
+      .findFirst({
+        where: {
+          id: plugId,
+        },
+        include: {
+          integration: true,
+        },
+      })
+      .then((r) => decryptIntegrationRelation(r));
   }
 
   async getPlugs(orgId: string, integrationId: string) {
@@ -202,16 +229,23 @@ export class IntegrationRepository {
       });
     }
 
-    return this._integration.model.integration.update({
-      where: {
-        ...(existing ? { id: existing.id } : { id }),
-      },
-      data: {
-        ...params,
-        disabled: false,
-        deletedAt: null,
-      },
-    });
+    return this._integration.model.integration
+      .update({
+        where: {
+          ...(existing ? { id: existing.id } : { id }),
+        },
+        data: {
+          ...params,
+          // the callers pass plaintext; never store it as such
+          ...(params.token ? { token: encryptToken(params.token) } : {}),
+          ...(params.refreshToken
+            ? { refreshToken: encryptToken(params.refreshToken) }
+            : {}),
+          disabled: false,
+          deletedAt: null,
+        },
+      })
+      .then((r) => decryptIntegrationTokens(r));
   }
 
   disconnectChannel(org: string, id: string) {
@@ -223,7 +257,7 @@ export class IntegrationRepository {
       data: {
         refreshNeeded: true,
       },
-    });
+    }).then((r) => decryptIntegrationTokens(r));
   }
 
   getIntegrationByInternalId(org: string, internalId: string) {
@@ -233,7 +267,7 @@ export class IntegrationRepository {
         internalId,
         deletedAt: null,
       },
-    });
+    }).then((r) => decryptIntegrationTokens(r));
   }
 
   // Moves a channel to another provider in place (MIGRATE_PROVIDERS): only the
@@ -272,17 +306,19 @@ export class IntegrationRepository {
       });
     }
 
-    return this._integration.model.integration.update({
-      where: {
-        id,
-        organizationId: org,
-      },
-      data: {
-        internalId,
-        providerIdentifier,
-        rootInternalId,
-      },
-    });
+    return this._integration.model.integration
+      .update({
+        where: {
+          id,
+          organizationId: org,
+        },
+        data: {
+          internalId,
+          providerIdentifier,
+          rootInternalId,
+        },
+      })
+      .then((r) => decryptIntegrationTokens(r));
   }
 
   async createOrUpdateIntegration(
@@ -320,7 +356,11 @@ export class IntegrationRepository {
           ]),
         }
       : {};
-    const upsert = await this._integration.model.integration.upsert({
+    // stored encrypted (when TOKEN_ENCRYPTION_KEY is set); every caller of this
+    // repository, and the upsert result below, keeps working with plaintext
+    const storedToken = encryptToken(token);
+    const storedRefreshToken = encryptToken(refreshToken);
+    const stored = await this._integration.model.integration.upsert({
       where: {
         organizationId_internalId: {
           internalId,
@@ -331,11 +371,11 @@ export class IntegrationRepository {
         type: type as any,
         name,
         providerIdentifier: provider,
-        token,
+        token: storedToken,
         profile: username,
         ...(picture ? { picture } : {}),
         inBetweenSteps: isBetweenSteps,
-        refreshToken,
+        refreshToken: storedRefreshToken,
         ...(expiresIn
           ? { tokenExpiration: new Date(Date.now() + expiresIn * 1000) }
           : {}),
@@ -363,9 +403,9 @@ export class IntegrationRepository {
         ...(picture ? { picture } : {}),
         profile: username,
         providerIdentifier: provider,
-        token,
+        token: storedToken,
         // never wipe a stored refresh token with an empty one
-        ...(refreshToken ? { refreshToken } : {}),
+        ...(refreshToken ? { refreshToken: storedRefreshToken } : {}),
         ...(expiresIn
           ? { tokenExpiration: new Date(Date.now() + expiresIn * 1000) }
           : {}),
@@ -390,13 +430,13 @@ export class IntegrationRepository {
       await this._integration.model.integration.updateMany({
         where: {
           id: {
-            not: upsert.id,
+            not: stored.id,
           },
           rootInternalId: rootId,
         },
         data: {
-          token,
-          refreshToken,
+          token: storedToken,
+          refreshToken: storedRefreshToken,
           refreshNeeded: false,
           ...(expiresIn
             ? { tokenExpiration: new Date(Date.now() + expiresIn * 1000) }
@@ -405,7 +445,7 @@ export class IntegrationRepository {
       });
     }
 
-    return upsert;
+    return decryptIntegrationTokens(stored);
   }
 
   needsToBeRefreshed() {
@@ -418,7 +458,7 @@ export class IntegrationRepository {
         deletedAt: null,
         refreshNeeded: false,
       },
-    });
+    }).then((r) => r.map((i) => decryptIntegrationTokens(i)));
   }
 
   async setBetweenRefreshSteps(id: string) {
@@ -429,7 +469,7 @@ export class IntegrationRepository {
       data: {
         inBetweenSteps: true,
       },
-    });
+    }).then((r) => decryptIntegrationTokens(r));
   }
   refreshNeeded(org: string, id: string) {
     return this._integration.model.integration.update({
@@ -440,11 +480,12 @@ export class IntegrationRepository {
       data: {
         refreshNeeded: true,
       },
-    });
+    }).then((r) => decryptIntegrationTokens(r));
   }
 
   updateNameAndUrl(id: string, name: string, url: string) {
     return this._integration.model.integration.update({
+      select: integrationResponseSelect,
       where: {
         id,
       },
@@ -461,7 +502,7 @@ export class IntegrationRepository {
         organizationId: org,
         id,
       },
-    });
+    }).then((r) => decryptIntegrationTokens(r));
   }
 
   async getIntegrationForOrder(
@@ -517,6 +558,7 @@ export class IntegrationRepository {
         }));
 
     return this._integration.model.integration.update({
+      select: integrationResponseSelect,
       where: {
         id,
         organizationId: org,
@@ -535,6 +577,7 @@ export class IntegrationRepository {
 
   updateIntegrationGroup(org: string, id: string, group: string) {
     return this._integration.model.integration.update({
+      select: integrationResponseSelect,
       where: {
         id,
         organizationId: org,
@@ -595,7 +638,7 @@ export class IntegrationRepository {
       include: {
         customer: true,
       },
-    });
+    }).then((r) => r.map((i) => decryptIntegrationTokens(i)));
   }
 
   private async latestPostsFor(
