@@ -14,6 +14,8 @@ export interface PricingInnerInterface {
   generate_videos: number;
   clipping_minutes: number;
   public_api: boolean;
+  // Public API + MCP requests an organisation may make per UTC day; 0 = no cap
+  public_api_daily_limit: number;
   webhooks: number;
   autoPost: boolean;
 }
@@ -21,7 +23,9 @@ export interface PricingInterface {
   [key: string]: PricingInnerInterface;
 }
 // ViralGenHub plans (Joseph, 2026-10-14). Prices are in STRIPE_CURRENCY (gbp).
-//   FREE      = Free      2 channels, 20 posts/month
+//   FREE      = Free      2 channels, 20 posts/month, a taste of the
+//                         Public API + MCP (100 requests a day), 1 webhook
+//                         (Joseph, 2026-10-18)
 //   STANDARD  = Creator   £7/month, £67.20/year (20% off)
 //   TEAM      = Business  £19/month, £182.40/year (20% off), team members
 // PRO and ULTIMATE are upstream tiers we do not sell. AI features are off in
@@ -40,8 +44,9 @@ export const pricing: PricingInterface = {
     ai: false,
     import_from_channels: false,
     image_generator: false,
-    public_api: false,
-    webhooks: 0,
+    public_api: true,
+    public_api_daily_limit: 100,
+    webhooks: 1,
     autoPost: false,
     generate_videos: 0,
     clipping_minutes: 0,
@@ -60,6 +65,7 @@ export const pricing: PricingInterface = {
     import_from_channels: true,
     image_generator: false,
     public_api: true,
+    public_api_daily_limit: 0,
     webhooks: 2,
     autoPost: false,
     generate_videos: 0,
@@ -79,6 +85,7 @@ export const pricing: PricingInterface = {
     import_from_channels: true,
     image_generator: false,
     public_api: true,
+    public_api_daily_limit: 0,
     webhooks: 10,
     autoPost: true,
     generate_videos: 0,
@@ -98,6 +105,7 @@ export const pricing: PricingInterface = {
     import_from_channels: true,
     image_generator: true,
     public_api: true,
+    public_api_daily_limit: 0,
     webhooks: 30,
     autoPost: true,
     generate_videos: 30,
@@ -117,6 +125,7 @@ export const pricing: PricingInterface = {
     import_from_channels: true,
     image_generator: true,
     public_api: true,
+    public_api_daily_limit: 0,
     webhooks: 10000,
     autoPost: true,
     generate_videos: 60,
