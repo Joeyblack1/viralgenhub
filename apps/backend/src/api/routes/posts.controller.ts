@@ -245,6 +245,7 @@ export class PostsController {
     }
 
     const body = await this._postsService.mapTypeToPost(rawBody, org.id);
+    await this._postsService.checkPlanPostsLimits(org.id, [body]);
     return this._postsService.createPost(org.id, body, 'WEB');
   }
 

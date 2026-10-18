@@ -3,6 +3,7 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 export enum Sections {
   CHANNEL = 'channel',
   POSTS_PER_MONTH = 'posts_per_month',
+  PLATFORM_POSTS_PER_MONTH = 'platform_posts_per_month',
   VIDEOS_PER_MONTH = 'videos_per_month',
   CLIPPING_MINUTES = 'clipping_minutes',
   TEAM_MEMBERS = 'team_members',
@@ -22,7 +23,13 @@ export enum AuthorizationActions {
 }
 
 export class SubscriptionException extends HttpException {
-  constructor(message: { section: Sections; action: AuthorizationActions }) {
+  // `message` replaces the section's fixed text, for a limit whose wording
+  // depends on the plan (see SubscriptionExceptionFilter)
+  constructor(message: {
+    section: Sections;
+    action: AuthorizationActions;
+    message?: string;
+  }) {
     super(message, HttpStatus.PAYMENT_REQUIRED);
   }
 }

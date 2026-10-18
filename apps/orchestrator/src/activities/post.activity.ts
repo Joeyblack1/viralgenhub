@@ -546,7 +546,12 @@ export class PostActivity {
     totalRuns: number;
     currentRun: number;
   }) {
-    return this._integrationService.processPlugs(data);
+    // never throws out of the cap: a plug that creates a post is skipped when
+    // the org is over its plan cap (see PostsService.plugPostCap)
+    return this._integrationService.processPlugs(
+      data,
+      this._postService.plugPostCap
+    );
   }
 
   @ActivityMethod()

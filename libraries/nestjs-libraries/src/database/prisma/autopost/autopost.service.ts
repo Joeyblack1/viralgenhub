@@ -1,4 +1,5 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
+import { CreatePostDto } from '@gitroom/nestjs-libraries/dtos/posts/create.post.dto';
 import { AutopostRepository } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.repository';
 import { AutopostDto } from '@gitroom/nestjs-libraries/dtos/autopost/autopost.dto';
 import dayjs from 'dayjs';
@@ -272,13 +273,44 @@ export class AutopostService {
       state.integrations[0].organizationId
     );
 
-    await this._postsService.createPost(state.integrations[0].organizationId, {
-      date: nextTime + 'Z',
+    const orgId = state.integrations[0].organizationId;
+    const date = nextTime + 'Z';
+
+    // The post is saved as a draft (checkPlanPostsLimits ignores drafts), so
+    // test the channels as if scheduled and leave out the ones over their plan
+    // cap, instead of queueing a post that could never be published
+    const integrations: Integration[] = [];
+    for (const i of state.integrations) {
+      try {
+        await this._postsService.checkPlanPostsLimits(orgId, [
+          {
+            type: 'schedule',
+            date,
+            posts: [{ settings: { __type: i.providerIdentifier }, value: [{}] }],
+          } as unknown as CreatePostDto,
+        ]);
+        integrations.push(i);
+      } catch (err) {
+        if (err instanceof HttpException && err.getStatus() === 402) {
+          console.log(
+            `Autopost: skipping ${i.providerIdentifier} channel ${i.id}, over its plan post limit`
+          );
+          continue;
+        }
+        throw err;
+      }
+    }
+    if (!integrations.length) {
+      return;
+    }
+
+    await this._postsService.createPost(orgId, {
+      date,
       order: makeId(10),
       shortLink: false,
       type: 'draft',
       tags: [],
-      posts: state.integrations.map((i) => ({
+      posts: integrations.map((i) => ({
         settings: {
           __type: i.providerIdentifier as any,
           title: '',
@@ -302,7 +334,7 @@ export class AutopostService {
                     id: makeId(10),
                     name: makeId(10),
                     path: state.image,
-                    organizationId: state.integrations[0].organizationId,
+                    organizationId: orgId,
                   },
                 ],
           },

@@ -351,6 +351,14 @@ export const useBillingFeatures = (tier: string) => {
       });
     }
 
+    if (currentPricing.x_posts_per_month > (previous?.x_posts_per_month || 0)) {
+      list.push({
+        key: 'billing_x_posts_per_month',
+        defaultValue: 'X posts per month',
+        prefix: currentPricing.x_posts_per_month,
+      });
+    }
+
     if (!previous) {
       list.push({
         key: 'billing_calendar_scheduling_media',
