@@ -8,6 +8,23 @@ import { IntegrationTimeDto } from '@gitroom/nestjs-libraries/dtos/integrations/
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { PlugDto } from '@gitroom/nestjs-libraries/dtos/plugs/plug.dto';
 
+// What an HTTP response may carry about a channel: never token, refreshToken or
+// customInstanceDetails. Writes whose result goes straight back to the caller
+// use this as their `select` (see CLAUDE.md: no raw Integration rows out).
+export const integrationResponseSelect = {
+  id: true,
+  name: true,
+  picture: true,
+  customName: true,
+  providerIdentifier: true,
+  profile: true,
+  type: true,
+  disabled: true,
+  refreshNeeded: true,
+  inBetweenSteps: true,
+  customerId: true,
+} as const;
+
 @Injectable()
 export class IntegrationRepository {
   private storage = UploadFactory.createStorage();
@@ -445,6 +462,7 @@ export class IntegrationRepository {
 
   updateNameAndUrl(id: string, name: string, url: string) {
     return this._integration.model.integration.update({
+      select: integrationResponseSelect,
       where: {
         id,
       },
@@ -517,6 +535,7 @@ export class IntegrationRepository {
         }));
 
     return this._integration.model.integration.update({
+      select: integrationResponseSelect,
       where: {
         id,
         organizationId: org,
@@ -535,6 +554,7 @@ export class IntegrationRepository {
 
   updateIntegrationGroup(org: string, id: string, group: string) {
     return this._integration.model.integration.update({
+      select: integrationResponseSelect,
       where: {
         id,
         organizationId: org,

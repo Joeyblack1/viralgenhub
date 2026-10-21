@@ -114,9 +114,11 @@ export class UsersController {
     }
 
     const impersonate = req.cookies.impersonate || req.headers.impersonate;
+    // never send the password hash, whatever the middleware loaded
+    const { password: _password, ...safeUser } = user as User;
     // @ts-ignore
     return {
-      ...user,
+      ...safeUser,
       orgId: organization.id,
       totalChannels: !process.env.STRIPE_PUBLISHABLE_KEY
         ? 10000
