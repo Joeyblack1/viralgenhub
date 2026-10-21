@@ -479,7 +479,9 @@ export const MainBillingComponent: FC<{
   sub?: SubscriptionWithPlatform;
 }> = (props) => {
   const { sub } = props;
-  const { isGeneral } = useVariables();
+  const { isGeneral, stripeClient } = useVariables();
+  // Paid plans open with live Stripe keys only (ViralGenHub #180).
+  const paidPlansOpen = !stripeClient?.startsWith('pk_test_');
   const { mutate } = useSWRConfig();
   const fetch = useFetch();
   const toast = useToaster();
@@ -863,6 +865,13 @@ export const MainBillingComponent: FC<{
           : t('billing_switch_to_free', 'Switch to Free'),
         onClick: moveToCheckout('FREE'),
         disabled: !!subscription?.cancelAt,
+        variant: 'simple',
+      };
+    }
+    if (!subscription && !paidPlansOpen) {
+      return {
+        label: t('billing_coming_soon', 'Coming soon'),
+        disabled: true,
         variant: 'simple',
       };
     }

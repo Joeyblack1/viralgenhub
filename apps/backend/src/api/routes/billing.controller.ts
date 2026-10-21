@@ -43,6 +43,14 @@ export class BillingController {
     return this._paymentService.getProviderForOrganization(org.id, 'web');
   }
 
+  // Paid plans open with live Stripe keys only (ViralGenHub #180): in test mode
+  // anyone could check out with Stripe's public test card and get a plan free.
+  private assertPaidPlansOpen() {
+    if (process.env.STRIPE_SECRET_KEY?.startsWith('sk_test_')) {
+      throw new HttpException('Paid plans are coming soon', 403);
+    }
+  }
+
   private async assertNoOtherSubscribedAccount(user: User) {
     const other = await this._usersService.getUserWithActiveSubscriptionByEmail(
       user.email,
@@ -100,6 +108,7 @@ export class BillingController {
     @Body() body: BillingSubscribeDto,
     @Req() req: Request
   ) {
+    this.assertPaidPlansOpen();
     if (await this.assertNoOtherSubscribedAccount(user)) {
       return { blocked: true };
     }
@@ -121,6 +130,7 @@ export class BillingController {
     @Body() body: BillingSubscribeDto,
     @Req() req: Request
   ) {
+    this.assertPaidPlansOpen();
     if (await this.assertNoOtherSubscribedAccount(user)) {
       return { blocked: true };
     }
