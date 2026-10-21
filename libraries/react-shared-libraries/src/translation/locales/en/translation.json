@@ -583,6 +583,7 @@
   "billing_switch_to_yearly": "Switch to yearly",
   "billing_switch_to_monthly": "Switch to monthly",
   "billing_purchase": "Purchase",
+  "billing_coming_soon": "Coming soon",
   "billing_downgrade_on": "Downgrade on {{date}}",
   "billing_payment_method": "Payment method",
   "billing_payment_method_description": "Update your card, billing address and tax details in the secure billing portal",
