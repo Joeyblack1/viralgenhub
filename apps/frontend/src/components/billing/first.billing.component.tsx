@@ -130,7 +130,6 @@ export const FirstBillingComponent = () => {
           )}
         </div>
 
-
         {!!user?.allowTrial && (
           <div className="flex mt-[32px] mb-[10px] gap-[15px] tablet:mt-[32px] tablet:mb-[32px] text-[16px] font-[500] mobile:flex-col">
             <div className="flex gap-[8px]">
@@ -372,8 +371,11 @@ export const useBillingFeatures = (tier: string) => {
 
     if (currentPricing.webhooks > (previous?.webhooks || 0)) {
       list.push({
-        key: 'billing_webhooks',
-        defaultValue: 'webhooks',
+        key:
+          currentPricing.webhooks === 1
+            ? 'billing_webhook'
+            : 'billing_webhooks',
+        defaultValue: currentPricing.webhooks === 1 ? 'webhook' : 'webhooks',
         prefix: currentPricing.webhooks,
       });
     }

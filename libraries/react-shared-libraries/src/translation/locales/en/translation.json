@@ -883,6 +883,7 @@
   "billing_everything_in_plus": "Everything in {{plan}}, plus:",
   "billing_calendar_scheduling_media": "Calendar, scheduling and media library",
   "billing_public_api": "Public API",
+  "billing_webhook": "webhook",
   "billing_webhooks": "webhooks",
   "billing_x_posts_per_month": "X posts per month",
   "billing_rss_auto_post": "Auto-post from RSS feeds",
