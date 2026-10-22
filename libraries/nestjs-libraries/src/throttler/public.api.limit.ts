@@ -21,11 +21,14 @@ export interface PublicApiQuota {
 }
 
 // The tier of an organisation loaded with `subscription.subscriptionTier`.
-// An org with no subscription row is not capped (self-hosted, no Stripe).
+// With Stripe on, an org with no subscription row is on Free; without Stripe
+// (self-hosted) it is not capped.
 export const publicApiLimitForOrg = (org: {
   subscription?: { subscriptionTier?: string | null } | null;
 }) => {
-  const tier = org?.subscription?.subscriptionTier;
+  const tier =
+    org?.subscription?.subscriptionTier ||
+    (process.env.STRIPE_SECRET_KEY ? 'FREE' : undefined);
   return (tier && pricing[tier]?.public_api_daily_limit) || 0;
 };
 
