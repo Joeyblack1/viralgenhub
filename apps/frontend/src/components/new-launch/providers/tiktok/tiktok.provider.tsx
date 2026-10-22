@@ -4,6 +4,7 @@ import {
   FC,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from 'react';
 import {
@@ -16,6 +17,7 @@ import { Select } from '@gitroom/react/form/select';
 import { Checkbox } from '@gitroom/react/form/checkbox';
 import clsx from 'clsx';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useIntegration } from '@gitroom/frontend/components/launches/helpers/use.integration';
 import { Input } from '@gitroom/react/form/input';
 import { useCustomProviderFunction } from '@gitroom/frontend/components/launches/helpers/use.custom.provider.function';
@@ -60,18 +62,25 @@ const TikTokSettings: FC<{
   const hasMedia = (value?.[0]?.image?.length ?? 0) > 0;
   const isVideo = hasMedia && !isTitle;
 
+  // Once per channel each time the composer opens. useCustomProviderFunction()
+  // returns a new object on every render, so it must not be a dependency: that
+  // re-ran this effect on every render and looped creator_info requests.
+  const getRef = useRef(customFunc.get);
+  getRef.current = customFunc.get;
+  const integrationId = integration?.id;
   useEffect(() => {
+    if (!integrationId) return;
     let alive = true;
     setCreatorLoading(true);
-    customFunc
-      .get('creatorInfo')
+    getRef
+      .current('creatorInfo')
       .then((info) => alive && setCreator(info || { canPost: false }))
       .catch(() => alive && setCreator({ canPost: false }))
       .finally(() => alive && setCreatorLoading(false));
     return () => {
       alive = false;
     };
-  }, [customFunc]);
+  }, [integrationId]);
 
   const videoPath = isVideo ? value?.[0]?.image?.[0]?.path : undefined;
   useEffect(() => {
@@ -116,6 +125,31 @@ const TikTokSettings: FC<{
   const content_posting_method = watch('content_posting_method');
   const isUploadMode = content_posting_method === 'UPLOAD';
 
+  const privacy_level = watch('privacy_level');
+
+  // Content Sharing Guidelines: with "Disclose video content" on and neither
+  // "Your brand" nor "Branded content" ticked, publishing is disabled and the
+  // composer shows this sentence as the button's hover text. Branded content
+  // cannot be private, so "Only me" blocks publishing the same way.
+  const setPublishBlocked = useLaunchStore((state) => state.setPublishBlocked);
+  const disclosureReason = isUploadMode
+    ? undefined
+    : disclose && !brand_organic_toggle && !brand_content_toggle
+    ? t(
+        'tiktok_disclosure_hover',
+        'You need to indicate if your content promotes yourself, a third party, or both.'
+      )
+    : disclose && brand_content_toggle && privacy_level === 'SELF_ONLY'
+    ? t(
+        'tiktok_branded_not_private',
+        'Branded content visibility cannot be set to private.'
+      )
+    : undefined;
+  useEffect(() => {
+    setPublishBlocked(integration?.id, disclosureReason);
+    return () => setPublishBlocked(integration?.id, undefined);
+  }, [integration?.id, disclosureReason, setPublishBlocked]);
+
   // TikTok ignores every setting except the title / content when the posting
   // method is UPLOAD, so we hide them rather than pretend they apply. The fields
   // stay mounted and registered: their values must survive the switch, and
@@ -132,7 +166,7 @@ const TikTokSettings: FC<{
     }
     return t(
       'tiktok_restriction_upload_video',
-      'TikTok restriction: For upload-only video, TikTok does not accept a title or message. The content will default to "#Postiz" and you can edit it inside the TikTok app before publishing.'
+      'TikTok restriction: For upload-only video, TikTok does not accept a title or message. The content will default to "#ViralGenHub" and you can edit it inside the TikTok app before publishing.'
     );
   }, [hasMedia, isUploadMode, isVideo, t]);
 
@@ -158,7 +192,6 @@ const TikTokSettings: FC<{
   const privacyLevel = allPrivacyLevels.filter((p) =>
     creator?.privacyLevelOptions?.includes(p.value)
   );
-  const privacy_level = watch('privacy_level');
   const contentPostingMethod = [
     {
       value: 'DIRECT_POST',
@@ -294,7 +327,7 @@ const TikTokSettings: FC<{
           </option>
         ))}
       </Select>
-      {isUploadMode && <div className="-mt-[23px] mb-[23px] text-red-600">After posting you fill find a notification inside your Inbox about your post (not content studio)</div>}
+      {isUploadMode && <div className="-mt-[23px] mb-[23px] text-red-600">After posting you will find a notification inside your Inbox about your post (not content studio)</div>}
       <div className={clsx('flex flex-col', directPostOnly)}>
         <Select
           label={
@@ -402,7 +435,10 @@ const TikTokSettings: FC<{
               value: false,
             })}
           />
-          {disclose && (
+          {/* TikTok: the label follows the choice - "Promotional content" for
+              Your brand only, "Paid partnership" once Branded content is ticked,
+              and nothing until one of them is chosen */}
+          {disclose && (brand_organic_toggle || brand_content_toggle) && (
             <div className="bg-tableBorder p-[10px] mt-[10px] rounded-[10px] flex gap-[20px] items-center">
               <div>
                 <svg
@@ -439,7 +475,7 @@ const TikTokSettings: FC<{
           <div className="text-[14px] my-[10px] text-balance">
             {t(
               'turn_on_to_disclose_video_promotes',
-              'Turn on to disclose that this video promotes goods or services in\n          exchange for something of value. You video could promote yourself, a\n          third party, or both.'
+              'Turn on to disclose that this video promotes goods or services in\n          exchange for something of value. Your video could promote yourself, a\n          third party, or both.'
             )}
           </div>
         </div>

@@ -45,6 +45,9 @@ interface StoreState {
   locked: boolean;
   hide: boolean;
   setLocked: (locked: boolean) => void;
+  // a channel's settings can block publishing; the reason is shown on the buttons
+  publishBlocked: Record<string, string>;
+  setPublishBlocked: (integrationId: string, reason?: string) => void;
   integrations: Integrations[];
   selectedIntegrations: SelectedIntegrations[];
   global: Values[];
@@ -156,6 +159,7 @@ const initialState = {
   isCreateSet: false,
   current: 'global',
   locked: false,
+  publishBlocked: {} as Record<string, string>,
   hide: false,
   integrations: [] as Integrations[],
   selectedIntegrations: [] as SelectedIntegrations[],
@@ -529,6 +533,16 @@ export const useLaunchStore = create<StoreState>()((set) => ({
     set((state) => ({
       tab: tab,
     })),
+  setPublishBlocked: (integrationId: string, reason?: string) =>
+    set((state) => {
+      if (state.publishBlocked[integrationId] === reason) {
+        return state;
+      }
+      const { [integrationId]: _removed, ...rest } = state.publishBlocked;
+      return {
+        publishBlocked: reason ? { ...rest, [integrationId]: reason } : rest,
+      };
+    }),
   setLocked: (locked: boolean) =>
     set((state) => ({
       locked: locked,

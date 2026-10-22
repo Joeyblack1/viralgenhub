@@ -1,7 +1,7 @@
-import { useVariables } from '@gitroom/react/helpers/variable.context';
 export const ChromeExtensionComponent = () => {
-  const { billingEnabled } = useVariables();
-  if (!billingEnabled) {
+  // ViralGenHub has no browser extension (this store link is Postiz's): hidden.
+  // Upstream gates this on billingEnabled; set SHOW_UPSTREAM_EXTENSION to restore.
+  if (!process.env.NEXT_PUBLIC_SHOW_UPSTREAM_EXTENSION) {
     return null;
   }
   return (

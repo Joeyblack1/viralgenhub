@@ -2,7 +2,7 @@
 
 import useSWR from 'swr';
 import { useCallback, useMemo, useState } from 'react';
-import { capitalize, orderBy } from 'lodash';
+import { orderBy, uniq } from 'lodash';
 import clsx from 'clsx';
 import ImageWithFallback from '@gitroom/react/helpers/image.with.fallback';
 import SafeImage from '@gitroom/react/helpers/safe.image';
@@ -30,6 +30,21 @@ const allowedIntegrations = [
   'threads',
   'x',
 ];
+// Only providers the add-channel screen offers (HIDDEN_PROVIDERS), with their display names
+const useSupportedProviders = (enabled: boolean) => {
+  const fetch = useFetch();
+  const load = useCallback(async () => {
+    return (await (await fetch('/integrations')).json()).social;
+  }, []);
+  return useSWR<{ identifier: string; name: string }[]>(
+    enabled ? 'analytics-supported-providers' : null,
+    load,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    }
+  );
+};
 export const PlatformAnalytics = () => {
   const fetch = useFetch();
   const t = useT();
@@ -137,6 +152,20 @@ export const PlatformAnalytics = () => {
     }
     return options[0]?.key;
   }, [key, currentIntegration]);
+  const { data: providers } = useSupportedProviders(
+    !isLoading && !sortedIntegrations.length
+  );
+  const supported = useMemo(() => {
+    return uniq(
+      (providers || [])
+        .filter(
+          (p) =>
+            allowedIntegrations.includes(p.identifier) &&
+            !(p.identifier === 'x' && disableXAnalytics)
+        )
+        .map((p) => p.name)
+    );
+  }, [providers, disableXAnalytics]);
 
   if (isLoading) {
     return (
@@ -160,10 +189,11 @@ export const PlatformAnalytics = () => {
             'You have to add Social Media channels'
           )}
         </div>
-        <div className="text-[20px]">
-          {t('supported', 'Supported:')}
-          {allowedIntegrations.map((p) => capitalize(p)).join(', ')}
-        </div>
+        {!!supported.length && (
+          <div className="text-[20px]">
+            {t('supported', 'Supported:')} {supported.join(', ')}
+          </div>
+        )}
         <Button onClick={() => router.push('/launches')}>
           {t(
             'go_to_the_calendar_to_add_channels',

@@ -62,15 +62,11 @@ export class LinkedinProvider extends SocialAbstract implements SocialProvider {
   oneTimeToken = true;
 
   isBetweenSteps = false;
-  scopes = [
-    'openid',
-    'profile',
-    'w_member_social',
-    'r_basicprofile',
-    'rw_organization_admin',
-    'w_organization_social',
-    'r_organization_social',
-  ];
+  // Only the self-serve products ("Sign In with LinkedIn using OpenID Connect"
+  // and "Share on LinkedIn"): r_basicprofile and the organization scopes need
+  // the Community Management API, which LinkedIn approves per app and which
+  // cannot share an app with these products. Company pages: linkedin-page.
+  scopes = ['openid', 'profile', 'w_member_social'];
   override maxConcurrentJob = 8; // LinkedIn limits are daily budgets
   refreshWait = true;
   editor = 'normal' as const;
@@ -147,14 +143,6 @@ export class LinkedinProvider extends SocialAbstract implements SocialProvider {
       })
     ).json();
 
-    const { vanityName } = await (
-      await fetch('https://api.linkedin.com/v2/me', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-    ).json();
-
     const {
       name,
       sub: id,
@@ -174,7 +162,8 @@ export class LinkedinProvider extends SocialAbstract implements SocialProvider {
       expiresIn: expires_in,
       name,
       picture: picture || '',
-      username: vanityName,
+      // The profile vanity name needs r_basicprofile (see scopes).
+      username: '',
     };
   }
 
@@ -239,14 +228,6 @@ export class LinkedinProvider extends SocialAbstract implements SocialProvider {
       })
     ).json();
 
-    const { vanityName } = await (
-      await fetch('https://api.linkedin.com/v2/me', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-    ).json();
-
     return {
       id,
       accessToken,
@@ -254,7 +235,8 @@ export class LinkedinProvider extends SocialAbstract implements SocialProvider {
       expiresIn,
       name,
       picture,
-      username: vanityName,
+      // The profile vanity name needs r_basicprofile (see scopes).
+      username: '',
     };
   }
 

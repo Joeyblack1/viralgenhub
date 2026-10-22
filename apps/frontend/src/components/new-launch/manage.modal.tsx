@@ -37,6 +37,7 @@ import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { capitalize } from 'lodash';
 import { SelectCustomer } from '@gitroom/frontend/components/launches/select.customer';
 import { CopilotPopup } from '@copilotkit/react-ui';
+import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { DummyCodeComponent } from '@gitroom/frontend/components/new-launch/dummy.code.component';
 import { CreationMethodBadge } from '@gitroom/frontend/components/launches/creation.method.badge';
 import {
@@ -69,6 +70,7 @@ import { useClickOutside } from '@mantine/hooks';
 
 export const ManageModal: FC<AddEditModalProps> = (props) => {
   const t = useT();
+  const user = useUser();
   const fetch = useFetch();
   const ref = useRef(null);
   const existingData = useExistingData();
@@ -100,6 +102,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
     integrations,
     setSelectedIntegrations,
     locked,
+    publishBlocked,
     current,
     activateExitButton,
     setHide,
@@ -122,9 +125,15 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
       integrations: state.integrations,
       setSelectedIntegrations: state.setSelectedIntegrations,
       locked: state.locked,
+      publishBlocked: state.publishBlocked,
       activateExitButton: state.activateExitButton,
     }))
   );
+  // a selected channel's settings can block publishing (not drafts), the first
+  // reason is the tooltip on the disabled buttons
+  const publishBlockedReason = selectedIntegrations
+    .map((p) => publishBlocked[p.integration.id])
+    .find(Boolean);
   // the other channels of an existing post show and move only their own date
   const channelDate = channelDates[current];
   const pickerDate = channelDate || date;
@@ -316,6 +325,9 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
 
   const schedule = useCallback(
     (type: 'draft' | 'now' | 'schedule' | 'update') => async () => {
+      if (type !== 'draft' && publishBlockedReason) {
+        return;
+      }
       let republish = false;
       // the channels saved as another type, the rest are saved as `type`
       const saveAs: Record<string, 'draft' | 'schedule' | 'update'> = {};
@@ -774,7 +786,12 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
         if (!addEditSets) {
           mutate();
           toaster.show(
-            !existingData.integration
+            type === 'now'
+              ? t(
+                  'published_may_take_minutes',
+                  'Sent for publishing. It may take a few minutes for your post to appear on each platform.'
+                )
+              : !existingData.integration
               ? t('added_successfully', 'Added successfully')
               : t('updated_successfully', 'Updated successfully')
           );
@@ -826,6 +843,8 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           label: scheduleLabel,
           variant: 'primary',
           onClick: schedule('schedule'),
+          disabled: !!publishBlockedReason,
+          title: publishBlockedReason,
         },
         ...(!dummy
           ? [
@@ -833,6 +852,8 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                 label: t('post_now', 'Post Now'),
                 variant: 'secondary' as const,
                 onClick: schedule('now'),
+                disabled: !!publishBlockedReason,
+                title: publishBlockedReason,
               },
             ]
           : []),
@@ -1149,10 +1170,18 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
               </button>
             )}
             {!addEditSets && (
-              <div ref={postNowRef} className="group cursor-pointer relative">
+              <div
+                ref={postNowRef}
+                className="group cursor-pointer relative"
+                data-tooltip-id="tooltip"
+                data-tooltip-content={publishBlockedReason}
+              >
                 <button
                   disabled={
-                    selectedIntegrations.length === 0 || loading || locked
+                    selectedIntegrations.length === 0 ||
+                    loading ||
+                    locked ||
+                    !!publishBlockedReason
                   }
                   onClick={schedule('schedule')}
                   className="text-white relative min-w-[180px] btnSub disabled:cursor-not-allowed disabled:opacity-80 outline-none gap-[8px] flex justify-center items-center h-[44px] rounded-[8px] bg-[#612BD3] ps-[20px] pe-[16px]"
@@ -1194,7 +1223,10 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   <button
                     onClick={schedule('now')}
                     disabled={
-                      selectedIntegrations.length === 0 || loading || locked
+                      selectedIntegrations.length === 0 ||
+                      loading ||
+                      locked ||
+                      !!publishBlockedReason
                     }
                     className={clsx(
                       'rounded-[8px] z-[300] disabled:cursor-not-allowed disabled:opacity-80 absolute bottom-[100%] -left-[12px] p-[12px] w-[206px] bg-newBgColorInner',
@@ -1334,6 +1366,8 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           />
         </BottomSheet>
       )}
+      {/* ViralGenHub: the AI assistant only for plans with AI (none today) */}
+      {!!user?.tier?.ai && (
       <CopilotPopup
         className="mobile:!z-[460] mobile:!bottom-[112px]"
         hitEscapeToClose={false}
@@ -1357,6 +1391,7 @@ After using the addPostFor{num} it will create a new addPostContentFor{num+ 1} f
           ),
         }}
       />
+      )}
     </div>
   );
 };

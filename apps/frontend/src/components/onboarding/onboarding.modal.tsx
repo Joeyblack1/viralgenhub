@@ -17,11 +17,13 @@ import {
   getMcpConfig,
   isChatOnlyMcpClient,
   isSelfHosted,
-  localCliSteps,
+  cliSteps,
+  fillCliStep,
   McpAuth,
   McpClient,
   mcpClients,
   mcpConnectorUrls,
+  upstreamConnectors,
 } from '@gitroom/frontend/components/public-api/public.component';
 import { McpClientIcon } from '@gitroom/frontend/components/public-api/mcp.client.icons';
 
@@ -30,18 +32,34 @@ interface OnboardingModalProps {
 }
 
 export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
-  const [step, setStep] = useState(1);
+  const [step, setStep] = useState(0);
   const modals = useModals();
   const t = useT();
+  const user = useUser();
+  const agentsAvailable = !!user?.publicApi && !!user?.tier?.public_api;
+  const tutorialUrl = process.env.NEXT_PUBLIC_ONBOARDING_TUTORIAL_URL;
 
   const steps = useMemo(
-    () => [
-      t('connect_channels', 'Connect Channels'),
-      t('connect_agents', 'Connect Agents'),
-      t('watch_tutorial', 'Watch Tutorial'),
-    ],
-    [t]
+    () =>
+      [
+        { id: 'channels', label: t('connect_channels', 'Connect Channels') },
+        agentsAvailable && {
+          id: 'agents',
+          label: t('connect_agents', 'Connect Agents'),
+        },
+        tutorialUrl && {
+          id: 'tutorial',
+          label: t('watch_tutorial', 'Watch Tutorial'),
+        },
+      ].filter(Boolean) as { id: string; label: string }[],
+    [t, agentsAvailable, tutorialUrl]
   );
+
+  const current = Math.min(step, steps.length - 1);
+  const currentId = steps[current].id;
+  const next = () =>
+    current < steps.length - 1 ? setStep(current + 1) : onClose();
+  const back = () => setStep(Math.max(current - 1, 0));
 
   return (
     <div className="w-full min-h-full flex-1 p-[24px] flex relative">
@@ -71,8 +89,8 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
           <div className="flex flex-col gap-[24px] flex-1">
             {/* Step indicators */}
             <div className="flex items-center justify-center gap-[16px]">
-              {steps.map((label, index) => (
-                <Fragment key={label}>
+              {steps.map(({ id, label }, index) => (
+                <Fragment key={id}>
                   {index > 0 && (
                     <div className="w-[40px] h-[2px] bg-boxFocused" />
                   )}
@@ -80,7 +98,7 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
                     <div
                       className={clsx(
                         'w-[32px] h-[32px] rounded-full flex items-center justify-center text-[14px] font-semibold transition-colors',
-                        step === index + 1
+                        current === index
                           ? 'bg-boxFocused text-textItemFocused'
                           : 'bg-newTableHeader'
                       )}
@@ -90,7 +108,7 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
                     <span
                       className={clsx(
                         'text-[14px]',
-                        step === index + 1 ? 'font-medium' : 'text-textColor'
+                        current === index ? 'font-medium' : 'text-textColor'
                       )}
                     >
                       {label}
@@ -101,20 +119,18 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
             </div>
 
             {/* Step content */}
-            {step === 1 && (
-              <OnboardingStep1
-                onNext={() => setStep(2)}
-                onSkip={() => setStep(2)}
-              />
+            {currentId === 'channels' && (
+              <OnboardingStep1 onNext={next} onSkip={next} />
             )}
-            {step === 2 && (
-              <OnboardingStep2
-                onBack={() => setStep(1)}
-                onNext={() => setStep(3)}
-              />
+            {currentId === 'agents' && (
+              <OnboardingStep2 onBack={back} onNext={next} />
             )}
-            {step === 3 && (
-              <OnboardingStep3 onBack={() => setStep(2)} onFinish={onClose} />
+            {currentId === 'tutorial' && tutorialUrl && (
+              <OnboardingStep3
+                url={tutorialUrl}
+                onBack={back}
+                onFinish={onClose}
+              />
             )}
           </div>
         </div>
@@ -265,6 +281,11 @@ const onboardingAgents = [
 
 type OnboardingAgent = (typeof onboardingAgents)[number];
 
+// Grok Bot only works through Postiz's own connector and CLI (upstreamConnectors)
+const shownAgents = onboardingAgents.filter(
+  (agent) => upstreamConnectors || agent !== 'Grok Bot'
+);
+
 // Every other MCP client, grouped under one tab with its own picker
 const otherTab = 'Other agents' as const;
 const otherAgents = mcpClients.filter(
@@ -274,8 +295,6 @@ const otherAgents = mcpClients.filter(
 // Not an agent, a tab showing the raw API key for people integrating by hand
 const apiTab = 'API' as const;
 type OnboardingTab = OnboardingAgent | typeof otherTab | typeof apiTab;
-
-const cliCommands = localCliSteps.map((step) => step.code);
 
 const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
   onBack,
@@ -295,7 +314,8 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
   const apiKey = user?.publicApi || '';
   const available = !!apiKey && !!user?.tier?.public_api;
   // the official connectors work for self-hosted installs too
-  const officialConnectors = billingEnabled || isSelfHosted;
+  const officialConnectors =
+    upstreamConnectors && (billingEnabled || isSelfHosted);
 
   const { config, hint } =
     agent === apiTab
@@ -342,7 +362,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
         <div className="text-[13px] text-customColor18 mt-[2px]">
           {t(
             'chat_onboarding_description',
-            'No MCP or CLI settings needed. Paste this into the chat, the agent installs the Postiz CLI and asks you for your API key.'
+            'No MCP or CLI settings needed. Paste this into the chat, the agent installs the ViralGenHub CLI and asks you for your API key.'
           )}
         </div>
       </div>
@@ -387,13 +407,13 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
           <div className="text-[13px] text-customColor18 mt-[2px]">
             {t(
               'api_onboarding_description',
-              'Use the Postiz API from your own code, n8n or any other automation'
+              'Use the ViralGenHub API from your own code, n8n or any other automation'
             )}
           </div>
         </div>
         <a
           className="cursor-pointer px-[24px] h-[44px] bg-[#612BD3] hover:bg-[#5520CB] text-white transition-colors rounded-[8px] text-[14px] font-[600] flex items-center gap-[8px] shrink-0"
-          href="https://docs.postiz.com/public-api/introduction"
+          href="https://viralgenhub.com/developers"
           target="_blank"
         >
           <McpClientIcon client={apiTab} size={18} />
@@ -441,12 +461,12 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
           {isSelfHosted
             ? t(
                 'connector_self_hosted_description',
-                'The official connector works with self-hosted Postiz too. When asked to sign in, choose "Use self-hosted" and enter {{url}} with your API key.',
+                'The official connector works with self-hosted ViralGenHub too. When asked to sign in, choose "Use self-hosted" and enter {{url}} with your API key.',
                 { url: mcpBase, interpolation: { escapeValue: false } }
               )
             : t(
                 'connector_onboarding_description',
-                'The fastest way: add Postiz with one click, you will be asked to sign in'
+                'The fastest way: add ViralGenHub with one click, you will be asked to sign in'
               )}
         </div>
       </div>
@@ -468,7 +488,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
         <div className="text-[13px] text-customColor18 mt-[2px]">
           {t(
             'mcp_onboarding_description',
-            'Give your agent Postiz tools to create, schedule and manage posts'
+            'Give your agent ViralGenHub tools to create, schedule and manage posts'
           )}
         </div>
       </div>
@@ -491,7 +511,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
                 onClick={() => setAuth(m)}
               >
                 {m === 'oauth'
-                  ? t('sign_in_no_api_key', 'Sign in with Postiz (no API key)')
+                  ? t('sign_in_no_api_key', 'Sign in with ViralGenHub (no API key)')
                   : t('api_key', 'API Key')}
               </button>
             ))}
@@ -503,7 +523,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
             {auth === 'oauth' &&
               ` ${t(
                 'oauth_sign_in_hint',
-                'Your agent will open a browser window to sign in to Postiz.'
+                'Your agent will open a browser window to sign in to ViralGenHub.'
               )}`}
           </div>
           <pre className="bg-newBgColorInner border border-newBorder rounded-[8px] p-[12px] text-[12px] whitespace-pre-wrap break-all overflow-x-auto leading-[1.5]">
@@ -533,17 +553,24 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
         <div className="text-[13px] text-customColor18 mt-[2px]">
           {t(
             'cli_onboarding_description',
-            'Install the Postiz CLI and the skill that teaches your agent how to use it'
+            'Install the CLI, point it at ViralGenHub with your API key, and add the skill that teaches your agent how to use it'
           )}
         </div>
       </div>
       <div className="p-[20px] flex flex-col gap-[8px] flex-1">
         <pre className="bg-newBgColorInner border border-newBorder rounded-[8px] p-[12px] text-[12px] whitespace-pre-wrap break-all overflow-x-auto leading-[1.5] flex-1">
-          {cliCommands.join('\n')}
+          {cliSteps
+            .map((step) =>
+              fillCliStep(step.code, backendUrl, '*'.repeat(apiKey.length))
+            )
+            .join('\n')}
         </pre>
         <div className="flex gap-[8px]">
           <CopyButton
-            text={cliCommands.join(' && ')}
+            text={cliSteps
+              .map((step) => fillCliStep(step.code, backendUrl, apiKey))
+              .join('\n')
+              .replace(/\n/g, ' && ')}
             label={t('copy', 'Copy')}
           />
         </div>
@@ -568,7 +595,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
       {available ? (
         <div className="flex flex-col gap-[16px] w-full max-w-[1100px] mx-auto">
           <div className="flex flex-wrap justify-center gap-[6px]">
-            {[...onboardingAgents, otherTab, apiTab].map((item) => (
+            {[...shownAgents, otherTab, apiTab].map((item) => (
               <button
                 key={item}
                 type="button"
@@ -629,7 +656,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
         <div className="bg-newTableHeader rounded-[8px] p-[16px] text-[14px] text-customColor18 text-center w-full max-w-[860px] mx-auto">
           {t(
             'agent_access_unavailable',
-            'Agent access is not available for your current plan or role. You can set it up later under Settings > Agents.'
+            'Agent access is not available for your current plan or role. You can set it up later under Settings > API & MCP.'
           )}
         </div>
       )}
@@ -660,7 +687,7 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
         <div className="text-[13px] text-customColor18 text-center">
           {t(
             'agent_settings_later',
-            'More agents and full instructions are available under Settings > Agents'
+            'More agents and full instructions are available under Settings > API & MCP'
           )}
         </div>
         <button
@@ -689,34 +716,33 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
   );
 };
 
-const OnboardingStep3: FC<{ onBack: () => void; onFinish: () => void }> = ({
-  onBack,
-  onFinish,
-}) => {
+const OnboardingStep3: FC<{
+  url: string;
+  onBack: () => void;
+  onFinish: () => void;
+}> = ({ url, onBack, onFinish }) => {
   const t = useT();
 
   return (
     <div className="flex flex-col gap-[24px] flex-1">
       <div className="flex gap-[4px] flex-col text-center">
         <div className="text-[24px] font-semibold">
-          {t('watch_tutorial_title', 'Learn How to Use Postiz')}
+          {t('watch_tutorial_title', 'Learn How to Use ViralGenHub')}
         </div>
         <div className="text-[14px] text-customColor18">
           {t(
             'watch_tutorial_description',
-            'Watch this short video to learn how to get the most out of Postiz'
+            'Watch this short video to learn how to get the most out of ViralGenHub'
           )}
         </div>
       </div>
 
-      {/* YouTube Video Embed */}
       <div className="relative flex-1 rounded-[12px] overflow-hidden">
         <div className="absolute left-0 top-0 w-full h-full flex justify-center">
           <iframe
             className="h-full aspect-video"
-            src="https://www.youtube.com/embed/BdsCVvEYgHU?si=vvhaZJ8I5oXXvVJS?autoplay=1"
-            title="Postiz Tutorial"
-            allow="autoplay"
+            src={url}
+            title={t('watch_tutorial', 'Watch Tutorial')}
             allowFullScreen
           />
         </div>

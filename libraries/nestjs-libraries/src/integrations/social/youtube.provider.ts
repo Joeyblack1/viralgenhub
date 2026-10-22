@@ -60,14 +60,16 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
   name = 'YouTube';
   isBetweenSteps = true;
   dto = YoutubeSettingsDto;
+  // Only what this provider calls: channels.list / videos.list (readonly),
+  // the resumable upload and thumbnails.set (upload), reports.query
+  // (yt-analytics). Fewer sensitive scopes make Google's OAuth verification
+  // simpler; full 'youtube', 'youtube.force-ssl' and 'youtubepartner' were
+  // requested upstream but never used.
   scopes = [
     'https://www.googleapis.com/auth/userinfo.profile',
     'https://www.googleapis.com/auth/userinfo.email',
-    'https://www.googleapis.com/auth/youtube',
-    'https://www.googleapis.com/auth/youtube.force-ssl',
     'https://www.googleapis.com/auth/youtube.readonly',
     'https://www.googleapis.com/auth/youtube.upload',
-    'https://www.googleapis.com/auth/youtubepartner',
     'https://www.googleapis.com/auth/yt-analytics.readonly',
   ];
 
@@ -266,7 +268,7 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
     }`;
 
     if (text.includes('invalid_rapt')) {
-      return `because your organization's Google Workspace session policy invalidated its access. Ask your Google Workspace admin to mark Postiz as a trusted app and turn on "Exempt trusted apps" (https://support.google.com/a/answer/9368756) to prevent this from happening again`;
+      return `because your organization's Google Workspace session policy invalidated its access. Ask your Google Workspace admin to mark ViralGenHub as a trusted app and turn on "Exempt trusted apps" (https://support.google.com/a/answer/9368756) to prevent this from happening again`;
     }
 
     return undefined;

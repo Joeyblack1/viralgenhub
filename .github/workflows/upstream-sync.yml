@@ -44,10 +44,24 @@ jobs:
           git config user.email "sync@users.noreply.github.com"
           git checkout -b "$BRANCH"
           if git merge upstream/main -m "Merge upstream Postiz ($BEHIND commits)"; then
+            # Re-apply the rebrand to any new upstream strings, then list what
+            # the script cannot fix (lowercase postiz.com links, new phrasings).
+            node scripts/rebrand-postiz.mjs
+            if ! git diff --quiet; then
+              git commit -am "Re-run rebrand-postiz.mjs after upstream merge"
+            fi
+            LEFT=$(git grep -n -e 'Postiz' -e 'postiz\.com' -- apps/frontend/src libraries/react-shared-libraries/src/translation/locales/en \
+              | grep -v -e 'source.footer' -e 'testomonials' -e 'sentry' -e '^\S*:[0-9]*:\s*//' | head -40 || true)
             git push origin "$BRANCH" --force
+            BODY="Monthly sync. Before merging: run the TikTok guideline tests (tiktok.dto.spec.ts) and re-check the TikTok composer in a browser. Our patch is isolated to the TikTok provider, branding and tracking removal.
+
+          Upstream wording left after the rebrand script (check each; keep only attribution):
+          \`\`\`
+          ${LEFT:-none}
+          \`\`\`"
             gh pr create --base main --head "$BRANCH" \
               --title "Sync upstream Postiz ($BEHIND commits)" \
-              --body "Monthly sync. Before merging: run the TikTok guideline tests (tiktok.dto.spec.ts) and re-check the TikTok composer in a browser. Our patch is isolated to the TikTok provider, branding and tracking removal." \
+              --body "$BODY" \
               || gh pr list --head "$BRANCH"
           else
             git merge --abort

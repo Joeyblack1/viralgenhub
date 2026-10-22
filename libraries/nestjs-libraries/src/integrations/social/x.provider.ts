@@ -21,7 +21,6 @@ import {
 import { Plug } from '@gitroom/helpers/decorators/plug.decorator';
 import { Integration } from '@prisma/client';
 import { timer } from '@gitroom/helpers/utils/timer';
-import { PostPlug } from '@gitroom/helpers/decorators/post.plug';
 import dayjs from 'dayjs';
 import { uniqBy } from 'lodash';
 import { stripHtmlValidation } from '@gitroom/helpers/utils/strip.html.validation';
@@ -78,6 +77,8 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   isBetweenSteps = false;
   scopes = [] as string[];
   stripLinks = () => !!process.env.STRIP_LINKS_FROM_X_POSTS;
+  // X bills every post through its API: plans cap them a month
+  planPostsLimit = 'x_posts_per_month' as const;
   // X rate limits are per user (300 posts / 3 hours), not per app, so the cap
   // only needs to keep bursts polite. With the pending flow the slot is held
   // for actual API work only (processing waits live in workflow timers), so a
@@ -300,6 +301,9 @@ export class XProvider extends SocialAbstract implements SocialProvider {
   }
 
   @Plug({
+    // A retweet of the user's own post is not a new post (X bills it as a
+    // read/engage call, not post creation), so it is NOT counted against the
+    // x_posts_per_month cap; only x-autoPlugPost below is (createsPost).
     identifier: 'x-autoRepostPost',
     title: 'Auto Repost Posts',
     disabled: !!process.env.DISABLE_X_ANALYTICS,
@@ -344,41 +348,14 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     return false;
   }
 
-  @PostPlug({
-    identifier: 'x-repost-post-users',
-    title: 'Add Re-posters',
-    description: 'Add accounts to repost your post',
-    pickIntegration: ['x'],
-    fields: [],
-  })
-  async repostPostUsers(
-    integration: Integration,
-    originalIntegration: Integration,
-    postId: string,
-    information: any
-  ) {
-    const [accessTokenSplit, accessSecretSplit] = integration.token.split(':');
-    const client = new TwitterApi({
-      appKey: process.env.X_API_KEY!,
-      appSecret: process.env.X_API_SECRET!,
-      accessToken: accessTokenSplit,
-      accessSecret: accessSecretSplit,
-    });
-
-    const {
-      data: { id },
-    } = await client.v2.me();
-
-    try {
-      await client.v2.retweet(id, postId);
-    } catch (err) {
-      /** nothing **/
-    }
-  }
+  // No 'Add Re-posters' plug: reposting from other connected accounts breaks X's
+  // automation rules and risks the whole developer account. Saved plugs of that
+  // name are ignored (processInternalPlug returns when the plug is not found).
 
   @Plug({
     identifier: 'x-autoPlugPost',
     title: 'Auto plug post',
+    createsPost: true,
     disabled: !!process.env.DISABLE_X_ANALYTICS,
     description:
       'When a post reached a certain number of likes, add another post to it so you followers get a notification about your promotion',

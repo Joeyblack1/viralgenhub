@@ -89,7 +89,7 @@ export const SettingsPopup: FC<{
     arr.push({ tab: 'global_settings', label: t('global_settings', 'Global Settings') });
     // Populate tabs based on user permissions
     if (user?.tier?.public_api && isGeneral && showLogout) {
-      arr.push({ tab: 'agents', label: t('agents', 'Agents') });
+      arr.push({ tab: 'agents', label: t('api_and_mcp', 'API & MCP') });
     }
     if (user?.tier?.team_members && isGeneral && user?.role !== 'USER') {
       arr.push({ tab: 'teams', label: t('teams', 'Teams') });
@@ -100,12 +100,8 @@ export const SettingsPopup: FC<{
     if (user?.tier?.autoPost) {
       arr.push({ tab: 'autopost', label: t('auto_post', 'Auto Post') });
     }
-    if (user?.tier.current !== 'FREE') {
-      arr.push({ tab: 'sets', label: t('sets', 'Sets') });
-    }
-    if (user?.tier.current !== 'FREE') {
-      arr.push({ tab: 'signatures', label: t('signatures', 'Signatures') });
-    }
+    arr.push({ tab: 'sets', label: t('sets', 'Sets') });
+    arr.push({ tab: 'signatures', label: t('signatures', 'Signatures') });
     arr.push({ tab: 'integrations', label: t('integrations', 'Integrations') });
     arr.push({ tab: 'plugs', label: t('plugs', 'Plugs') });
     arr.push({ tab: 'apps', label: t('apps', 'Apps') });
@@ -195,13 +191,13 @@ export const SettingsPopup: FC<{
                 </div>
               )}
 
-              {tab === 'sets' && user?.tier.current !== 'FREE' && (
+              {tab === 'sets' && (
                 <div>
                   <Sets />
                 </div>
               )}
 
-              {tab === 'signatures' && user?.tier.current !== 'FREE' && (
+              {tab === 'signatures' && (
                 <div>
                   <SignaturesComponent />
                 </div>

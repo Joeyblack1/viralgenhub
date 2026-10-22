@@ -6,6 +6,7 @@ import {
   PostResponse,
   SocialProvider,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
+import { Logger } from '@nestjs/common';
 import dayjs from 'dayjs';
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
 import {
@@ -23,6 +24,9 @@ import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/s
 import { Integration } from '@prisma/client';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
 
+const CREATOR_INFO_TTL_MS = 15_000;
+const creatorInfoCache = new Map<string, { at: number; info: any }>();
+
 @Rules(
   [
     'TikTok can have one video or one picture or multiple pictures, it cannot be without an attachment.',
@@ -32,18 +36,17 @@ import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorato
   ].join(' ')
 )
 export class TiktokProvider extends SocialAbstract implements SocialProvider {
+  private readonly logger = new Logger(TiktokProvider.name);
   identifier = 'tiktok';
-  name = 'Tiktok';
+  name = 'TikTok';
   isBetweenSteps = false;
   convertToJPEG = true;
-  scopes = [
-    'video.list',
-    'user.info.basic',
-    'video.publish',
-    'video.upload',
-    'user.info.profile',
-    'user.info.stats',
-  ];
+  // ViralGenHub: only the three scopes our TikTok app is approved for. TikTok
+  // rejects the whole authorize request (invalid_scope) if we ask for more.
+  // Without user.info.profile the username comes from creator_info (covered by
+  // video.publish); without video.list/user.info.stats the TikTok analytics
+  // and share-URL lookups are unavailable.
+  scopes = ['user.info.basic', 'video.publish', 'video.upload'];
   override maxConcurrentJob = 10000;
   dto = TikTokDto;
   editor = 'normal' as const;
@@ -239,7 +242,7 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
       return {
         type: 'bad-body' as const,
         value:
-          'You have to upload the picture/video to Postiz when sending a URL',
+          'You have to upload the picture/video to ViralGenHub when sending a URL',
       };
     }
 
@@ -313,11 +316,11 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
 
     const {
       data: {
-        user: { avatar_url, display_name, open_id, username },
+        user: { avatar_url, display_name, open_id },
       },
     } = await (
       await fetch(
-        'https://open.tiktokapis.com/v2/user/info/?fields=open_id,avatar_url,display_name,union_id,username',
+        'https://open.tiktokapis.com/v2/user/info/?fields=open_id,avatar_url,display_name,union_id',
         {
           method: 'GET',
           headers: {
@@ -334,7 +337,7 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
       id: open_id.replace(/-/g, ''),
       name: display_name,
       picture: avatar_url || '',
-      username: username,
+      username: await this.tiktokUsername(access_token, display_name),
     };
   }
 
@@ -392,11 +395,11 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
 
     const {
       data: {
-        user: { avatar_url, display_name, open_id, username },
+        user: { avatar_url, display_name, open_id },
       },
     } = await (
       await fetch(
-        'https://open.tiktokapis.com/v2/user/info/?fields=open_id,avatar_url,display_name,union_id,username',
+        'https://open.tiktokapis.com/v2/user/info/?fields=open_id,avatar_url,display_name,union_id',
         {
           method: 'GET',
           headers: {
@@ -413,8 +416,15 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
       refreshToken: refresh_token,
       expiresIn: dayjs().add(23, 'hours').unix() - dayjs().unix(),
       picture: avatar_url,
-      username: username,
+      username: await this.tiktokUsername(access_token, display_name),
     };
+  }
+
+  // The @handle needs user.info.profile, which we do not request; creator_info
+  // returns it under the video.publish scope.
+  private async tiktokUsername(accessToken: string, fallback: string) {
+    const info = await this.creatorInfo(accessToken);
+    return (info.canPost && info.username) || fallback;
   }
 
   // Live creator_info/query. TikTok's Content Sharing Guidelines require the
@@ -423,6 +433,21 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
   // and the max video length. `canPost` is false when TikTok says the creator
   // cannot post right now.
   async creatorInfo(accessToken: string) {
+    // Reuse an answer for a few seconds so a misbehaving client cannot flood
+    // TikTok's API (and get the app rate-limited); still live for each opening.
+    const cached = creatorInfoCache.get(accessToken);
+    if (cached && cached.at > Date.now() - CREATOR_INFO_TTL_MS) {
+      return cached.info;
+    }
+    const info = await this.fetchCreatorInfo(accessToken);
+    creatorInfoCache.set(accessToken, { at: Date.now(), info });
+    if (creatorInfoCache.size > 500) {
+      creatorInfoCache.delete(creatorInfoCache.keys().next().value!);
+    }
+    return info;
+  }
+
+  private async fetchCreatorInfo(accessToken: string) {
     const res = await fetch(
       'https://open.tiktokapis.com/v2/post/publish/creator_info/query/',
       {
@@ -516,6 +541,11 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
       // Transient API error while checking the status: the post may already
       // be live, so keep polling instead of failing it - if the API stays
       // broken the caller exhausts its checks and warns the user properly.
+      this.logger.warn(
+        `TikTok status fetch failed for publish_id=${pendingData.publishId}: ${
+          err instanceof Error ? err.message : String(err)
+        }`
+      );
       return { status: 'pending', pendingData };
     }
 
@@ -553,6 +583,15 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
       );
     }
 
+    // PROCESSING_UPLOAD / PROCESSING_DOWNLOAD are expected while TikTok works;
+    // anything else (or an error body) is what we need to see in the logs.
+    this.logger.log(
+      `TikTok publish_id=${pendingData.publishId} still pending: status=${
+        status ?? 'none'
+      } error_code=${post?.error?.code ?? 'none'} fail_reason=${
+        post?.data?.fail_reason ?? 'none'
+      }`
+    );
     return { status: 'pending', pendingData };
   }
 
@@ -846,6 +885,10 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
         duplex: 'half',
       } as any);
 
+      this.logger.log(
+        `TikTok upload chunk ${i + 1}/${totalChunkCount} bytes ${start}-${end}/${videoSize}: HTTP ${upload.status}`
+      );
+
       if (
         upload.status !== 200 &&
         upload.status !== 201 &&
@@ -937,6 +980,12 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
       )
     ).json();
 
+    if (!isPhoto && (!upload_url || !videoSize)) {
+      this.logger.warn(
+        `TikTok init for publish_id=${publish_id} returned no upload_url (videoSize=${videoSize}), no bytes were sent`
+      );
+    }
+
     // Videos: stream the bytes to the upload_url returned by the init call.
     if (!isPhoto && upload_url && videoSize) {
       try {
@@ -951,6 +1000,12 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
         if (err instanceof BadBody) {
           throw err;
         }
+
+        this.logger.warn(
+          `TikTok upload threw before completing publish_id=${publish_id}: ${
+            err instanceof Error ? err.message : String(err)
+          }`
+        );
 
         // A network error here is ambiguous - TikTok may have received all
         // the bytes and still publish. Return pending and let checkPostStatus

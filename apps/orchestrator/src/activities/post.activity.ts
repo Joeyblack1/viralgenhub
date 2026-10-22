@@ -397,6 +397,10 @@ export class PostActivity {
 
     // The post is already published at this point: the streak is best-effort,
     // failing the activity here would retry it and publish again.
+    // ViralGenHub hides streaks (and their emails) unless NEXT_PUBLIC_SHOW_STREAK is set.
+    if (!process.env.NEXT_PUBLIC_SHOW_STREAK) {
+      return postNow;
+    }
     setHeartbeatDetails(`${integration.providerIdentifier}: published, streak`);
     try {
       await this._temporalService.client
@@ -542,7 +546,12 @@ export class PostActivity {
     totalRuns: number;
     currentRun: number;
   }) {
-    return this._integrationService.processPlugs(data);
+    // never throws out of the cap: a plug that creates a post is skipped when
+    // the org is over its plan cap (see PostsService.plugPostCap)
+    return this._integrationService.processPlugs(
+      data,
+      this._postService.plugPostCap
+    );
   }
 
   @ActivityMethod()

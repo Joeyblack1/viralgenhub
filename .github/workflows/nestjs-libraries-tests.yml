@@ -1,0 +1,53 @@
+name: nestjs-libraries tests
+
+# The plan-limit specs (pricing, posts, autopost, integration plugs). One job,
+# no database or network: the Prisma client is only generated for its types.
+
+on:
+  push:
+    paths:
+      - 'libraries/nestjs-libraries/**'
+      - 'libraries/helpers/**'
+      - 'apps/backend/src/api/routes/users.controller*'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/nestjs-libraries-tests.yml'
+  pull_request:
+    paths:
+      - 'libraries/nestjs-libraries/**'
+      - 'libraries/helpers/**'
+      - 'apps/backend/src/api/routes/users.controller*'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - '.github/workflows/nestjs-libraries-tests.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 10
+          run_install: false
+
+      - name: Use Node.js 22.12.0
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.12.0'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Generate the Prisma client
+        run: pnpm run prisma-generate
+
+      - name: Specs
+        run: pnpm run test:nestjs-libraries

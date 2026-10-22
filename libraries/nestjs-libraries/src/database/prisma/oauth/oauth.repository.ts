@@ -271,9 +271,17 @@ export class OAuthRepository {
         revokedAt: null,
         accessToken: { not: null },
       },
-      include: {
+      // no accessToken / authorizationCode / clientSecret in the response
+      select: {
+        id: true,
+        createdAt: true,
         oauthApp: {
-          include: {
+          select: {
+            id: true,
+            name: true,
+            description: true,
+            redirectUrl: true,
+            clientId: true,
             picture: true,
           },
         },

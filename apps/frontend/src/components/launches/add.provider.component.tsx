@@ -26,6 +26,9 @@ export const useAddProvider = (update?: () => void, invite?: boolean) => {
   const fetch = useFetch();
   return useCallback(async () => {
     const data = await (await fetch('/integrations')).json();
+    // Hidden platforms this organization may still connect (PREVIEW_PROVIDERS)
+    const preview = await (await fetch('/integrations/preview')).json();
+    data.social = [...(data.social || []), ...(preview?.social || [])];
     modal.openModal({
       title: 'Add Channel',
       withCloseButton: true,
@@ -282,7 +285,7 @@ const ExtensionNotFound: FC = () => {
       <p className="text-[14px] text-textColor/80">
         {t(
           'extension_not_available',
-          'The Postiz browser extension is not installed. You need to install it before connecting this channel.'
+          'The ViralGenHub browser extension is not installed. You need to install it before connecting this channel.'
         )}
       </p>
       <div className="flex gap-[10px]">
@@ -348,7 +351,7 @@ const ChromeExtensionWarning: FC<{
           We will store your cookies securely to facilitate the connection.
         </li>
         <li>
-          Postiz does not take responsibility for any issues arising or account
+          ViralGenHub does not take responsibility for any issues arising or account
           termination due to the use of this method.
         </li>
       </ul>
@@ -584,7 +587,7 @@ export const AddProviderComponent: FC<{
             toaster.show(
               t(
                 'extension_not_installed',
-                'Postiz browser extension is not installed or not reachable.'
+                'ViralGenHub browser extension is not installed or not reachable.'
               ),
               'warning'
             );

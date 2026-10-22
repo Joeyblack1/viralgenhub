@@ -13,7 +13,28 @@ import { createOAuthMiddleware } from './oauth-middleware';
 import { UPLOAD_WIDGET_URI, uploadWidgetHtml } from '@gitroom/nestjs-libraries/chat/ui/upload.widget';
 import { CLIPPING_WIDGET_URI, clippingWidgetHtml } from '@gitroom/nestjs-libraries/chat/ui/clipping.widget';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
+import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
+import {
+  consumePublicApiQuota,
+  publicApiLimitMessage,
+  secondsUntilUtcMidnight,
+} from '@gitroom/nestjs-libraries/throttler/public.api.limit';
 import { McpRelayService } from '@gitroom/nestjs-libraries/chat/mcp.relay.service';
+// Free plan: a small daily request allowance shared with /public/v1.
+// Answers 429 and returns false when the org is over it.
+const withinDailyLimit = async (org: any, res: Response) => {
+  const quota = await consumePublicApiQuota(ioRedis, org);
+  if (quota.allowed) {
+    return true;
+  }
+  res.setHeader('Retry-After', String(secondsUntilUtcMidnight()));
+  res.status(429).json({
+    error: 'rate_limited',
+    error_description: publicApiLimitMessage(quota.limit),
+  });
+  return false;
+};
+
 const fixAcceptHeader = (req: Request) => {
   const value = 'application/json, text/event-stream';
   req.headers.accept = value;
@@ -126,7 +147,7 @@ export const startMcp = async (app: INestApplication) => {
   };
 
   const serverConfig = {
-    name: 'Postiz MCP',
+    name: 'ViralGenHub MCP',
     version: '1.0.0',
     tools,
     agents: { postiz: agent },
@@ -139,7 +160,7 @@ export const startMcp = async (app: INestApplication) => {
   // exposed as an annotation-less catch-all ask_postiz tool, which the
   // ChatGPT and Claude directory reviews reject
   const oauthServer = new MCPServer({
-    name: 'Postiz MCP',
+    name: 'ViralGenHub MCP',
     version: '1.0.0',
     tools,
     appResources,
@@ -149,7 +170,7 @@ export const startMcp = async (app: INestApplication) => {
   const { [CLIPPING_WIDGET_URI]: hiddenWidget, ...claudeAppResources } = appResources as Record<string, (typeof appResources)[typeof UPLOAD_WIDGET_URI]>;
 
   const claudeOauthServer = new MCPServer({
-    name: 'Postiz MCP',
+    name: 'ViralGenHub MCP',
     version: '1.0.0',
     tools: claudeTools,
     appResources: claudeAppResources,
@@ -162,12 +183,12 @@ export const startMcp = async (app: INestApplication) => {
   if (selfHostedRelayEnabled()) {
     const selfHostedTools = mcpRelayService.tools(agentTools);
     selfHostedServer = new MCPServer({
-      name: 'Postiz MCP',
+      name: 'ViralGenHub MCP',
       version: '1.0.0',
       tools: selfHostedTools,
     });
     claudeSelfHostedServer = new MCPServer({
-      name: 'Postiz MCP',
+      name: 'ViralGenHub MCP',
       version: '1.0.0',
       tools: withoutClaudeHidden(selfHostedTools),
     });
@@ -340,6 +361,8 @@ export const startMcp = async (app: INestApplication) => {
       return;
     }
 
+    if (auth && !(await withinDailyLimit(auth, res))) return;
+
     fixAcceptHeader(req);
     await runWithContext({ requestId: token!, auth, relay: relay || undefined }, async () => {
       await (relay ? selfHostedServer! : mcpServer).startHTTP({
@@ -387,6 +410,9 @@ export const startMcp = async (app: INestApplication) => {
       return;
     }
 
+    // @ts-ignore
+    if (!(await withinDailyLimit(req.auth, res))) return;
+
     const url = new URL('/mcp', process.env.NEXT_PUBLIC_BACKEND_URL);
 
     fixAcceptHeader(req);
@@ -424,6 +450,9 @@ export const startMcp = async (app: INestApplication) => {
       res.status(400).send('Invalid API Key');
       return;
     }
+
+    // @ts-ignore
+    if (!(await withinDailyLimit(req.auth, res))) return;
 
     const url = new URL(
       `/mcp/${req.params.id}`,
@@ -468,6 +497,11 @@ export const startMcp = async (app: INestApplication) => {
       res.status(400).send('Invalid API Key');
       return;
     }
+
+    // count the connection and tool calls (/sse/:id), not the follow-up
+    // message posts of the same session
+    // @ts-ignore
+    if (req.baseUrl.startsWith('/sse') && !(await withinDailyLimit(req.auth, res))) return;
 
     const url = new URL(req.originalUrl, process.env.NEXT_PUBLIC_BACKEND_URL);
 

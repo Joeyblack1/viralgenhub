@@ -4,6 +4,12 @@ import { Organization } from '@prisma/client';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { OAuthService } from '@gitroom/nestjs-libraries/database/prisma/oauth/oauth.service';
 import { HttpForbiddenException } from '@gitroom/nestjs-libraries/services/exception.filter';
+import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
+import {
+  consumePublicApiQuota,
+  publicApiLimitMessage,
+  secondsUntilUtcMidnight,
+} from '@gitroom/nestjs-libraries/throttler/public.api.limit';
 import { setSentryUserContext } from '@gitroom/nestjs-libraries/sentry/initialize.sentry';
 
 @Injectable()
@@ -57,10 +63,17 @@ export class PublicAuthMiddleware implements NestMiddleware {
         }
       }
 
-      if (!!process.env.STRIPE_SECRET_KEY && !org.subscription) {
+      // ViralGenHub: Free workspaces have no subscription row, and the Free plan
+      // includes the Public API + MCP, capped per day below (no 'No subscription
+      // found' for them).
+
+      // Free plan: a small daily request allowance (paid plans: no cap)
+      const quota = await consumePublicApiQuota(ioRedis, org);
+      if (!quota.allowed) {
+        res.setHeader('Retry-After', String(secondsUntilUtcMidnight()));
         res
-          .status(HttpStatus.UNAUTHORIZED)
-          .json({ msg: 'No subscription found' });
+          .status(HttpStatus.TOO_MANY_REQUESTS)
+          .json({ msg: publicApiLimitMessage(quota.limit) });
         return;
       }
 

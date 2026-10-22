@@ -89,21 +89,6 @@ export const FirstBillingComponent = () => {
     ).json();
   }, [tier, period]);
 
-  const showYouTube = () => {
-    modals.openModal({
-      title: 'Grow Fast With Postiz (Play the video)',
-      children: (
-        <iframe
-          className="h-full aspect-video min-w-[800px]"
-          src="https://www.youtube.com/embed/BdsCVvEYgHU?si=vvhaZJ8I5oXXvVJS?autoplay=1"
-          title="Postiz Tutorial"
-          allow="autoplay"
-          allowFullScreen
-        />
-      ),
-    });
-  };
-
   const { data, isLoading } = useSWR(
     `/billing-${tier}-${period}`,
     loadCheckout,
@@ -141,23 +126,8 @@ export const FirstBillingComponent = () => {
           {t('billing_who_use', 'who use')}{' '}
           {t(
             'billing_postiz_grow_social',
-            'Postiz To Grow Their Social Presence'
+            'ViralGenHub To Grow Their Social Presence'
           )}
-        </div>
-
-        <div className="flex" onClick={showYouTube}>
-          <div className="tablet:mb-[32px] cursor-pointer mt-[32px] flex gap-[10px] items-center underline hover:font-[700]">
-            <div>
-              <SafeImage
-                className="text-[12px]"
-                src="/icons/platforms/youtube.svg"
-                width={22.5}
-                height={16}
-                alt="YouTube"
-              />
-            </div>
-            <div>See the power of Postiz (click here)</div>
-          </div>
         </div>
 
         {!!user?.allowTrial && (
@@ -343,10 +313,20 @@ type FeatureItem = {
   prefix?: string | number;
 };
 
+// ViralGenHub: plans read "Everything in <previous plan>, plus:" and list only
+// what they add, so this is the plan sold just below `tier` (null for the first).
+export const previousSoldTier = (tier: string) => {
+  const sold = Object.keys(pricing).filter((key) => SOLD_TIERS.includes(key));
+  const index = sold.indexOf(tier);
+  return index > 0 ? sold[index - 1] : null;
+};
+
 export const useBillingFeatures = (tier: string) => {
   const t = useT();
   const features = useMemo(() => {
     const currentPricing = pricing[tier];
+    const previousTier = previousSoldTier(tier);
+    const previous = previousTier ? pricing[previousTier] : undefined;
     const channelsOr = currentPricing.channel;
     const list: FeatureItem[] = [];
 
@@ -356,19 +336,61 @@ export const useBillingFeatures = (tier: string) => {
       prefix: channelsOr,
     });
 
-    list.push({
-      key: 'billing_posts_per_month',
-      defaultValue: 'posts per month',
-      prefix:
-        currentPricing.posts_per_month > 10000
-          ? 'unlimited'
-          : currentPricing.posts_per_month,
-    });
+    if (
+      !previous ||
+      previous.posts_per_month !== currentPricing.posts_per_month
+    ) {
+      list.push({
+        key: 'billing_posts_per_month',
+        defaultValue: 'posts per month',
+        prefix:
+          currentPricing.posts_per_month > 10000
+            ? 'unlimited'
+            : currentPricing.posts_per_month,
+      });
+    }
 
-    if (currentPricing.team_members) {
+    if (currentPricing.x_posts_per_month > (previous?.x_posts_per_month || 0)) {
+      list.push({
+        key: 'billing_x_posts_per_month',
+        defaultValue: 'X posts per month',
+        prefix: currentPricing.x_posts_per_month,
+      });
+    }
+
+    if (!previous) {
+      list.push({
+        key: 'billing_calendar_scheduling_media',
+        defaultValue: 'Calendar, scheduling and media library',
+      });
+    }
+
+    if (currentPricing.public_api && !previous?.public_api) {
+      list.push({ key: 'billing_public_api', defaultValue: 'Public API' });
+    }
+
+    if (currentPricing.webhooks > (previous?.webhooks || 0)) {
+      list.push({
+        key:
+          currentPricing.webhooks === 1
+            ? 'billing_webhook'
+            : 'billing_webhooks',
+        defaultValue: currentPricing.webhooks === 1 ? 'webhook' : 'webhooks',
+        prefix: currentPricing.webhooks,
+      });
+    }
+
+    if (currentPricing.team_members && !previous?.team_members) {
       list.push({
         key: 'billing_unlimited_team_members',
         defaultValue: 'Unlimited team members',
+      });
+    }
+
+    if (currentPricing.autoPost && !previous?.autoPost) {
+      list.push({
+        key: 'billing_rss_auto_post',
+        defaultValue: 'Auto-post from RSS feeds',
       });
     }
     if (currentPricing?.ai) {

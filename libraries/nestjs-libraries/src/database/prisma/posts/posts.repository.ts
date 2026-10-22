@@ -15,6 +15,7 @@ import weekOfYear from 'dayjs/plugin/weekOfYear';
 import isSameOrAfter from 'dayjs/plugin/isSameOrAfter';
 import utc from 'dayjs/plugin/utc';
 import { v4 as uuidv4 } from 'uuid';
+import { decryptIntegrationRelation } from '@gitroom/helpers/auth/token.encryption';
 import { CreateTagDto } from '@gitroom/nestjs-libraries/dtos/posts/create.tag.dto';
 
 dayjs.extend(isoWeek);
@@ -402,7 +403,7 @@ export class PostsRepository {
           },
         },
       },
-    });
+    }).then((r) => r.map((p) => decryptIntegrationRelation(p)));
   }
 
   // the posts of the other channels in the batch, without the given group
@@ -455,7 +456,7 @@ export class PostsRepository {
           : {}),
         childrenPost: true,
       },
-    });
+    }).then((r) => decryptIntegrationRelation(r));
   }
 
   updatePost(id: string, postId: string, releaseURL: string) {
@@ -588,6 +589,49 @@ export class PostsRepository {
         publishDate: {
           gte: date,
         },
+        OR: [
+          {
+            deletedAt: null,
+            state: {
+              in: ['QUEUE'],
+            },
+          },
+          {
+            state: 'PUBLISHED',
+          },
+        ],
+      },
+    });
+  }
+
+  // Same posts as countPostsFromDay, only on the given platforms and between
+  // two dates. `excludeIds` are the posts a save is about to overwrite.
+  countProviderPostsBetween(
+    orgId: string,
+    providerIdentifiers: string[],
+    from: Date,
+    to: Date,
+    excludeIds: string[]
+  ) {
+    return this._post.model.post.count({
+      where: {
+        organizationId: orgId,
+        integration: {
+          providerIdentifier: {
+            in: providerIdentifiers,
+          },
+        },
+        publishDate: {
+          gte: from,
+          lt: to,
+        },
+        ...(excludeIds.length
+          ? {
+              id: {
+                notIn: excludeIds,
+              },
+            }
+          : {}),
         OR: [
           {
             deletedAt: null,
@@ -859,7 +903,7 @@ export class PostsRepository {
           },
         },
       },
-    });
+    }).then((r) => decryptIntegrationRelation(r));
   }
 
   private get postTimelineSelect() {

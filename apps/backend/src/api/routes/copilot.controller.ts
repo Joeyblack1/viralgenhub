@@ -52,6 +52,9 @@ export class CopilotController {
       process.env.OPENAI_API_KEY === ''
     ) {
       Logger.warn('OpenAI API key not set, chat functionality will not work');
+      // ViralGenHub: answer now instead of leaving the request open until the
+      // proxy times out (60 s per page load, then a 504 in the browser console)
+      res.status(503).json({ error: 'AI features are not enabled' });
       return;
     }
 
@@ -79,6 +82,9 @@ export class CopilotController {
       process.env.OPENAI_API_KEY === ''
     ) {
       Logger.warn('OpenAI API key not set, chat functionality will not work');
+      // ViralGenHub: answer now instead of leaving the request open until the
+      // proxy times out (60 s per page load, then a 504 in the browser console)
+      res.status(503).json({ error: 'AI features are not enabled' });
       return;
     }
     const mastra = await this._mastraService.mastra();

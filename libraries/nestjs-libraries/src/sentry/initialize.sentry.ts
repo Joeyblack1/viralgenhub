@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/nestjs';
-import { nodeProfilingIntegration } from '@sentry/profiling-node';
 import { capitalize } from 'lodash';
 
 export const setSentryUserContext = (params: {
@@ -29,6 +28,12 @@ export const initializeSentry = (appName: string, allowLogs = false) => {
   if (!process.env.NEXT_PUBLIC_SENTRY_DSN) {
     return null;
   }
+
+  // Loaded only when Sentry is on: its native addon creates a V8 CPU profiler
+  // the moment it loads, and a GC at that instant deadlocks V8, freezing the
+  // backend/orchestrator for good at start-up (ViralGenHub #178).
+  const { nodeProfilingIntegration } =
+    require('@sentry/profiling-node') as typeof import('@sentry/profiling-node');
 
   try {
     Sentry.init({

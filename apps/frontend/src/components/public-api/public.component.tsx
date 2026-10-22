@@ -35,7 +35,7 @@ export const mcpConnectorUrls = {
 // the agent installs the CLI itself and asks you for the API key
 export const chatOnlyMcpClients = {
   'Grok Bot':
-    'Install the Postiz CLI with `npm install -g postiz`, then install the Postiz skill with `npx skills add gitroomhq/postiz-agent`. Ask me for my Postiz API key and set it as the POSTIZ_API_KEY environment variable before using the CLI.',
+    'Install the Postiz CLI with `npm install -g postiz`, then install the Postiz skill with `npx skills add gitroomhq/postiz-agent`. Ask me for my ViralGenHub API key and set it as the POSTIZ_API_KEY environment variable before using the CLI.',
 } as const;
 
 export const mcpClients = [
@@ -63,6 +63,12 @@ export type McpAuth = 'oauth' | 'apikey';
 
 // Only the self-hosted docker images are built with a version
 export const isSelfHosted = !!process.env.NEXT_PUBLIC_VERSION;
+
+// ViralGenHub: the directory listings (Claude/ChatGPT/Cursor/Grok) and the Grok
+// chat-only setup are Postiz's own connectors and CLI, which talk to Postiz and
+// not to us, so they stay hidden unless explicitly enabled.
+export const upstreamConnectors =
+  !!process.env.NEXT_PUBLIC_SHOW_UPSTREAM_CONNECTORS;
 
 // The directory listings behind the "Official connector" tab
 const officialConnectorClients = [
@@ -112,62 +118,62 @@ export const getMcpConfig = (
     switch (client) {
       case 'Claude Code':
         return {
-          config: `claude mcp add postiz --transport http "${oauthUrl}"`,
+          config: `claude mcp add viralgenhub --transport http "${oauthUrl}"`,
           hint: 'Run this command in your terminal.',
         };
       case 'Cursor':
         return {
-          config: json({ mcpServers: { postiz: { url: oauthUrl } } }),
+          config: json({ mcpServers: { viralgenhub: { url: oauthUrl } } }),
           hint: 'Add to .cursor/mcp.json in your project root.',
         };
       case 'VS Code / Copilot':
         return {
           config: json({
-            servers: { postiz: { type: 'http', url: oauthUrl } },
+            servers: { viralgenhub: { type: 'http', url: oauthUrl } },
           }),
           hint: 'Add to .vscode/mcp.json in your project root.',
         };
       case 'Windsurf':
         return {
           config: json({
-            mcpServers: { postiz: { serverUrl: oauthUrl } },
+            mcpServers: { viralgenhub: { serverUrl: oauthUrl } },
           }),
           hint: 'Add to ~/.codeium/windsurf/mcp_config.json',
         };
       case 'Amp':
         return {
-          config: `amp mcp add postiz ${oauthUrl}`,
+          config: `amp mcp add viralgenhub ${oauthUrl}`,
           hint: 'Run this command in your terminal.',
         };
       case 'Codex':
         return {
-          config: `# ~/.codex/config.toml\n\n[mcp_servers.postiz]\nurl = "${oauthUrl}"`,
-          hint: 'Add to ~/.codex/config.toml, then run: codex mcp login postiz',
+          config: `# ~/.codex/config.toml\n\n[mcp_servers.viralgenhub]\nurl = "${oauthUrl}"`,
+          hint: 'Add to ~/.codex/config.toml, then run: codex mcp login viralgenhub',
         };
       case 'Gemini CLI':
         return {
-          config: json({ mcpServers: { postiz: { url: oauthUrl } } }),
+          config: json({ mcpServers: { viralgenhub: { url: oauthUrl } } }),
           hint: 'Add to ~/.gemini/settings.json',
         };
       case 'Warp':
         return {
-          config: json({ postiz: { url: oauthUrl } }),
+          config: json({ viralgenhub: { url: oauthUrl } }),
           hint: 'Settings > MCP Servers > + Add, then paste this config.',
         };
       case 'Hermes':
         return {
-          config: `# ~/.hermes/config.yaml\n\nmcp_servers:\n  postiz:\n    url: "${oauthUrl}"\n    auth: oauth`,
+          config: `# ~/.hermes/config.yaml\n\nmcp_servers:\n  viralgenhub:\n    url: "${oauthUrl}"\n    auth: oauth`,
           hint: 'Add to ~/.hermes/config.yaml, then run /reload-mcp in the chat.',
         };
       case 'OpenClaw':
         return {
-          config: `openclaw mcp add postiz --url ${oauthUrl} --transport streamable-http --auth oauth && openclaw mcp login postiz`,
+          config: `openclaw mcp add viralgenhub --url ${oauthUrl} --transport streamable-http --auth oauth && openclaw mcp login viralgenhub`,
           hint: 'Run this command in your terminal.',
         };
       case 'NanoClaw':
         return {
-          config: `ncl groups config add-mcp-server --id <group-id> --name postiz --url ${oauthUrl}`,
-          hint: 'Run this in your terminal, replace <group-id> with the agent group that should get Postiz.',
+          config: `ncl groups config add-mcp-server --id <group-id> --name viralgenhub --url ${oauthUrl}`,
+          hint: 'Run this in your terminal, replace <group-id> with the agent group that should get ViralGenHub.',
         };
     }
   }
@@ -175,14 +181,14 @@ export const getMcpConfig = (
   switch (client) {
     case 'Claude Code':
       return {
-        config: `claude mcp add --transport http postiz ${urlBase} --header "Authorization: ${bearer}"`,
+        config: `claude mcp add --transport http viralgenhub ${urlBase} --header "Authorization: ${bearer}"`,
         hint: 'Run this command in your terminal.',
       };
     case 'Cursor':
       return {
         config: json({
           mcpServers: {
-            postiz: { url: urlBase, headers: { Authorization: bearer } },
+            viralgenhub: { url: urlBase, headers: { Authorization: bearer } },
           },
         }),
         hint: 'Add to .cursor/mcp.json in your project root.',
@@ -191,7 +197,7 @@ export const getMcpConfig = (
       return {
         config: json({
           servers: {
-            postiz: {
+            viralgenhub: {
               type: 'http',
               url: urlBase,
               headers: { Authorization: bearer },
@@ -204,7 +210,7 @@ export const getMcpConfig = (
       return {
         config: json({
           mcpServers: {
-            postiz: {
+            viralgenhub: {
               serverUrl: urlBase,
               headers: { Authorization: bearer },
             },
@@ -216,21 +222,21 @@ export const getMcpConfig = (
       return {
         config: json({
           'amp.mcpServers': {
-            postiz: { url: urlBase, headers: { Authorization: bearer } },
+            viralgenhub: { url: urlBase, headers: { Authorization: bearer } },
           },
         }),
         hint: 'Add to your Amp settings.json',
       };
     case 'Codex':
       return {
-        config: `# ~/.codex/config.toml\n\n[mcp_servers.postiz]\nurl = "${urlBase}"\nhttp_headers = { "Authorization" = "${bearer}" }`,
+        config: `# ~/.codex/config.toml\n\n[mcp_servers.viralgenhub]\nurl = "${urlBase}"\nhttp_headers = { "Authorization" = "${bearer}" }`,
         hint: 'Add to ~/.codex/config.toml',
       };
     case 'Gemini CLI':
       return {
         config: json({
           mcpServers: {
-            postiz: { url: urlBase, headers: { Authorization: bearer } },
+            viralgenhub: { url: urlBase, headers: { Authorization: bearer } },
           },
         }),
         hint: 'Add to ~/.gemini/settings.json',
@@ -238,13 +244,13 @@ export const getMcpConfig = (
     case 'Warp':
       return {
         config: json({
-          postiz: { url: urlBase, headers: { Authorization: bearer } },
+          viralgenhub: { url: urlBase, headers: { Authorization: bearer } },
         }),
         hint: 'Settings > MCP Servers > + Add, then paste this config.',
       };
     case 'Hermes':
       return {
-        config: `# ~/.hermes/config.yaml\n\nmcp_servers:\n  postiz:\n    url: "${urlBase}"\n    headers:\n      Authorization: "${bearer}"`,
+        config: `# ~/.hermes/config.yaml\n\nmcp_servers:\n  viralgenhub:\n    url: "${urlBase}"\n    headers:\n      Authorization: "${bearer}"`,
         hint: 'Add to ~/.hermes/config.yaml, then run /reload-mcp in the chat.',
       };
     case 'OpenClaw':
@@ -252,7 +258,7 @@ export const getMcpConfig = (
         config: json({
           mcp: {
             servers: {
-              postiz: {
+              viralgenhub: {
                 url: urlBase,
                 transport: 'streamable-http',
                 headers: { Authorization: bearer },
@@ -265,8 +271,8 @@ export const getMcpConfig = (
     case 'NanoClaw':
       // No headers flag, the key travels inside the URL like remote clients
       return {
-        config: `ncl groups config add-mcp-server --id <group-id> --name postiz --url ${mcpBase}/mcp/${apiKey}`,
-        hint: 'Run this in your terminal, replace <group-id> with the agent group that should get Postiz.',
+        config: `ncl groups config add-mcp-server --id <group-id> --name viralgenhub --url ${mcpBase}/mcp/${apiKey}`,
+        hint: 'Run this in your terminal, replace <group-id> with the agent group that should get ViralGenHub.',
       };
   }
 };
@@ -316,7 +322,8 @@ const McpSection = ({
   const t = useT();
   const { billingEnabled } = useVariables();
   const [activeClient, setActiveClient] = useState<AnyMcpClient>('Claude');
-  const officialConnectors = billingEnabled || isSelfHosted;
+  const officialConnectors =
+    upstreamConnectors && (billingEnabled || isSelfHosted);
   // the directory connectors come first wherever they work
   const tabs: Array<'official' | McpAuth> = officialConnectors
     ? ['official', 'oauth', 'apikey']
@@ -354,7 +361,7 @@ const McpSection = ({
           <div className="text-[13px] text-customColor18 mt-[2px]">
             {t(
               'connect_your_mcp_client_to_postiz_to_schedule_your_posts_faster',
-              'Connect Postiz MCP server to your client (Http streaming) to schedule your posts faster.'
+              'Connect ViralGenHub MCP server to your client (Http streaming) to schedule your posts faster.'
             )}
           </div>
         </div>
@@ -381,7 +388,7 @@ const McpSection = ({
           )}
           <a
             className="cursor-pointer px-[16px] h-[36px] bg-[#612BD3] hover:bg-[#5520CB] text-white transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
-            href="https://docs.postiz.com/mcp/introduction"
+            href="https://viralgenhub.com/developers"
             target="_blank"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
@@ -411,7 +418,7 @@ const McpSection = ({
                   {m === 'official'
                     ? t('official_connector', 'Official connector')
                     : m === 'oauth'
-                    ? t('sign_in_no_api_key', 'Sign in with Postiz (no API key)')
+                    ? t('sign_in_no_api_key', 'Sign in with ViralGenHub (no API key)')
                     : t('api_key', 'API Key')}
                 </button>
               ))}
@@ -424,12 +431,12 @@ const McpSection = ({
               {isSelfHosted
                 ? t(
                     'connector_self_hosted_description',
-                    'The official connector works with self-hosted Postiz too. When asked to sign in, choose "Use self-hosted" and enter {{url}} with your API key.',
+                    'The official connector works with self-hosted ViralGenHub too. When asked to sign in, choose "Use self-hosted" and enter {{url}} with your API key.',
                     { url: mcpBase, interpolation: { escapeValue: false } }
                   )
                 : t(
                     'connector_onboarding_description',
-                    'The fastest way: add Postiz with one click, you will be asked to sign in'
+                    'The fastest way: add ViralGenHub with one click, you will be asked to sign in'
                   )}
             </div>
             <div className="flex flex-wrap gap-[8px]">
@@ -462,7 +469,7 @@ const McpSection = ({
             {[
               ...Object.keys(remoteMcpClients),
               ...mcpClients,
-              ...Object.keys(chatOnlyMcpClients),
+              ...(upstreamConnectors ? Object.keys(chatOnlyMcpClients) : []),
             ].map((client) => (
               <button
                 key={client}
@@ -490,7 +497,7 @@ const McpSection = ({
               !chatOnly &&
               ` ${t(
                 'oauth_sign_in_hint',
-                'Your agent will open a browser window to sign in to Postiz.'
+                'Your agent will open a browser window to sign in to ViralGenHub.'
               )}`}
           </div>
           <pre className="bg-newBgColorInner border border-newBorder rounded-[8px] p-[16px] text-[13px] whitespace-pre-wrap break-all overflow-x-auto leading-[1.6]">
@@ -572,59 +579,40 @@ const McpSection = ({
   );
 };
 
-export const localCliSteps = [
+// ViralGenHub is built on Postiz, so Postiz's CLI and agent skill work with it
+// once they point at our API. Its "auth:login" signs in to Postiz, so we use the
+// API key instead. {API_URL} and {API_KEY} are filled in where the steps are shown.
+export const cliSteps = [
   {
-    label: 'Install the CLI',
+    label: 'Install the CLI (Postiz CLI; ViralGenHub is built on Postiz)',
     code: 'npm install -g postiz',
   },
   {
-    label: 'Run: postiz auth:login',
-    code: 'postiz auth:login',
+    label: 'Point it at ViralGenHub with your API key',
+    code: 'export POSTIZ_API_URL="{API_URL}"\nexport POSTIZ_API_KEY="{API_KEY}"',
   },
   {
-    label: 'Install the Postiz skill for your AI agent',
+    label: 'Install the skill for your AI agent',
     code: 'npx skills add gitroomhq/postiz-agent',
   },
 ] as const;
 
-const ciCliSteps = [
-  {
-    label: 'Install the CLI',
-    code: 'npm install -g postiz',
-  },
-  {
-    label: 'Set your API key as an environment variable',
-    code: 'export POSTIZ_API_KEY="{API_KEY}"',
-  },
-  {
-    label: 'Install the Postiz skill for your AI agent',
-    code: 'npx skills add gitroomhq/postiz-agent',
-  },
-] as const;
+export const fillCliStep = (code: string, apiUrl: string, apiKey: string) =>
+  code.replace('{API_URL}', apiUrl).replace('{API_KEY}', apiKey);
 
 const CliSection = ({ apiKey }: { apiKey: string }) => {
   const t = useT();
-  const [mode, setMode] = useState<'local' | 'ci'>('local');
+  const { backendUrl } = useVariables();
   const [revealed, setRevealed] = useState(false);
 
-  const steps =
-    mode === 'local'
-      ? localCliSteps.map((step) => ({ ...step }))
-      : ciCliSteps.map((step) => ({
-          ...step,
-          code: step.code.replace('{API_KEY}', apiKey),
-        }));
-
-  const displaySteps =
-    mode === 'ci' && !revealed
-      ? steps.map((step) => ({
-          ...step,
-          code: step.code.replace(
-            new RegExp(apiKey.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g'),
-            '*'.repeat(apiKey.length)
-          ),
-        }))
-      : steps;
+  const displaySteps = cliSteps.map((step) => ({
+    ...step,
+    code: fillCliStep(
+      step.code,
+      backendUrl,
+      revealed ? apiKey : '*'.repeat(apiKey.length)
+    ),
+  }));
 
   return (
     <div className="bg-newBgColorInnerInner rounded-[12px] border border-newBorder overflow-hidden">
@@ -636,14 +624,14 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
           <div className="text-[13px] text-customColor18 mt-[2px]">
             {t(
               'cli_description',
-              'Use the Postiz CLI to automate posting from your terminal, or install the skill to let your AI agent schedule posts for you.'
+              'Use the CLI to automate posting from your terminal, or install the skill to let your AI agent schedule posts for you.'
             )}
           </div>
         </div>
         <div className="flex flex-wrap gap-[6px] shrink-0 pt-[2px]">
           <a
             className="cursor-pointer px-[16px] h-[36px] bg-[#612BD3] hover:bg-[#5520CB] text-white transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
-            href="https://docs.postiz.com/cli/introduction"
+            href="https://viralgenhub.com/developers"
             target="_blank"
           >
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
@@ -652,25 +640,6 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
         </div>
       </div>
       <div className="p-[20px] mobile:p-[14px] flex flex-col gap-[16px]">
-        <div className="flex gap-[6px]">
-          {(['local', 'ci'] as const).map((m) => (
-            <button
-              key={m}
-              type="button"
-              className={clsx(
-                'cursor-pointer px-[14px] h-[36px] text-[13px] font-[500] rounded-[8px] transition-colors',
-                mode === m
-                  ? 'bg-[#612BD3] text-white'
-                  : 'bg-btnSimple text-customColor18 hover:bg-boxHover hover:text-textColor'
-              )}
-              onClick={() => setMode(m)}
-            >
-              {m === 'local'
-                ? t('locally', 'Locally')
-                : t('ci_remote_servers', 'CI / Remote servers')}
-            </button>
-          ))}
-        </div>
         {displaySteps.map((step, i) => (
           <div key={i} className="flex flex-col gap-[6px]">
             <div className="text-[13px] font-[600] text-customColor18">
@@ -682,7 +651,7 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
           </div>
         ))}
         <div className="flex flex-wrap gap-[8px]">
-          {mode === 'ci' && (
+          {!!apiKey && (
             <button
               type="button"
               onClick={() => setRevealed(!revealed)}
@@ -715,7 +684,10 @@ const CliSection = ({ apiKey }: { apiKey: string }) => {
             </button>
           )}
           <CopyButton
-            text={steps.map((s) => s.code).join(' && ')}
+            text={cliSteps
+              .map((step) => fillCliStep(step.code, backendUrl, apiKey))
+              .join('\n')
+              .replace(/\n/g, ' && ')}
             label={t('copy_all', 'Copy All')}
           />
         </div>
@@ -770,7 +742,7 @@ const PublicApiContent = () => {
         <br />
         {t(
           'api_auth_note_line2',
-          'If you are building a product that schedules posts on behalf of other Postiz users,'
+          'If you are building a product that schedules posts on behalf of other ViralGenHub users,'
         )}
         <br />
         {t(
@@ -779,8 +751,8 @@ const PublicApiContent = () => {
         )}
         <br />
         {t(
-          'api_auth_note_line4',
-          'and you will receive a pos_ prefixed token that works with the API, MCP, and CLI — just like an API Key.'
+          'api_auth_note_line4_api_mcp',
+          'and you will receive a pos_ prefixed token that works with the API and MCP, just like an API Key.'
         )}
       </div>
       <div className="bg-newBgColorInnerInner rounded-[12px] border border-newBorder overflow-hidden">
@@ -792,26 +764,18 @@ const PublicApiContent = () => {
             <div className="text-[13px] text-customColor18 mt-[2px]">
               {t(
                 'use_postiz_api_to_integrate_with_your_tools',
-                'Use Postiz API to integrate with your tools.'
+                'Use ViralGenHub API to integrate with your tools.'
               )}
             </div>
           </div>
           <div className="flex flex-wrap gap-[6px] shrink-0 pt-[2px]">
             <a
               className="cursor-pointer px-[16px] h-[36px] bg-[#612BD3] hover:bg-[#5520CB] text-white transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
-              href="https://docs.postiz.com/public-api"
+              href="https://viralgenhub.com/developers"
               target="_blank"
             >
               <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
             {t('read_the_docs', 'Docs')}
-            </a>
-            <a
-              className="cursor-pointer px-[16px] h-[36px] bg-[#612BD3] hover:bg-[#5520CB] text-white transition-colors rounded-[8px] text-[13px] font-[600] flex items-center gap-[6px]"
-              href="https://www.npmjs.com/package/n8n-nodes-postiz"
-              target="_blank"
-            >
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6" /><polyline points="15 3 21 3 21 9" /><line x1="10" y1="14" x2="21" y2="3" /></svg>
-              {t('n8n_node', 'N8N Node')}
             </a>
           </div>
         </div>
@@ -914,7 +878,11 @@ const PublicApiContent = () => {
         </div>
       </div>
 
-      <CliSection apiKey={user.publicApi} />
+      {/* ViralGenHub: the CLI/skill are Postiz's own npm packages (api.postiz.com), not offered.
+          Set NEXT_PUBLIC_SHOW_UPSTREAM_CLI to show the section again. */}
+      {!!process.env.NEXT_PUBLIC_SHOW_UPSTREAM_CLI && (
+        <CliSection apiKey={user.publicApi} />
+      )}
 
       <McpSection user={user} mcpBase={mcpBase} />
     </div>
@@ -926,7 +894,7 @@ export const PublicComponent = () => {
 
   return (
     <div className="flex flex-col gap-[20px]">
-      <h3 className="text-[20px]">{t('agents', 'Agents')}</h3>
+      <h3 className="text-[20px]">{t('api_and_mcp', 'API & MCP')}</h3>
       <PublicApiContent />
     </div>
   );
