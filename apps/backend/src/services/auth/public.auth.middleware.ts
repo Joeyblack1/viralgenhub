@@ -63,12 +63,9 @@ export class PublicAuthMiddleware implements NestMiddleware {
         }
       }
 
-      if (!!process.env.STRIPE_SECRET_KEY && !org.subscription) {
-        res
-          .status(HttpStatus.UNAUTHORIZED)
-          .json({ msg: 'No subscription found' });
-        return;
-      }
+      // ViralGenHub: Free workspaces have no subscription row, and the Free plan
+      // includes the Public API + MCP, capped per day below (no 'No subscription
+      // found' for them).
 
       // Free plan: a small daily request allowance (paid plans: no cap)
       const quota = await consumePublicApiQuota(ioRedis, org);

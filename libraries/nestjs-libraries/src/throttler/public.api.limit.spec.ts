@@ -41,6 +41,19 @@ describe('Public API / MCP daily limit', () => {
     expect(publicApiLimitForOrg(org())).toBe(0);
   });
 
+  it('treats an org with no subscription as Free when Stripe is on', () => {
+    const original = process.env.STRIPE_SECRET_KEY;
+    try {
+      process.env.STRIPE_SECRET_KEY = 'sk_test_x';
+      expect(publicApiLimitForOrg(org())).toBe(100);
+      delete process.env.STRIPE_SECRET_KEY;
+      expect(publicApiLimitForOrg(org())).toBe(0);
+    } finally {
+      if (original === undefined) delete process.env.STRIPE_SECRET_KEY;
+      else process.env.STRIPE_SECRET_KEY = original;
+    }
+  });
+
   it('allows a Free org up to 100 requests and refuses the 101st', async () => {
     const redis = fakeRedis();
     const now = new Date('2026-10-18T10:00:00Z');
