@@ -3,6 +3,7 @@
 import { ReactNode, useCallback } from 'react';
 import { FetchWrapperComponent } from '@gitroom/helpers/utils/custom.fetch';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
+import { areYouSure } from '@gitroom/frontend/components/layout/new-modal';
 import { useReturnUrl } from '@gitroom/frontend/app/(app)/auth/return.url.component';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 export default function LayoutContext(params: { children: ReactNode }) {
@@ -23,7 +24,7 @@ export function setCookie(cname: string, cvalue: string, exdays: number) {
 }
 function LayoutContextInner(params: { children: ReactNode }) {
   const returnUrl = useReturnUrl();
-  const { backendUrl, isGeneral, isSecured } = useVariables();
+  const { backendUrl, isGeneral, isSecured, stripeClient } = useVariables();
   const afterRequest = useCallback(
     async (url: string, options: RequestInit, response: Response) => {
       if (
@@ -93,8 +94,7 @@ function LayoutContextInner(params: { children: ReactNode }) {
           await deleteDialog(
             'You are currently on trial, in order to use the feature you must finish the trial',
             'Finish the trial, charge me now',
-            'Trial',
-
+            'Trial'
           )
         ) {
           window.open('/billing?finishTrial=true', '_blank');
@@ -104,17 +104,28 @@ function LayoutContextInner(params: { children: ReactNode }) {
       }
 
       if (response.status === 402) {
+        const { message = '' } = await response
+          .clone()
+          .json()
+          .catch(() => ({}));
+        // Paid plans open with live Stripe keys only (ViralGenHub #180). Until
+        // then there is no plan to move to, so explain the limit without a
+        // billing button (#189). Not awaited: closing it with the X never
+        // resolves, and the caller already stops on a 402.
+        if (stripeClient?.startsWith('pk_test_')) {
+          areYouSure({
+            title: 'Plan limit reached',
+            description: `${message.replace(
+              /\s*Please upgrade.*$/,
+              ''
+            )} Paid plans are coming soon.`.trim(),
+            approveLabel: 'OK',
+            onlyApprove: true,
+          });
+          return true;
+        }
         if (
-          await deleteDialog(
-            (
-              await response
-                .clone()
-                .json()
-                .catch(() => ({}))
-            ).message,
-            'Move to billing',
-            'Payment Required'
-          )
+          await deleteDialog(message, 'Move to billing', 'Payment Required')
         ) {
           window.open('/billing', '_blank');
           return false;
@@ -123,7 +134,7 @@ function LayoutContextInner(params: { children: ReactNode }) {
       }
       return true;
     },
-    []
+    [stripeClient]
   );
   return (
     <FetchWrapperComponent baseUrl={backendUrl} afterRequest={afterRequest}>
