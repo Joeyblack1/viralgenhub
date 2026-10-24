@@ -50,6 +50,8 @@ export class PostContent {
 }
 
 export class Post {
+  @IsOptional()
+  @IsString()
   type?: string;
 
   @IsDefined()
@@ -124,6 +126,7 @@ export class CreatePostDto {
 
   @IsArray()
   @IsDefined()
+  @Type(() => Tags)
   @ValidateNested({ each: true })
   tags: Tags[];
 

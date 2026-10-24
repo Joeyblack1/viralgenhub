@@ -16,6 +16,8 @@ export class CreateAgencyLogoDto {
   @IsDefined()
   id: string;
 
+  @IsString()
+  @IsOptional()
   path: string;
 }
 export class CreateAgencyDto {

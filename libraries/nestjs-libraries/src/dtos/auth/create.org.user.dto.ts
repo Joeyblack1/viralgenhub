@@ -1,6 +1,7 @@
 import {
   IsDefined,
   IsEmail,
+  IsOptional,
   IsString,
   MaxLength,
   MinLength,
@@ -36,5 +37,7 @@ export class CreateOrgUserDto {
   @MaxLength(128)
   company: string;
 
+  @IsString()
+  @IsOptional()
   datafast_visitor_id: string;
 }

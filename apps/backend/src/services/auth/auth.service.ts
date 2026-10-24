@@ -149,21 +149,18 @@ export class AuthService {
       return false;
     }
 
-    try {
-      const getOrg: any = AuthChecker.verifyJWT(cookie);
-      if (dayjs(getOrg.timeLimit).isBefore(dayjs())) {
-        return false;
-      }
-
-      return getOrg as {
-        email: string;
-        role: 'USER' | 'ADMIN';
-        orgId: string;
-        id: string;
-      };
-    } catch (err) {
+    const getOrg = verifyPurposeToken<{
+      email: string;
+      role: 'USER' | 'ADMIN';
+      orgId: string;
+      id: string;
+      timeLimit: string;
+    }>(cookie, 'invite');
+    if (!getOrg || !getOrg.orgId || dayjs(getOrg.timeLimit).isBefore(dayjs())) {
       return false;
     }
+
+    return getOrg;
   }
 
   private async loginOrRegisterProvider(

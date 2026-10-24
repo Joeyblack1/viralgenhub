@@ -1,4 +1,5 @@
 import { MediaDto } from '@gitroom/nestjs-libraries/dtos/media/media.dto';
+import { Type } from 'class-transformer';
 import {
   IsOptional,
   IsString,
@@ -16,6 +17,7 @@ export class UserDetailDto {
   bio: string;
 
   @IsOptional()
+  @Type(() => MediaDto)
   @ValidateNested()
   picture: MediaDto;
 }

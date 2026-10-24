@@ -17,6 +17,7 @@ module.exports = {
   testMatch: [
     '<rootDir>/libraries/nestjs-libraries/src/**/*.spec.ts',
     '<rootDir>/libraries/helpers/src/auth/token.encryption.spec.ts',
+    '<rootDir>/libraries/helpers/src/auth/purpose.tokens.spec.ts',
     '<rootDir>/apps/backend/src/api/routes/users.controller.*.spec.ts',
   ],
   transform: {
