@@ -21,14 +21,28 @@ import copy from 'copy-to-clipboard';
 import { capitalize } from 'lodash';
 const resolver = classValidatorResolver(ApiKeyDto);
 
+// The platforms the current organization may connect: /integrations leaves out
+// HIDDEN_PROVIDERS, /integrations/preview adds back the hidden ones this
+// organization may still connect (PREVIEW_PROVIDERS). Every "connect a channel"
+// surface (add-channel dialog, onboarding) loads its list through here so a
+// hidden platform never shows up anywhere.
+export const loadConnectableProviders = async (
+  fetch: ReturnType<typeof useFetch>
+) => {
+  const data = await (await fetch('/integrations')).json();
+  const preview = await (await fetch('/integrations/preview')).json();
+  data.social = [...(data.social || []), ...(preview?.social || [])];
+  return data as {
+    social: any[];
+    article: any[];
+  };
+};
+
 export const useAddProvider = (update?: () => void, invite?: boolean) => {
   const modal = useModals();
   const fetch = useFetch();
   return useCallback(async () => {
-    const data = await (await fetch('/integrations')).json();
-    // Hidden platforms this organization may still connect (PREVIEW_PROVIDERS)
-    const preview = await (await fetch('/integrations/preview')).json();
-    data.social = [...(data.social || []), ...(preview?.social || [])];
+    const data = await loadConnectableProviders(fetch);
     modal.openModal({
       title: 'Add Channel',
       withCloseButton: true,
@@ -351,8 +365,8 @@ const ChromeExtensionWarning: FC<{
           We will store your cookies securely to facilitate the connection.
         </li>
         <li>
-          ViralGenHub does not take responsibility for any issues arising or account
-          termination due to the use of this method.
+          ViralGenHub does not take responsibility for any issues arising or
+          account termination due to the use of this method.
         </li>
       </ul>
       <div className="flex gap-[10px] mt-[8px]">
@@ -460,7 +474,9 @@ export const AddProviderComponent: FC<{
               >
                 <Web3Providers
                   onComplete={(code, newState) => {
-                    window.location.href = `/integrations/social/${identifier}?code=${encodeURIComponent(code)}&state=${newState}${
+                    window.location.href = `/integrations/social/${identifier}?code=${encodeURIComponent(
+                      code
+                    )}&state=${newState}${
                       onboarding ? '&onboarding=true' : ''
                     }`;
                   }}

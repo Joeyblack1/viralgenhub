@@ -902,5 +902,12 @@
   "billing_moves_to_free_on": "Moves to Free on {{date}}",
   "billing_free_from": "From {{date}}, when your current plan ends",
   "billing_plan_ends_on": "Your {{plan}} plan ends on",
-  "billing_then_free": "Your account then moves to the Free plan and you will not be charged again."
+  "billing_then_free": "Your account then moves to the Free plan and you will not be charged again.",
+  "which_platform_first": "Which platform do you want to schedule first?",
+  "skip_for_now": "Skip for now",
+  "getting_started": "Getting started",
+  "dismiss": "Dismiss",
+  "checklist_connect_channel": "Connect a channel",
+  "checklist_first_post": "Schedule your first post",
+  "checklist_invite_team": "Invite your team or install the app"
 }

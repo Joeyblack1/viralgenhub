@@ -6,9 +6,11 @@ import useSWR from 'swr';
 import { orderBy } from 'lodash';
 import clsx from 'clsx';
 import SafeImage from '@gitroom/react/helpers/safe.image';
-import { AddProviderComponent } from '@gitroom/frontend/components/launches/add.provider.component';
+import {
+  AddProviderComponent,
+  loadConnectableProviders,
+} from '@gitroom/frontend/components/launches/add.provider.component';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
-import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import {
@@ -33,7 +35,6 @@ interface OnboardingModalProps {
 
 export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
   const [step, setStep] = useState(0);
-  const modals = useModals();
   const t = useT();
   const user = useUser();
   const agentsAvailable = !!user?.publicApi && !!user?.tier?.public_api;
@@ -68,7 +69,7 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
         <button
           className="outline-none absolute end-[20px] top-[20px] mantine-UnstyledButton-root mantine-ActionIcon-root hover:bg-tableBorder cursor-pointer mantine-Modal-close mantine-1dcetaa"
           type="button"
-          onClick={modals.closeAll}
+          onClick={onClose}
         >
           <svg
             viewBox="0 0 15 15"
@@ -120,7 +121,7 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
 
             {/* Step content */}
             {currentId === 'channels' && (
-              <OnboardingStep1 onNext={next} onSkip={next} />
+              <OnboardingStep1 onNext={next} onSkip={onClose} />
             )}
             {currentId === 'agents' && (
               <OnboardingStep2 onBack={back} onNext={next} />
@@ -139,6 +140,10 @@ export const OnboardingModal: FC<OnboardingModalProps> = ({ onClose }) => {
   );
 };
 
+// Platforms shown first on the "which platform first?" screen, in this order;
+// the rest keep the order the add-channel dialog uses.
+const firstRunOrder = ['tiktok'];
+
 const OnboardingStep1: FC<{ onNext: () => void; onSkip: () => void }> = ({
   onNext,
   onSkip,
@@ -146,8 +151,18 @@ const OnboardingStep1: FC<{ onNext: () => void; onSkip: () => void }> = ({
   const fetch = useFetch();
   const t = useT();
 
+  // Same list and same filtering as the add-channel dialog (hidden providers
+  // never appear, preview ones do for allowed organizations).
   const getIntegrations = useCallback(async () => {
-    return (await fetch('/integrations')).json();
+    const data = await loadConnectableProviders(fetch);
+    const rank = (identifier: string) => {
+      const index = firstRunOrder.indexOf(identifier);
+      return index === -1 ? firstRunOrder.length : index;
+    };
+    return {
+      ...data,
+      social: orderBy(data.social, [(p) => rank(p.identifier)], ['asc']),
+    };
   }, []);
 
   const load = useCallback(async (path: string) => {
@@ -179,7 +194,12 @@ const OnboardingStep1: FC<{ onNext: () => void; onSkip: () => void }> = ({
     <div className="flex flex-col gap-[24px]">
       <div className="flex gap-[4px] flex-col text-center">
         <div className="text-[24px] font-semibold">
-          {t('connect_your_channels', 'Connect Your Channels')}
+          {sortedIntegrations.length > 0
+            ? t('connect_your_channels', 'Connect Your Channels')
+            : t(
+                'which_platform_first',
+                'Which platform do you want to schedule first?'
+              )}
         </div>
         <div className="text-[14px] text-customColor18">
           {t(
@@ -240,31 +260,39 @@ const OnboardingStep1: FC<{ onNext: () => void; onSkip: () => void }> = ({
         )}
       </div>
 
-      {/* Action buttons */}
-      <div className="flex justify-end pt-[24px] mt-[8px]">
-        <button
-          onClick={onNext}
-          className="group flex items-center gap-[12px] bg-gradient-to-r from-[#622aff] to-[#8b5cf6] hover:from-[#7c3aff] hover:to-[#9d6eff] text-white font-semibold px-[32px] py-[14px] rounded-[12px] text-[16px] transition-all shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40"
-        >
-          {sortedIntegrations.length > 0
-            ? t('continue', 'Continue')
-            : t('continue_without_channels', 'Continue without channels')}
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="group-hover:translate-x-1 transition-transform"
+      {/* Action buttons: with no channel yet the only way on is to skip */}
+      <div className="flex justify-end items-center pt-[24px] mt-[8px]">
+        {sortedIntegrations.length === 0 ? (
+          <button
+            type="button"
+            onClick={onSkip}
+            className="text-[14px] text-newTextColor/70 hover:text-textColor underline underline-offset-4 transition-colors"
           >
-            <path d="M5 12h14" />
-            <path d="m12 5 7 7-7 7" />
-          </svg>
-        </button>
+            {t('skip_for_now', 'Skip for now')}
+          </button>
+        ) : (
+          <button
+            onClick={onNext}
+            className="group flex items-center gap-[12px] bg-gradient-to-r from-[#622aff] to-[#8b5cf6] hover:from-[#7c3aff] hover:to-[#9d6eff] text-white font-semibold px-[32px] py-[14px] rounded-[12px] text-[16px] transition-all shadow-lg shadow-purple-500/25 hover:shadow-purple-500/40"
+          >
+            {t('continue', 'Continue')}
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="group-hover:translate-x-1 transition-transform"
+            >
+              <path d="M5 12h14" />
+              <path d="m12 5 7 7-7 7" />
+            </svg>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -511,7 +539,10 @@ const OnboardingStep2: FC<{ onBack: () => void; onNext: () => void }> = ({
                 onClick={() => setAuth(m)}
               >
                 {m === 'oauth'
-                  ? t('sign_in_no_api_key', 'Sign in with ViralGenHub (no API key)')
+                  ? t(
+                      'sign_in_no_api_key',
+                      'Sign in with ViralGenHub (no API key)'
+                    )
                   : t('api_key', 'API Key')}
               </button>
             ))}
