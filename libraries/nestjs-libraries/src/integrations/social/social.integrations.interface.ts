@@ -261,4 +261,5 @@ export const providerHelperFunctions = [
   'companies',
   'subreddits',
   'tags',
+  'publications',
 ];
