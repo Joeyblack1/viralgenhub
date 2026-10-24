@@ -85,21 +85,31 @@ export const SettingsPopup: FC<{
 
   const t = useT();
   const list = useMemo(() => {
-    const arr = [];
+    const arr: { tab: string; label: string; locked?: boolean }[] = [];
     arr.push({ tab: 'global_settings', label: t('global_settings', 'Global Settings') });
     // Populate tabs based on user permissions
     if (user?.tier?.public_api && isGeneral && showLogout) {
       arr.push({ tab: 'agents', label: t('api_and_mcp', 'API & MCP') });
     }
-    if (user?.tier?.team_members && isGeneral && user?.role !== 'USER') {
-      arr.push({ tab: 'teams', label: t('teams', 'Teams') });
+    // ViralGenHub (#209): paid-only tabs stay visible on lower plans, marked as
+    // locked, so users can see what an upgrade unlocks instead of a missing tab.
+    if (isGeneral && user?.role !== 'USER') {
+      arr.push({
+        tab: 'teams',
+        label: t('teams', 'Teams'),
+        locked: !user?.tier?.team_members,
+      });
     }
-    if (user?.tier?.webhooks) {
-      arr.push({ tab: 'webhooks', label: t('webhooks_1', 'Webhooks') });
-    }
-    if (user?.tier?.autoPost) {
-      arr.push({ tab: 'autopost', label: t('auto_post', 'Auto Post') });
-    }
+    arr.push({
+      tab: 'webhooks',
+      label: t('webhooks_1', 'Webhooks'),
+      locked: !user?.tier?.webhooks,
+    });
+    arr.push({
+      tab: 'autopost',
+      label: t('auto_post', 'Auto Post'),
+      locked: !user?.tier?.autoPost,
+    });
     arr.push({ tab: 'sets', label: t('sets', 'Sets') });
     arr.push({ tab: 'signatures', label: t('signatures', 'Signatures') });
     arr.push({ tab: 'integrations', label: t('integrations', 'Integrations') });
@@ -124,12 +134,13 @@ export const SettingsPopup: FC<{
     <>
       <div className="bg-newBgColorInner p-[20px] mobile:p-[12px] flex flex-col transition-all w-[260px] mobile:w-full">
         <div className="flex flex-1 flex-col gap-[15px] mobile:flex-row mobile:gap-[8px] mobile:overflow-x-auto mobile:pb-[6px] scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
-          {list.map(({ tab: tabKey, label }) => (
+          {list.map(({ tab: tabKey, label, locked }) => (
             <div
               key={tabKey}
               className={clsx(
                 'cursor-pointer flex items-center gap-[12px] group/profile hover:bg-boxHover rounded-e-[8px] mobile:shrink-0 mobile:whitespace-nowrap mobile:rounded-[8px] mobile:px-[12px] mobile:py-[8px]',
-                tabKey === tab && 'bg-boxHover'
+                tabKey === tab && 'bg-boxHover',
+                locked && 'text-textItemBlur'
               )}
               onClick={() => setTab(tabKey)}
             >
@@ -141,7 +152,26 @@ export const SettingsPopup: FC<{
               >
                 <SVGLine />
               </div>
-              {label}
+              <span className="flex items-center gap-[6px]">
+                {label}
+                {locked && (
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="12"
+                    height="12"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-label={t('locked_feature', 'Available on a higher plan')}
+                  >
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                )}
+              </span>
             </div>
           ))}
         </div>
@@ -168,6 +198,40 @@ export const SettingsPopup: FC<{
               {tab === 'global_settings' && (
                 <div>
                   <GlobalSettings />
+                </div>
+              )}
+              {list.find((p) => p.tab === tab)?.locked && (
+                <div className="flex flex-col gap-[12px] p-[24px] rounded-[12px] border border-newTableBorder bg-newBgColor">
+                  <div className="text-[18px] font-[600]">
+                    {t('locked_feature_title', '{{feature}} is on a higher plan', {
+                      feature: list.find((p) => p.tab === tab)?.label,
+                    })}
+                  </div>
+                  <div className="text-[14px] text-textItemBlur">
+                    {tab === 'teams' &&
+                      t(
+                        'locked_teams_text',
+                        'Invite team members with roles to plan and publish together. Included in Business.'
+                      )}
+                    {tab === 'webhooks' &&
+                      t(
+                        'locked_webhooks_text',
+                        'Send every published post to your own automations. Included from Creator.'
+                      )}
+                    {tab === 'autopost' &&
+                      t(
+                        'locked_autopost_text',
+                        'Turn RSS feeds into scheduled posts automatically. Included in Business.'
+                      )}
+                  </div>
+                  <div>
+                    <a
+                      href="/billing"
+                      className="inline-flex h-[40px] px-[16px] items-center rounded-[8px] bg-btnPrimary text-white text-[14px] font-[600]"
+                    >
+                      {t('see_plans', 'See plans')}
+                    </a>
+                  </div>
                 </div>
               )}
               {tab === 'teams' &&

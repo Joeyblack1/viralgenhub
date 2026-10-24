@@ -958,7 +958,7 @@ export const MainBillingComponent: FC<{
           >
             {t('billing_yearly', 'Yearly')}
             <div className="bg-[#AA0FA4] text-white text-[12px] px-[6px] rounded-[4px]">
-              {t('billing_20_percent_off', '20% Off')}
+              {t('billing_two_months_free', '2 months free')}
             </div>
           </div>
         </div>

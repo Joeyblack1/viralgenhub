@@ -28,8 +28,8 @@ export interface PricingInterface {
 //   FREE      = Free      2 channels, 20 posts/month, no X, a taste of the
 //                         Public API + MCP (100 requests a day), 1 webhook
 //                         (Joseph, 2026-10-18)
-//   STANDARD  = Creator   £7/month, £67.20/year (20% off), 100 X posts/month
-//   TEAM      = Business  £19/month, £182.40/year (20% off), team members,
+//   STANDARD  = Creator   £7.99/month, £79.90/year (2 months free), 100 X posts/month
+//   TEAM      = Business  £19.99/month, £199.90/year (2 months free), team members,
 //                         300 X posts/month
 // X posts are capped per calendar month of their publish date (Joseph,
 // 2026-10-17): X's API is pay-per-use, about $0.015 a post, $0.20 with a URL.
@@ -60,8 +60,8 @@ export const pricing: PricingInterface = {
   },
   STANDARD: {
     current: 'STANDARD',
-    month_price: 7,
-    year_price: 67.2,
+    month_price: 7.99,
+    year_price: 79.9,
     channel: 8,
     posts_per_month: 1000000,
     x_posts_per_month: 100,
@@ -81,8 +81,8 @@ export const pricing: PricingInterface = {
   },
   TEAM: {
     current: 'TEAM',
-    month_price: 19,
-    year_price: 182.4,
+    month_price: 19.99,
+    year_price: 199.9,
     channel: 25,
     posts_per_month: 1000000,
     x_posts_per_month: 300,

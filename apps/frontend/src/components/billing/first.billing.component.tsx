@@ -251,7 +251,7 @@ export const FirstBillingComponent = () => {
                 >
                   <div>{t('billing_yearly', 'Yearly')}</div>
                   <div className="bg-[#AA0FA4] text-[white] px-[8px] rounded-[4px] mobile:hidden">
-                    {t('billing_20_percent_off', '20% Off')}
+                    {t('billing_two_months_free', '2 months free')}
                   </div>
                 </div>
               </div>
