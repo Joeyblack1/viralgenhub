@@ -17,6 +17,7 @@ import {
   planDisplayName,
   formatPrice,
   SOLD_TIERS,
+  planTagline,
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { FAQComponent } from '@gitroom/frontend/components/billing/faq.component';
 import {
@@ -299,7 +300,19 @@ const PlanCard: FC<{
         />
       ))}
       <div className="flex items-center justify-between gap-[8px] min-h-[26px]">
-        <div className="text-[18px] font-[600]">{planDisplayName(name)}</div>
+        <div className="flex flex-col">
+          <div className="text-[18px] font-[600]">{planDisplayName(name)}</div>
+          {!!planTagline(name) && (
+            <div
+              className={clsx(
+                'text-[12px] leading-[16px]',
+                current ? 'text-white/70' : 'text-textItemBlur'
+              )}
+            >
+              {t(`billing_tagline_${name.toLowerCase()}`, planTagline(name))}
+            </div>
+          )}
+        </div>
         {current && (
           <div className="flex items-center gap-[6px] h-[26px] px-[10px] rounded-full bg-white/15 text-[12px] font-[600] uppercase whitespace-nowrap">
             <span className="w-[6px] h-[6px] rounded-full bg-[#32D583]" />

@@ -156,6 +156,14 @@ const PLAN_NAMES: Record<string, string> = {
 export const planDisplayName = (tier: string) =>
   PLAN_NAMES[tier?.toUpperCase?.()] ||
   (tier ? tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase() : '');
+// Who each sold plan is for; shown under the plan name on the billing page.
+const PLAN_TAGLINES: Record<string, string> = {
+  FREE: 'Try it with two channels',
+  STANDARD: 'For solo creators and small shops',
+  TEAM: 'For teams, agencies and AI-assisted posting',
+};
+export const planTagline = (tier: string) =>
+  PLAN_TAGLINES[tier?.toUpperCase?.()] || '';
 // 7 -> "7", 67.2 -> "67.20"
 export const formatPrice = (amount: number) =>
   Number.isInteger(amount) ? String(amount) : amount.toFixed(2);

@@ -353,20 +353,51 @@ export const useBillingFeatures = (tier: string) => {
     if (currentPricing.x_posts_per_month > (previous?.x_posts_per_month || 0)) {
       list.push({
         key: 'billing_x_posts_per_month',
-        defaultValue: 'X posts per month',
+        defaultValue: 'X (Twitter) posts per month',
         prefix: currentPricing.x_posts_per_month,
       });
     }
 
     if (!previous) {
       list.push({
-        key: 'billing_calendar_scheduling_media',
-        defaultValue: 'Calendar, scheduling and media library',
+        key: 'billing_all_platforms_except_x',
+        defaultValue: 'Every available platform, TikTok included (X (Twitter) is on paid plans)',
+      });
+      list.push({
+        key: 'billing_calendar_scheduling_previews',
+        defaultValue: 'Calendar, scheduling and per-platform previews',
+      });
+      list.push({
+        key: 'billing_media_library',
+        defaultValue: 'Media library for images and video',
+      });
+      list.push({
+        key: 'billing_comments_preview_pages',
+        defaultValue: 'Comments and shareable preview pages for approvals',
+      });
+      list.push({
+        key: 'billing_sets_signatures',
+        defaultValue: 'Sets (saved templates) and Signatures',
       });
     }
 
     if (currentPricing.public_api && !previous?.public_api) {
-      list.push({ key: 'billing_public_api', defaultValue: 'Public API' });
+      list.push({
+        key: 'billing_public_api_mcp_capped',
+        defaultValue: 'Public API and MCP for AI assistants ({{limit}} requests a day)'.replace(
+          '{{limit}}',
+          String(currentPricing.public_api_daily_limit)
+        ),
+      });
+    } else if (
+      currentPricing.public_api &&
+      previous?.public_api_daily_limit &&
+      !currentPricing.public_api_daily_limit
+    ) {
+      list.push({
+        key: 'billing_public_api_mcp_uncapped',
+        defaultValue: 'API and MCP with no daily cap',
+      });
     }
 
     if (currentPricing.webhooks > (previous?.webhooks || 0)) {
@@ -375,7 +406,10 @@ export const useBillingFeatures = (tier: string) => {
           currentPricing.webhooks === 1
             ? 'billing_webhook'
             : 'billing_webhooks',
-        defaultValue: currentPricing.webhooks === 1 ? 'webhook' : 'webhooks',
+        defaultValue:
+          currentPricing.webhooks === 1
+            ? 'webhook for your own automations'
+            : 'webhooks for your own automations',
         prefix: currentPricing.webhooks,
       });
     }
@@ -383,7 +417,7 @@ export const useBillingFeatures = (tier: string) => {
     if (currentPricing.team_members && !previous?.team_members) {
       list.push({
         key: 'billing_unlimited_team_members',
-        defaultValue: 'Unlimited team members',
+        defaultValue: 'Unlimited team members with roles',
       });
     }
 
@@ -393,15 +427,18 @@ export const useBillingFeatures = (tier: string) => {
         defaultValue: 'Auto-post from RSS feeds',
       });
     }
-    if (currentPricing?.ai) {
+    if (currentPricing?.ai && !previous?.ai) {
       list.push({
-        key: 'billing_ai_auto_complete',
-        defaultValue: 'AI auto-complete',
+        key: 'billing_ai_assistant',
+        defaultValue: 'AI assistant that drafts and schedules posts for you',
       });
-      list.push({ key: 'billing_ai_copilots', defaultValue: 'AI copilots' });
+      list.push({
+        key: 'billing_ai_post_generator',
+        defaultValue: 'AI post generator: a topic becomes ready-to-edit drafts',
+      });
       list.push({
         key: 'billing_ai_autocomplete',
-        defaultValue: 'AI Autocomplete',
+        defaultValue: 'AI autocomplete while you write',
       });
     }
     // ViralGenHub: the picture editor (Polotno) needs a licence key we have
