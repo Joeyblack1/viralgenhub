@@ -183,6 +183,24 @@ const BillingCycle: FC<{
           {t('billing_cycle', 'Billing cycle')}
         </div>
         <div className="text-[14px] text-textItemBlur">
+          {canceled && !!renewal?.renewsAt && (
+            <>
+              {t(
+                'billing_access_until',
+                'Your plan stays active until'
+              )}{' '}
+              <bdi className="font-[600] text-newTextColor">
+                {newDayjs(renewal.renewsAt * 1000)
+                  .local()
+                  .format('D MMM, YYYY')}
+              </bdi>
+              {'. '}
+              {t(
+                'billing_then_free',
+                'Your account then moves to the Free plan.'
+              )}{' '}
+            </>
+          )}
           {!canceled && !!renewal?.renewsAt && (
             <>
               {renewal.trialing
