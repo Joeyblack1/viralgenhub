@@ -117,7 +117,7 @@ export class AuthMiddleware implements NestMiddleware {
         throw new HttpForbiddenException();
       }
 
-      if (!user.activated) {
+      if (!user.activated || user.disabled) {
         throw new HttpForbiddenException();
       }
 

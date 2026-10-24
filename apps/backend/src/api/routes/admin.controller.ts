@@ -1,7 +1,10 @@
 import {
+  Body,
   Controller,
   Get,
   HttpException,
+  Param,
+  Post,
   Query,
 } from '@nestjs/common';
 import { GetUserFromRequest } from '@gitroom/nestjs-libraries/user/user.from.request';
@@ -10,13 +13,16 @@ import { ApiTags } from '@nestjs/swagger';
 import { ErrorsService } from '@gitroom/nestjs-libraries/database/prisma/errors/errors.service';
 import { AdminStatsService } from '@gitroom/nestjs-libraries/database/prisma/admin-stats/admin-stats.service';
 import dayjs from 'dayjs';
+import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
+import { AdminSetUserDisabledDto } from '@gitroom/nestjs-libraries/dtos/users/admin.set.user.disabled.dto';
 
 @ApiTags('Admin')
 @Controller('/admin')
 export class AdminController {
   constructor(
     private _errorsService: ErrorsService,
-    private _adminStatsService: AdminStatsService
+    private _adminStatsService: AdminStatsService,
+    private _usersService: UsersService
   ) {}
 
   private assertSuperAdmin(user: User) {
@@ -48,6 +54,44 @@ export class AdminController {
   async listPlatforms(@GetUserFromRequest() user: User) {
     this.assertSuperAdmin(user);
     return this._errorsService.listPlatforms();
+  }
+
+  @Get('/users')
+  async listUsers(
+    @GetUserFromRequest() user: User,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+    @Query('search') search?: string
+  ) {
+    this.assertSuperAdmin(user);
+    return this._usersService.listUsers({
+      page: page ? parseInt(page, 10) : 0,
+      limit: limit ? parseInt(limit, 10) : 20,
+      search: search?.trim() || undefined,
+    });
+  }
+
+  // Disabling refuses the user's sessions and logins at once (the auth
+  // middleware checks the flag on every request); enabling lifts it. A super
+  // admin cannot disable themselves or another super admin.
+  @Post('/users/:id/disabled')
+  async setUserDisabled(
+    @GetUserFromRequest() user: User,
+    @Param('id') id: string,
+    @Body() body: AdminSetUserDisabledDto
+  ) {
+    this.assertSuperAdmin(user);
+    if (id === user.id) {
+      throw new HttpException('You cannot disable your own account', 400);
+    }
+    const target = await this._usersService.getUserById(id);
+    if (!target) {
+      throw new HttpException('User not found', 404);
+    }
+    if (target.isSuperAdmin && body.disabled) {
+      throw new HttpException('A super admin cannot be disabled', 400);
+    }
+    return this._usersService.setDisabled(id, body.disabled);
   }
 
   @Get('/stats')

@@ -123,6 +123,8 @@ export class AuthService {
         throw new Error('User is not activated');
       }
 
+      this.assertNotDisabled(user);
+
       return { addedOrg: false, jwt: await this.jwt(user) };
     }
 
@@ -132,6 +134,7 @@ export class AuthService {
       ip,
       userAgent
     );
+    this.assertNotDisabled(user);
 
     const addedOrg =
       addToOrg && typeof addToOrg !== 'boolean'
@@ -374,10 +377,19 @@ export class AuthService {
       provider as Provider
     );
     if (checkExists) {
+      this.assertNotDisabled(checkExists);
       return { jwt: await this.jwt(checkExists) };
     }
 
     return { token };
+  }
+
+  // set by a super admin (admin.controller); the middleware refuses the
+  // sessions, this refuses new logins with a message the user can act on
+  private assertNotDisabled(user: { disabled?: boolean }) {
+    if (user.disabled) {
+      throw new Error('This account has been disabled. Contact support.');
+    }
   }
 
   // The only signer of login sessions: 30-day expiry, and the user's current
