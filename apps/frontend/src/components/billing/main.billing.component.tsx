@@ -116,7 +116,11 @@ const useCredits = (type: (typeof creditTypes)[number]) => {
 
 const useRenewal = () => {
   const fetch = useFetch();
-  return useSWR<{ renewsAt: number | null; trialing: boolean }>(
+  return useSWR<{
+    renewsAt: number | null;
+    trialing: boolean;
+    coolingOffUntil: string | null;
+  }>(
     '/billing/renewal',
     async () => {
       const response = await fetch('/billing/renewal');
@@ -466,6 +470,58 @@ const Accept: FC<{ resolve: (res: boolean) => void }> = ({ resolve }) => {
     </div>
   );
 };
+// ViralGenHub #210: inside the 14-day cooling-off the customer picks between
+// cancelling at the period end and ending today with a refund of the unused part
+const CancelChoice: FC<{
+  plan: string;
+  paidUntil: string;
+  coolingOffUntil: string;
+  messages: string[];
+  resolve: (choice: 'period' | 'now' | false) => void;
+}> = ({ plan, paidUntil, coolingOffUntil, messages, resolve }) => {
+  const t = useT();
+
+  return (
+    <div className="flex flex-col gap-[16px] max-w-[600px]">
+      <div>
+        {t(
+          'billing_cooling_off_explain',
+          'You started your {{plan}} plan less than 14 days ago, so until {{date}} you can end it straight away and get the unused part of your payment back; the days you have already used are deducted.',
+          { plan, date: coolingOffUntil }
+        )}{' '}
+        {t(
+          'billing_switch_to_free_limits',
+          'Free includes {{channels}} channels and {{posts}} posts a month. If you have more channels, the extra ones are paused until you upgrade again.',
+          {
+            channels: pricing.FREE.channel,
+            posts: pricing.FREE.posts_per_month,
+          }
+        )}
+        {messages.map((m) => ` ${m}.`).join('')}
+      </div>
+      <div className="flex flex-col gap-[10px]">
+        <Button onClick={() => resolve('period')}>
+          {paidUntil
+            ? t(
+                'billing_cancel_at_period_end_until',
+                'Cancel at the end of the period (keep access until {{date}})',
+                { date: paidUntil }
+              )
+            : t(
+                'billing_cancel_at_period_end',
+                'Cancel at the end of the period (keep access until it ends)'
+              )}
+        </Button>
+        <Button className="!bg-red-800" onClick={() => resolve('now')}>
+          {t('billing_cancel_now_refund', 'End now and refund the unused part')}
+        </Button>
+        <Button secondary={true} onClick={() => resolve(false)}>
+          {t('billing_keep_plan', 'Keep {{plan}}', { plan })}
+        </Button>
+      </div>
+    </div>
+  );
+};
 const Info: FC<{
   proceed: (feedback: string) => void;
 }> = (props) => {
@@ -561,6 +617,13 @@ export const MainBillingComponent: FC<{
   const paidUntil = renewal?.renewsAt
     ? newDayjs(renewal.renewsAt * 1000).local().format('D MMM, YYYY')
     : '';
+  // ViralGenHub #210: while the 14-day cooling-off runs, cancelling can also end
+  // the plan today with a refund of the unused part
+  const coolingOffUntil =
+    renewal?.coolingOffUntil &&
+    new Date(renewal.coolingOffUntil).getTime() > Date.now()
+      ? newDayjs(renewal.coolingOffUntil).local().format('D MMM, YYYY')
+      : '';
   // credits follow the plan stored by the Stripe webhook: wait for it, then
   // show the new plan's totals and credits together
   const showConfirmedPlan = useCallback(
@@ -634,7 +697,7 @@ export const MainBillingComponent: FC<{
           return;
         }
 
-        const messages = [];
+        const messages: string[] = [];
         if (
           !pricing[billing].team_members &&
           pricing[subscription?.subscriptionTier!]?.team_members
@@ -659,8 +722,99 @@ export const MainBillingComponent: FC<{
         }
         if (billing === 'FREE') {
           const plan = planDisplayName(subscription?.subscriptionTier || '');
+          const offerCoolingOff = !subscription?.cancelAt && !!coolingOffUntil;
+          const choice: 'period' | 'now' | false = offerCoolingOff
+            ? await new Promise((res) => {
+                modal.openModal({
+                  title: t(
+                    'billing_switch_to_free_title',
+                    'Cancel subscription and switch to Free?'
+                  ),
+                  withCloseButton: true,
+                  classNames: {
+                    modal: 'bg-transparent text-textColor',
+                  },
+                  onClose: () => res(false),
+                  children: (
+                    <CancelChoice
+                      plan={plan}
+                      paidUntil={paidUntil}
+                      coolingOffUntil={coolingOffUntil}
+                      messages={messages}
+                      resolve={res}
+                    />
+                  ),
+                });
+              })
+            : 'period';
+          if (offerCoolingOff) {
+            modal.closeAll();
+          }
+          if (choice === 'now') {
+            setLoading(true);
+            const response = await fetch('/billing/cancel-now', {
+              method: 'POST',
+            });
+            let result: { refunded?: number; message?: string } = {};
+            try {
+              result = await response.json();
+            } catch (err) {}
+            if (!response.ok) {
+              toast.show(
+                result?.message ||
+                  t(
+                    'billing_cancel_now_failed',
+                    'We could not end your subscription, please try again or contact support.'
+                  ),
+                'warning'
+              );
+              setLoading(false);
+              return;
+            }
+            // the subscription is gone on Stripe; the webhook moves the workspace to Free
+            setSubscription(undefined);
+            mutate(
+              '/user/self',
+              {
+                ...user,
+                tier: 'FREE',
+              },
+              {
+                revalidate: false,
+              }
+            );
+            mutate(
+              '/user/subscription',
+              { subscription: undefined },
+              { revalidate: false }
+            );
+            mutate('/billing/invoices');
+            mutate('/billing/renewal');
+            toast.show(
+              (result.refunded || 0) > 0
+                ? t(
+                    'billing_cancelled_now_refunded',
+                    'Subscription ended. {{amount}} is on its way back to your card; your account is now on the Free plan.',
+                    {
+                      amount: `${CURRENCY_SYMBOL}${formatPrice(
+                        result.refunded / 100
+                      )}`,
+                    }
+                  )
+                : t(
+                    'billing_cancelled_now',
+                    'Subscription ended with nothing due back. Your account is now on the Free plan.'
+                  )
+            );
+            setLoading(false);
+            return;
+          }
+          if (!choice) {
+            return;
+          }
           if (
             subscription?.cancelAt ||
+            offerCoolingOff ||
             (await deleteDialog(
               [
                 paidUntil
@@ -833,7 +987,7 @@ export const MainBillingComponent: FC<{
         }
         setLoading(false);
       },
-    [monthlyOrYearly, subscription, user, utm, paidUntil]
+    [monthlyOrYearly, subscription, user, utm, paidUntil, coolingOffUntil]
   );
   if (user?.isLifetime) {
     router.replace('/');

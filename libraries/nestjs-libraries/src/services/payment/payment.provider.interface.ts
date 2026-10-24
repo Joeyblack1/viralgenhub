@@ -108,11 +108,25 @@ export abstract class PaymentProviderAbstract {
     return this.notSupported();
   }
 
-  // Unix seconds of the next charge (the trial end while trialing), null when unknown
-  async getRenewalDate(
+  // Unix seconds of the next charge (the trial end while trialing), null when
+  // unknown. coolingOffUntil: ISO date until which the customer can end the
+  // subscription at once with a refund of the unused part (ViralGenHub #210),
+  // null when the provider has no such window.
+  async getRenewalDate(organizationId: string): Promise<{
+    renewsAt: number | null;
+    trialing: boolean;
+    coolingOffUntil: string | null;
+  }> {
+    return { renewsAt: null, trialing: false, coolingOffUntil: null };
+  }
+
+  // End the subscription today and refund the unused part of the latest
+  // payment; only inside the cooling-off window (ViralGenHub #210). Refunded
+  // amount is in minor units.
+  async cancelNowWithRefund(
     organizationId: string
-  ): Promise<{ renewsAt: number | null; trialing: boolean }> {
-    return { renewsAt: null, trialing: false };
+  ): Promise<{ refunded: number; currency: string }> {
+    return this.notSupported();
   }
 
   // Post-checkout poll: is this subscription id active for the org
