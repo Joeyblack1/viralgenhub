@@ -55,13 +55,15 @@ export class UsersRepository {
         where: { id: current.id },
         data: { email: `switch-${makeId(10)}-${current.email}` },
       }),
+      // both accounts' open sessions stop: whoever holds one must log in
+      // again with the credentials that now belong to that account
       this._user.model.user.update({
         where: { id: target.id },
-        data: currentCredentials,
+        data: { ...currentCredentials, tokenVersion: { increment: 1 } },
       }),
       this._user.model.user.update({
         where: { id: current.id },
-        data: targetCredentials,
+        data: { ...targetCredentials, tokenVersion: { increment: 1 } },
       }),
     ]);
 
@@ -209,10 +211,101 @@ export class UsersRepository {
         ip: true,
         agent: true,
         deletedAt: true,
+        tokenVersion: true,
+        disabled: true,
         sendSuccessEmails: true,
         sendFailureEmails: true,
         sendStreakEmails: true,
       },
+    });
+  }
+
+  // Super-admin listing: identity, workspaces and their plan, never
+  // credentials or tokens
+  async listUsers(params: { page?: number; limit?: number; search?: string }) {
+    const page = Math.max(0, params.page || 0);
+    const limit = Math.min(Math.max(1, params.limit || 20), 100);
+    const skip = page * limit;
+    const where = {
+      deletedAt: null,
+      ...(params.search
+        ? {
+            OR: [
+              { email: { contains: params.search, mode: 'insensitive' as const } },
+              { name: { contains: params.search, mode: 'insensitive' as const } },
+              {
+                lastName: {
+                  contains: params.search,
+                  mode: 'insensitive' as const,
+                },
+              },
+            ],
+          }
+        : {}),
+    };
+
+    const [items, total] = await Promise.all([
+      this._user.model.user.findMany({
+        where,
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          lastName: true,
+          providerName: true,
+          activated: true,
+          disabled: true,
+          isSuperAdmin: true,
+          createdAt: true,
+          lastOnline: true,
+          organizations: {
+            where: { organization: { deletedAt: null } },
+            select: {
+              role: true,
+              disabled: true,
+              organization: {
+                select: {
+                  id: true,
+                  name: true,
+                  subscription: {
+                    where: { deletedAt: null },
+                    select: { subscriptionTier: true, period: true },
+                  },
+                },
+              },
+            },
+          },
+        },
+      }),
+      this._user.model.user.count({ where }),
+    ]);
+
+    return {
+      items: items.map(({ organizations, ...user }) => ({
+        ...user,
+        workspaces: organizations.map((member) => ({
+          id: member.organization.id,
+          name: member.organization.name,
+          role: member.role,
+          memberDisabled: member.disabled,
+          plan: member.organization.subscription?.subscriptionTier || 'FREE',
+          period: member.organization.subscription?.period || null,
+        })),
+      })),
+      total,
+      page,
+      limit,
+    };
+  }
+
+  setDisabled(id: string, disabled: boolean) {
+    return this._user.model.user.update({
+      where: { id },
+      data: { disabled },
+      select: { id: true, email: true, disabled: true },
     });
   }
 
@@ -249,7 +342,10 @@ export class UsersRepository {
         account: null,
         pictureId: null,
         deletedAt: new Date(),
+        // every session of the deleted account stops working at once
+        tokenVersion: { increment: 1 },
       },
+      select: { id: true },
     });
   }
 
@@ -262,7 +358,10 @@ export class UsersRepository {
       },
       data: {
         password: hashed,
+        // a reset logs every other session of the account out
+        tokenVersion: { increment: 1 },
       },
+      select: { id: true },
     });
   }
 

@@ -159,6 +159,14 @@ export class UsersService {
     return this._usersRepository.activateUser(id);
   }
 
+  listUsers(params: { page?: number; limit?: number; search?: string }) {
+    return this._usersRepository.listUsers(params);
+  }
+
+  setDisabled(id: string, disabled: boolean) {
+    return this._usersRepository.setDisabled(id, disabled);
+  }
+
   updatePassword(id: string, password: string) {
     return this._usersRepository.updatePassword(id, password);
   }

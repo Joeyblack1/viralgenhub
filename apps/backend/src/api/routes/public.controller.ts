@@ -20,7 +20,7 @@ import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { getCookieUrlFromDomain } from '@gitroom/helpers/subdomain/subdomain.management';
 import { AgentGraphInsertService } from '@gitroom/nestjs-libraries/agent/agent.graph.insert.service';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
-import { AuthService } from '@gitroom/helpers/auth/auth.service';
+import { verifyPurposeToken } from '@gitroom/helpers/auth/purpose.tokens';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { Readable, pipeline } from 'stream';
 import { promisify } from 'util';
@@ -143,10 +143,10 @@ export class PublicController {
   @Post('/modify-subscription')
   async modifySubscription(@Body('params') params: string) {
     try {
-      const load = AuthService.verifyJWT(params) as {
+      const load = verifyPurposeToken<{
         orgId: string;
         billing: 'FREE' | 'STANDARD' | 'TEAM' | 'PRO' | 'ULTIMATE';
-      };
+      }>(params, 'modify-subscription');
 
       if (!load || !load.orgId || !load.billing || !pricing[load.billing]) {
         return { success: false };

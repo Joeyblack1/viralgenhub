@@ -84,6 +84,9 @@ async function start() {
   app.useGlobalPipes(
     new ValidationPipe({
       transform: true,
+      // drop body/query fields no DTO declares; not forbidNonWhitelisted, so
+      // an older frontend sending an extra field is trimmed, not rejected
+      whitelist: true,
     })
   );
 

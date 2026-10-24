@@ -1,4 +1,4 @@
-import { IsDefined, IsString } from 'class-validator';
+import { IsDefined, IsOptional, IsString } from 'class-validator';
 
 export class IntegrationFunctionDto {
   @IsString()
@@ -9,5 +9,6 @@ export class IntegrationFunctionDto {
   @IsDefined()
   id: string;
 
+  @IsOptional()
   data: any;
 }

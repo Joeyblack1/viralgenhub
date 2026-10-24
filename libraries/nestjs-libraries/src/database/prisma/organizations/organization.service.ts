@@ -6,6 +6,7 @@ import { AddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/add.te
 import { AdminAddTeamMemberDto } from '@gitroom/nestjs-libraries/dtos/settings/admin.add.team.member.dto';
 import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
+import { signPurposeToken } from '@gitroom/helpers/auth/purpose.tokens';
 import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { Organization, ShortLinkPreference, User } from '@prisma/client';
@@ -105,7 +106,12 @@ export class OrganizationService {
     const id = makeId(5);
     const url =
       process.env.FRONTEND_URL +
-      `/?org=${AuthService.signJWT({ ...body, orgId: org.id, timeLimit, id })}`;
+      `/?org=${signPurposeToken('invite', {
+        ...body,
+        orgId: org.id,
+        timeLimit,
+        id,
+      })}`;
     if (body.sendEmail) {
       const inviter = user.name
         ? `${user.name} (${user.email})`

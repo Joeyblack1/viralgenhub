@@ -1,6 +1,7 @@
 import { Body, Controller, Param, Post, Res } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
+import { isPurposeToken } from '@gitroom/helpers/auth/purpose.tokens';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
@@ -21,6 +22,7 @@ export class EnterpriseController {
     const payload = AuthService.verifyJWT(params) as any;
     if (
       !payload || typeof payload !== 'object' ||
+      isPurposeToken(payload) || // activation, reset, invite, plan change
       'providerName' in payload || // login token (full User row)
       'orgId' in payload || // team invite token
       'expires' in payload // password reset token

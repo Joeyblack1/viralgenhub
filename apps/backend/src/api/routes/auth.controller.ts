@@ -21,6 +21,7 @@ import { ForgotPasswordDto } from '@gitroom/nestjs-libraries/dtos/auth/forgot.pa
 import { ResendActivationDto } from '@gitroom/nestjs-libraries/dtos/auth/resend-activation.dto';
 import { ApiTags } from '@nestjs/swagger';
 import { getCookieUrlFromDomain } from '@gitroom/helpers/subdomain/subdomain.management';
+import { setAuth } from '@gitroom/backend/services/auth/auth.middleware';
 import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
 import { RealIP } from 'nestjs-real-ip';
 import { UserAgent } from '@gitroom/nestjs-libraries/user/user.agent';
@@ -77,21 +78,7 @@ export class AuthController {
         return;
       }
 
-      response.cookie('auth', jwt, {
-        domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
-        ...(!process.env.NOT_SECURED
-          ? {
-              secure: true,
-              httpOnly: true,
-              sameSite: 'lax',
-            }
-          : {}),
-        expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
-      });
-
-      if (process.env.NOT_SECURED) {
-        response.header('auth', jwt);
-      }
+      setAuth(response, jwt);
 
       if (typeof addedOrg !== 'boolean' && addedOrg?.organizationId) {
         response.cookie('showorg', addedOrg.organizationId, {
@@ -145,21 +132,7 @@ export class AuthController {
         getOrgFromCookie
       );
 
-      response.cookie('auth', jwt, {
-        domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
-        ...(!process.env.NOT_SECURED
-          ? {
-              secure: true,
-              httpOnly: true,
-              sameSite: 'lax',
-            }
-          : {}),
-        expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
-      });
-
-      if (process.env.NOT_SECURED) {
-        response.header('auth', jwt);
-      }
+      setAuth(response, jwt);
 
       if (typeof addedOrg !== 'boolean' && addedOrg?.organizationId) {
         response.cookie('showorg', addedOrg.organizationId, {
@@ -268,21 +241,7 @@ export class AuthController {
       return response.status(200).json({ can: false });
     }
 
-    response.cookie('auth', activate, {
-      domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
-      ...(!process.env.NOT_SECURED
-        ? {
-            secure: true,
-            httpOnly: true,
-            sameSite: 'lax',
-          }
-        : {}),
-      expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
-    });
-
-    if (process.env.NOT_SECURED) {
-      response.header('auth', activate);
-    }
+    setAuth(response, activate);
 
     response.header('onboarding', 'true');
 
@@ -378,21 +337,7 @@ export class AuthController {
       return response.json({ token });
     }
 
-    response.cookie('auth', jwt, {
-      domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
-      ...(!process.env.NOT_SECURED
-        ? {
-            secure: true,
-            httpOnly: true,
-            sameSite: 'lax',
-          }
-        : {}),
-      expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
-    });
-
-    if (process.env.NOT_SECURED) {
-      response.header('auth', jwt);
-    }
+    setAuth(response, jwt);
 
     response.header('reload', 'true');
 

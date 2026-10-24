@@ -103,6 +103,11 @@ model User {
   ip                    String?
   agent                 String?
   deletedAt             DateTime?
+  // bumped on password reset and account deletion; a session token whose
+  // tokenVersion claim is lower is refused (a missing claim counts as 0)
+  tokenVersion          Int                  @default(0)
+  // set by a super admin; a disabled user cannot log in or use a session
+  disabled              Boolean              @default(false)
   comments              Comments[]
   items                 ItemUser[]
   groupBuyer            MessagesGroup[]      @relation("groupBuyer")

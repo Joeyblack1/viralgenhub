@@ -1,4 +1,8 @@
-import { isPurposeToken } from '@gitroom/helpers/auth/purpose.tokens';
+import {
+  AUTH_SESSION_MAX_AGE_MS,
+  isPurposeToken,
+  isSessionTokenRevoked,
+} from '@gitroom/helpers/auth/purpose.tokens';
 import { Injectable, NestMiddleware } from '@nestjs/common';
 import { Request, Response, NextFunction } from 'express';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
@@ -9,6 +13,26 @@ import { getCookieUrlFromDomain } from '@gitroom/helpers/subdomain/subdomain.man
 import { HttpForbiddenException } from '@gitroom/nestjs-libraries/services/exception.filter';
 import { MastraService } from '@gitroom/nestjs-libraries/chat/mastra.service';
 import { setSentryUserContext } from '@gitroom/nestjs-libraries/sentry/initialize.sentry';
+
+// The one place a login cookie is written (register, login, OAuth, activation
+// all come through here). Cookie and JWT expire together.
+export const setAuth = (res: Response, jwt: string) => {
+  res.cookie('auth', jwt, {
+    domain: getCookieUrlFromDomain(process.env.FRONTEND_URL!),
+    ...(!process.env.NOT_SECURED
+      ? {
+          secure: true,
+          httpOnly: true,
+          sameSite: 'lax',
+        }
+      : {}),
+    expires: new Date(Date.now() + AUTH_SESSION_MAX_AGE_MS),
+  });
+
+  if (process.env.NOT_SECURED) {
+    res.header('auth', jwt);
+  }
+};
 
 export const removeAuth = (res: Response) => {
   res.cookie('auth', '', {
@@ -93,7 +117,12 @@ export class AuthMiddleware implements NestMiddleware {
         throw new HttpForbiddenException();
       }
 
-      if (!user.activated) {
+      if (!user.activated || user.disabled) {
+        throw new HttpForbiddenException();
+      }
+
+      // signed before the last password reset / deletion of this account
+      if (isSessionTokenRevoked(payload, user.tokenVersion)) {
         throw new HttpForbiddenException();
       }
 

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { Provider, User } from '@prisma/client';
 import { CreateOrgUserDto } from '@gitroom/nestjs-libraries/dtos/auth/create.org.user.dto';
 import { LoginUserDto } from '@gitroom/nestjs-libraries/dtos/auth/login.user.dto';
@@ -8,6 +8,7 @@ import { AuthService as AuthChecker } from '@gitroom/helpers/auth/auth.service';
 import { AuthProviderManager } from '@gitroom/backend/services/auth/providers/providers.manager';
 import dayjs from 'dayjs';
 import {
+  AUTH_SESSION_TTL,
   signPurposeToken,
   verifyPurposeToken,
 } from '@gitroom/helpers/auth/purpose.tokens';
@@ -122,6 +123,8 @@ export class AuthService {
         throw new Error('User is not activated');
       }
 
+      this.assertNotDisabled(user);
+
       return { addedOrg: false, jwt: await this.jwt(user) };
     }
 
@@ -131,6 +134,7 @@ export class AuthService {
       ip,
       userAgent
     );
+    this.assertNotDisabled(user);
 
     const addedOrg =
       addToOrg && typeof addToOrg !== 'boolean'
@@ -149,21 +153,18 @@ export class AuthService {
       return false;
     }
 
-    try {
-      const getOrg: any = AuthChecker.verifyJWT(cookie);
-      if (dayjs(getOrg.timeLimit).isBefore(dayjs())) {
-        return false;
-      }
-
-      return getOrg as {
-        email: string;
-        role: 'USER' | 'ADMIN';
-        orgId: string;
-        id: string;
-      };
-    } catch (err) {
+    const getOrg = verifyPurposeToken<{
+      email: string;
+      role: 'USER' | 'ADMIN';
+      orgId: string;
+      id: string;
+      timeLimit: string;
+    }>(cookie, 'invite');
+    if (!getOrg || !getOrg.orgId || dayjs(getOrg.timeLimit).isBefore(dayjs())) {
       return false;
     }
+
+    return getOrg;
   }
 
   private async loginOrRegisterProvider(
@@ -313,7 +314,8 @@ export class AuthService {
       user.activated = true;
       this._track('register', user.email, tracking).catch((err) => {});
       await NewsletterService.register(user.email);
-      return this.jwt(user as any);
+      // the session is signed from the stored row, not from the emailed token
+      return this.jwt({ ...getUserAgain, activated: true });
     }
 
     return false;
@@ -375,18 +377,36 @@ export class AuthService {
       provider as Provider
     );
     if (checkExists) {
+      this.assertNotDisabled(checkExists);
       return { jwt: await this.jwt(checkExists) };
     }
 
     return { token };
   }
 
+  // set by a super admin (admin.controller); the middleware refuses the
+  // sessions, this refuses new logins with a message the user can act on
+  private assertNotDisabled(user: { disabled?: boolean }) {
+    if (user.disabled) {
+      // an HttpException: the OAuth callback route has no try/catch of its own
+      throw new HttpException(
+        'This account has been disabled. Contact support.',
+        400
+      );
+    }
+  }
+
+  // The only signer of login sessions: 30-day expiry, and the user's current
+  // tokenVersion so a later password reset or deletion refuses this token
   private async jwt(
     user: Omit<User, 'password'> & { password?: string | null }
   ) {
     if (user.password) {
       delete user.password;
     }
-    return AuthChecker.signJWT(user);
+    return AuthChecker.signJWT(
+      { ...user, tokenVersion: user.tokenVersion ?? 0 },
+      { expiresIn: AUTH_SESSION_TTL }
+    );
   }
 }

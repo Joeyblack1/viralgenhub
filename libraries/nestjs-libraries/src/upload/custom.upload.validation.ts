@@ -19,11 +19,44 @@ export const UPLOAD_ALLOWED_MIME = new Set<string>([
 
 export function getMaxSize(mimeType: string): number {
   if (mimeType.startsWith('image/')) {
-    return 10 * 1024 * 1024; // 10 MB
+    // what the composer's uploader promises (new.uploader.tsx); the R2
+    // multipart path accepted images of this size long before it had a cap
+    return 30 * 1024 * 1024; // 30 MB
   } else if (mimeType.startsWith('video/')) {
     return 1024 * 1024 * 1024; // 1 GB
   } else {
     throw new BadRequestException('Unsupported file type.');
+  }
+}
+
+// Multipart (R2) uploads: the client declares the size up front and the joined
+// object's real length is checked once the parts are complete. Uppy cuts a
+// file into parts of at least 5 MiB, so the 1 GB video cap never needs more
+// than 205 parts; a client asking for more is not uploading a file we accept.
+export const MAX_MULTIPART_PARTS = 300;
+
+export function isValidPartNumber(value: unknown): value is number {
+  const n = typeof value === 'string' ? Number(value) : value;
+  return (
+    typeof n === 'number' &&
+    Number.isInteger(n) &&
+    n >= 1 &&
+    n <= MAX_MULTIPART_PARTS
+  );
+}
+
+// A size is acceptable only when it is a real byte count within the cap for
+// the type; a missing, negative or non-numeric size is rejected, never waved
+// through
+export function isWithinMaxSize(mimeType: string, size: unknown): boolean {
+  const n = typeof size === 'string' ? Number(size) : size;
+  if (typeof n !== 'number' || !Number.isFinite(n) || n < 0) {
+    return false;
+  }
+  try {
+    return n <= getMaxSize(mimeType);
+  } catch (err) {
+    return false;
   }
 }
 

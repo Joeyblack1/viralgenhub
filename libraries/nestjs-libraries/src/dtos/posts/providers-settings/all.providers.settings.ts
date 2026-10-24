@@ -11,7 +11,7 @@ import { KickDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings
 import { TwitchDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/twitch.dto';
 import { InstagramDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/instagram.dto';
 import { LinkedinDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/linkedin.dto';
-import { IsIn } from 'class-validator';
+import { Allow, IsIn } from 'class-validator';
 import { MediumSettingsDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/medium.settings.dto';
 import { DevToSettingsDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/dev.to.settings.dto';
 import { HashnodeSettingsDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/hashnode.settings.dto';
@@ -113,4 +113,12 @@ export class EmptySettings {
       .join(', ')}`,
   })
   __type: string;
+}
+
+// The ValidationPipe runs with whitelist: true, which strips every property
+// without validation metadata. The discriminator stays on the settings object
+// (keepDiscriminatorProperty) and the publishing code reads it, so each
+// provider's settings class must declare it; done here for all of them.
+for (const { value } of allProviders(EmptySettings)) {
+  Allow()(value.prototype, '__type');
 }

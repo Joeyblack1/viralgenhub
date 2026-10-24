@@ -1,4 +1,4 @@
-import { sign, verify } from 'jsonwebtoken';
+import { sign, verify, SignOptions } from 'jsonwebtoken';
 import { hash, compare } from 'bcrypt';
 import crypto from 'crypto';
 // @ts-ignore
@@ -40,8 +40,8 @@ export class AuthService {
   static comparePassword(password: string, hashed: string) {
     return compare(password, hashed);
   }
-  static signJWT(value: object) {
-    return sign(value, process.env.JWT_SECRET!);
+  static signJWT(value: object, options?: SignOptions) {
+    return sign(value, process.env.JWT_SECRET!, options);
   }
   static verifyJWT(token: string) {
     return verify(token, process.env.JWT_SECRET!);
