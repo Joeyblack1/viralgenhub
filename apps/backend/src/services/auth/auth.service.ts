@@ -8,6 +8,7 @@ import { AuthService as AuthChecker } from '@gitroom/helpers/auth/auth.service';
 import { AuthProviderManager } from '@gitroom/backend/services/auth/providers/providers.manager';
 import dayjs from 'dayjs';
 import {
+  AUTH_SESSION_TTL,
   signPurposeToken,
   verifyPurposeToken,
 } from '@gitroom/helpers/auth/purpose.tokens';
@@ -310,7 +311,8 @@ export class AuthService {
       user.activated = true;
       this._track('register', user.email, tracking).catch((err) => {});
       await NewsletterService.register(user.email);
-      return this.jwt(user as any);
+      // the session is signed from the stored row, not from the emailed token
+      return this.jwt({ ...getUserAgain, activated: true });
     }
 
     return false;
@@ -378,12 +380,17 @@ export class AuthService {
     return { token };
   }
 
+  // The only signer of login sessions: 30-day expiry, and the user's current
+  // tokenVersion so a later password reset or deletion refuses this token
   private async jwt(
     user: Omit<User, 'password'> & { password?: string | null }
   ) {
     if (user.password) {
       delete user.password;
     }
-    return AuthChecker.signJWT(user);
+    return AuthChecker.signJWT(
+      { ...user, tokenVersion: user.tokenVersion ?? 0 },
+      { expiresIn: AUTH_SESSION_TTL }
+    );
   }
 }

@@ -95,3 +95,25 @@ export const verifyPurposeToken = <
 
 export const isPurposeToken = (payload: unknown) =>
   !!payload && typeof payload === 'object' && 'purpose' in (payload as object);
+
+// Login sessions. The cookie and the JWT inside it expire together after 30
+// days (sessions signed before S2 carry no exp and live until the user's
+// tokenVersion moves). The JWT carries the user's tokenVersion at sign time;
+// a password reset or account deletion bumps the column, and every token
+// signed before the bump is refused. A token without the claim was signed
+// before the column existed and counts as version 0, so existing sessions
+// keep working until that user's version first moves.
+export const AUTH_SESSION_TTL = '30d';
+export const AUTH_SESSION_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
+export const sessionTokenVersion = (payload: unknown) => {
+  const claim = (payload as { tokenVersion?: unknown } | null)?.tokenVersion;
+  return typeof claim === 'number' && Number.isInteger(claim) && claim >= 0
+    ? claim
+    : 0;
+};
+
+export const isSessionTokenRevoked = (
+  payload: unknown,
+  currentVersion: number | null | undefined
+) => sessionTokenVersion(payload) < (currentVersion || 0);

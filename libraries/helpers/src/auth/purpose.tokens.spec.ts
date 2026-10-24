@@ -1,7 +1,11 @@
 import { sign, verify } from 'jsonwebtoken';
 import {
+  AUTH_SESSION_MAX_AGE_MS,
+  AUTH_SESSION_TTL,
   LEGACY_NO_PURPOSE_UNTIL,
   isPurposeToken,
+  isSessionTokenRevoked,
+  sessionTokenVersion,
   signPurposeToken,
   verifyPurposeToken,
 } from './purpose.tokens';
@@ -140,5 +144,40 @@ describe('purpose tokens (team invites / plan change)', () => {
   it('a token for another purpose is not rescued by the legacy window', () => {
     const reset = signPurposeToken('reset', { id: 'u1', orgId: 'org1' });
     expect(verifyPurposeToken(reset, 'invite', inGrace)).toBeNull();
+  });
+});
+
+describe('session tokens (30-day expiry, tokenVersion revocation)', () => {
+  beforeAll(() => {
+    process.env.JWT_SECRET = 'test-secret';
+  });
+
+  it('a token without the claim counts as version 0 (sessions from before the column)', () => {
+    expect(sessionTokenVersion({ id: 'u1' })).toBe(0);
+    expect(sessionTokenVersion(null)).toBe(0);
+    expect(sessionTokenVersion({ id: 'u1', tokenVersion: 'x' })).toBe(0);
+    expect(sessionTokenVersion({ id: 'u1', tokenVersion: -2 })).toBe(0);
+    expect(sessionTokenVersion({ id: 'u1', tokenVersion: 3 })).toBe(3);
+  });
+
+  it('is current while the user has never been bumped', () => {
+    expect(isSessionTokenRevoked({ id: 'u1' }, 0)).toBe(false);
+    expect(isSessionTokenRevoked({ id: 'u1' }, null)).toBe(false);
+    expect(isSessionTokenRevoked({ id: 'u1', tokenVersion: 0 }, 0)).toBe(false);
+  });
+
+  it('is revoked once the user has been bumped past the claim', () => {
+    expect(isSessionTokenRevoked({ id: 'u1' }, 1)).toBe(true);
+    expect(isSessionTokenRevoked({ id: 'u1', tokenVersion: 1 }, 2)).toBe(true);
+    expect(isSessionTokenRevoked({ id: 'u1', tokenVersion: 2 }, 2)).toBe(false);
+    // a claim ahead of the row (never happens for a server-signed token) is not revoked
+    expect(isSessionTokenRevoked({ id: 'u1', tokenVersion: 5 }, 2)).toBe(false);
+  });
+
+  it('a signed session carries exp when signed with the session TTL', () => {
+    const t = sign({ id: 'u1', tokenVersion: 0 }, 'test-secret', { expiresIn: AUTH_SESSION_TTL });
+    const payload = verify(t, 'test-secret') as any;
+    expect(payload.exp - payload.iat).toBe(AUTH_SESSION_MAX_AGE_MS / 1000);
+    expect(isPurposeToken(payload)).toBe(false);
   });
 });

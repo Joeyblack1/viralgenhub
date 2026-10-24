@@ -55,13 +55,15 @@ export class UsersRepository {
         where: { id: current.id },
         data: { email: `switch-${makeId(10)}-${current.email}` },
       }),
+      // both accounts' open sessions stop: whoever holds one must log in
+      // again with the credentials that now belong to that account
       this._user.model.user.update({
         where: { id: target.id },
-        data: currentCredentials,
+        data: { ...currentCredentials, tokenVersion: { increment: 1 } },
       }),
       this._user.model.user.update({
         where: { id: current.id },
-        data: targetCredentials,
+        data: { ...targetCredentials, tokenVersion: { increment: 1 } },
       }),
     ]);
 
@@ -209,6 +211,7 @@ export class UsersRepository {
         ip: true,
         agent: true,
         deletedAt: true,
+        tokenVersion: true,
         sendSuccessEmails: true,
         sendFailureEmails: true,
         sendStreakEmails: true,
@@ -249,6 +252,8 @@ export class UsersRepository {
         account: null,
         pictureId: null,
         deletedAt: new Date(),
+        // every session of the deleted account stops working at once
+        tokenVersion: { increment: 1 },
       },
     });
   }
@@ -262,6 +267,8 @@ export class UsersRepository {
       },
       data: {
         password: hashed,
+        // a reset logs every other session of the account out
+        tokenVersion: { increment: 1 },
       },
     });
   }
