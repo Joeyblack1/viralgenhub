@@ -2,7 +2,7 @@ import { BadRequestException } from '@nestjs/common';
 import { pipeline, Readable, Transform } from 'stream';
 import { IUploadProvider } from './upload.interface';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
-const { fileTypeStream } = require('file-type');
+const { fileTypeFromBuffer } = require('file-type');
 
 // What users may put in the media library, whether by multipart upload or
 // from a remote URL; narrower than what storage itself accepts, no audio
@@ -80,41 +80,107 @@ export function maxSizeStream(maxSize: number) {
 // upload parts are ever in memory. Rejections are BadRequestException with
 // the same messages the old buffer validation used. `declaredSize` is the
 // Content-Length when the sender gave one; it may be absent or wrong, so the
-// stream cap is what really enforces the limit
+// stream cap is what really enforces the limit.
+//
+// Everything here stays on Node streams: an earlier version sniffed the type
+// through file-type's web-stream wrapper, and tearing that wrapper down when
+// the cap fired raised a webstreams TypeError that became the reason multer's
+// file stream was destroyed with, so the client saw a 500 instead of the 400.
+
+// Bytes file-type needs to recognise every type we accept
+const SNIFF_BYTES = 4100;
+
+// Reads up to `want` bytes without taking the stream out of paused mode, so
+// the rest can still be piped afterwards
+function readHead(src: Readable, want: number): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const chunks: Buffer[] = [];
+    let size = 0;
+    const cleanup = () => {
+      src.off('readable', onReadable);
+      src.off('end', onEnd);
+      src.off('error', onError);
+    };
+    const onEnd = () => {
+      cleanup();
+      resolve(Buffer.concat(chunks));
+    };
+    const onError = (err: Error) => {
+      cleanup();
+      reject(err);
+    };
+    const onReadable = () => {
+      let chunk: Buffer | null;
+      while (size < want && (chunk = src.read()) !== null) {
+        chunks.push(chunk);
+        size += chunk.length;
+      }
+      if (size >= want) {
+        onEnd();
+      }
+    };
+    src.on('readable', onReadable);
+    src.on('end', onEnd);
+    src.on('error', onError);
+  });
+}
+
 export async function uploadStreamToStorage(
   storage: IUploadProvider,
-  webStream: ReadableStream,
+  source: Readable | ReadableStream,
   declaredSize = 0
 ) {
-  let sniffed: ReadableStream & { fileType?: { mime: string; ext: string } };
+  const src: Readable =
+    source instanceof Readable ? source : Readable.fromWeb(source as any);
+
+  let head: Buffer;
+  let detected: { mime: string; ext: string } | undefined;
   try {
-    sniffed = await fileTypeStream(webStream);
+    head = await readHead(src, SNIFF_BYTES);
+    detected = await fileTypeFromBuffer(head);
   } catch (err) {
+    src.destroy();
     throw new BadRequestException('Failed to read file', { cause: err });
   }
-  const detected = sniffed.fileType;
   if (!detected || !UPLOAD_ALLOWED_MIME.has(detected.mime)) {
-    await sniffed.cancel();
+    src.destroy();
     throw new BadRequestException('Unsupported file type.');
   }
 
   const maxSize = getMaxSize(detected.mime);
   if (declaredSize > maxSize) {
-    await sniffed.cancel();
+    src.destroy();
     throw new BadRequestException('File is too large.');
   }
 
-  // pipeline (not pipe) so failing the cap also tears down the source.
-  // Remember the cap's own rejection: tearing down the web stream can raise a
-  // Node webstreams TypeError that would otherwise reach the caller as a 500.
-  let capError: Error | undefined;
-  const body = pipeline(
-    Readable.fromWeb(sniffed as any),
-    maxSizeStream(maxSize),
-    (err) => {
-      if (err instanceof BadRequestException) capError = err;
-    }
+  // The head goes first, then whatever is still to come from the source.
+  // destroyOnReturn: false keeps the source alive when the joined stream is
+  // torn down, so the pipeline callback below ends it with the real error
+  const joined = Readable.from(
+    (async function* () {
+      yield head;
+      // readable.iterator() exists since Node 16.3; the repo's @types/node is older
+      const chunks: AsyncIterable<Buffer> = (src as any).iterator({
+        destroyOnReturn: false,
+      });
+      for await (const chunk of chunks) {
+        yield chunk;
+      }
+    })()
   );
+
+  // pipeline (not pipe) so failing the cap also tears down the joined stream;
+  // the source is then ended with the same error, which is what multer (or
+  // the URL fetch) reports: a 400, never a teardown error
+  let failure: Error | undefined;
+  const body = pipeline(joined, maxSizeStream(maxSize), (err) => {
+    if (err) {
+      failure = failure || err;
+      if (!src.destroyed) {
+        src.destroy(err);
+      }
+    }
+  });
 
   try {
     const uploaded = await storage.uploadStream(
@@ -128,10 +194,10 @@ export async function uploadStreamToStorage(
     try {
       body.destroy();
     } catch {
-      // the source is already gone; nothing to clean up
+      // already gone
     }
     if (err instanceof BadRequestException) throw err;
-    if (capError) throw capError;
+    if (failure instanceof BadRequestException) throw failure;
     throw err;
   }
 }

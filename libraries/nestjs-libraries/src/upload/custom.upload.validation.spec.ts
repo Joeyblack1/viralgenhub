@@ -1,5 +1,5 @@
 // file-type is ESM-only; these specs only need the size arithmetic
-jest.mock('file-type', () => ({ fileTypeStream: jest.fn() }), {
+jest.mock('file-type', () => ({ fileTypeFromBuffer: jest.fn() }), {
   virtual: true,
 });
 

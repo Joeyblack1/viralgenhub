@@ -1,6 +1,5 @@
 import { Request } from 'express';
 import { StorageEngine } from 'multer';
-import { Readable } from 'stream';
 import { IUploadProvider } from './upload.interface';
 import { UploadFactory } from './upload.factory';
 import { getMaxSize, uploadStreamToStorage } from './custom.upload.validation';
@@ -17,10 +16,7 @@ export class MulterStreamEngine implements StorageEngine {
     file: Express.Multer.File,
     cb: (error?: any, info?: Partial<Express.Multer.File>) => void
   ) {
-    uploadStreamToStorage(
-      this.storage,
-      Readable.toWeb(file.stream) as any
-    ).then(
+    uploadStreamToStorage(this.storage, file.stream).then(
       (uploaded) => {
         const safeBase =
           (file.originalname || 'upload')
