@@ -356,7 +356,7 @@ export const startMcp = async (app: INestApplication) => {
 
     // baseUrl is the mount path that matched, e.g. /mcp-oauth-claude
     const { middleware, mcpServer, selfHostedServer } = oauthResources[req.baseUrl];
-    const url = new URL(publicBackendUrl(req.baseUrl));
+    const url = new URL(req.baseUrl, process.env.NEXT_PUBLIC_BACKEND_URL); // pathname only: the middleware matches it against its mount path
 
     const result = await middleware(req, res, url);
     if (!result.proceed) return;
@@ -423,7 +423,7 @@ export const startMcp = async (app: INestApplication) => {
     // @ts-ignore
     if (!(await withinDailyLimit(req.auth, res))) return;
 
-    const url = new URL(publicBackendUrl('/mcp'));
+    const url = new URL('/mcp', process.env.NEXT_PUBLIC_BACKEND_URL);
 
     fixAcceptHeader(req);
     // @ts-ignore
@@ -464,7 +464,7 @@ export const startMcp = async (app: INestApplication) => {
     // @ts-ignore
     if (!(await withinDailyLimit(req.auth, res))) return;
 
-    const url = new URL(publicBackendUrl(`/mcp/${req.params.id}`));
+    const url = new URL(`/mcp/${req.params.id}`, process.env.NEXT_PUBLIC_BACKEND_URL);
 
     fixAcceptHeader(req);
     await runWithContext(
@@ -510,7 +510,7 @@ export const startMcp = async (app: INestApplication) => {
     // @ts-ignore
     if (req.baseUrl.startsWith('/sse') && !(await withinDailyLimit(req.auth, res))) return;
 
-    const url = new URL(publicBackendUrl(req.originalUrl));
+    const url = new URL(req.originalUrl, process.env.NEXT_PUBLIC_BACKEND_URL);
 
     await runWithContext(
       // @ts-ignore
