@@ -325,6 +325,18 @@
     "outputDirectory": "./reports",
     "outputName": "junit.xml"
   },
+  "overridesNotes": {
+    "_": "Why each pnpm.overrides pin exists (JSON has no comments). Open critical/high Dependabot advisories as of 2026-10-24; keep the pins at or above these versions.",
+    "next": "GHSA-2xp9-vwfh-vxw4, GHSA-p293-qw3h-jr36, GHSA-vcvr-r3jv-pc5j (unauthenticated RCE: AVIF image optimisation, Windows hosts, next/og ImageResponse), GHSA-cjq9-62q9-8jv4 (SSRF). Keep >= 16.3.6.",
+    "handlebars": "GHSA-2w6w-674q-4c4q, GHSA-8r5x-fm3f-whwj, GHSA-p8wg-vrv2-v86f (JavaScript injection via AST type confusion / own-property bypass) plus high GHSA-3mfm-83xf-c92r, GHSA-xhpv-hc6g-r9c6, GHSA-xjpj-3mr7-gcpf. Keep >= 4.7.10.",
+    "protobufjs": "GHSA-xq3m-2v4x-88gg (arbitrary code execution) plus high GHSA-66ff-xgx4-vchm, GHSA-75px-5xx7-5xc7, GHSA-685m-2w69-288q, GHSA-jvwf-75h9-cwgg, GHSA-wcpc-wj8m-hjx6. Keep >= 7.5.5.",
+    "piscina": "GHSA-67c8-pqhq-4rmx (prototype-pollution gadget in ThreadPool.options -> RCE) plus high GHSA-x9g3-xrwr-cwfg. Keep >= 4.9.4.",
+    "proxy-addr": "GHSA-jqcg-44mw-7w3h (IP spoofing via IPv4-mapped IPv6 trust subnet). Keep >= 2.0.8.",
+    "shell-quote": "GHSA-w7jw-789q-3m8p (quote() does not escape newlines) plus high GHSA-395f-4hp3-45gv (quadratic DoS in parse()). Keep >= 1.8.4.",
+    "form-data": "GHSA-fjxv-7rqg-78g4 (unsafe random boundary) plus high GHSA-hmw2-7cc7-3qxx (CRLF injection in field names). Keep >= 2.5.4; pinned 2.5.5.",
+    "multer": "High GHSA-535w-7cp7-47q4, GHSA-qfvm-cv95-jqjf, GHSA-wc9g-mqfw-jrwm (DoS via field names / fd leak on aborted uploads). Keep >= 2.2.0.",
+    "react / react-dom / @types/react*": "Not security pins: keep one React 19.2.4 across the workspace so the Next 16 override resolves a single copy."
+  },
   "pnpm": {
     "overrides": {
       "multer": "^2.2.0",
