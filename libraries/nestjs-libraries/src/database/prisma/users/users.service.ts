@@ -41,6 +41,10 @@ export class UsersService {
     return this._usersRepository.getUserByProvider(providerId, provider);
   }
 
+  getActivatedUserByEmailAnyProvider(email: string) {
+    return this._usersRepository.getActivatedUserByEmailAnyProvider(email);
+  }
+
   async switchUser(
     currentUserId: string,
     targetUserId: string,

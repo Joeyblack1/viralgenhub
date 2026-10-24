@@ -68,7 +68,15 @@ export class AuthService {
       }
       const user = await this._userService.getUserByEmail(body.email);
       if (body instanceof CreateOrgUserDto) {
-        if (user) {
+        // the e-mail is also taken when an activated account holds it under
+        // a social provider, otherwise a password sign-up makes a second
+        // user and organisation for the same person
+        if (
+          user ||
+          (await this._userService.getActivatedUserByEmailAnyProvider(
+            body.email
+          ))
+        ) {
           throw new Error('Email already exists');
         }
 
@@ -106,7 +114,7 @@ export class AuthService {
         return obj;
       }
 
-      if (!user || !AuthChecker.comparePassword(body.password, user.password)) {
+      if (!user || !(await AuthChecker.comparePassword(body.password, user.password))) {
         throw new Error('Invalid user name or password');
       }
 
@@ -171,10 +179,7 @@ export class AuthService {
       throw new Error('Invalid provider token');
     }
 
-    const user = await this._userService.getUserByProvider(
-      providerUser.id,
-      provider
-    );
+    const user = await this.getUserForProviderLogin(providerUser, provider);
     if (user) {
       return user;
     }
@@ -211,6 +216,33 @@ export class AuthService {
     }
 
     return create.users[0].user;
+  }
+
+  // One account per verified e-mail: users are unique on (email, providerName)
+  // and the row cannot be moved between providers, so after the exact
+  // (providerId, providerName) match fails, a sign-in whose e-mail the
+  // provider has verified is a login to the activated account that already
+  // holds that e-mail, whatever provider created it. Without that, a Google
+  // sign-in on a password account made a second user and organisation.
+  private async getUserForProviderLogin(
+    providerUser: { id: string; email: string; emailVerified?: boolean },
+    provider: Provider
+  ) {
+    const user = await this._userService.getUserByProvider(
+      providerUser.id,
+      provider
+    );
+    if (user) {
+      return user;
+    }
+
+    if (!providerUser.emailVerified || !providerUser.email) {
+      return null;
+    }
+
+    return this._userService.getActivatedUserByEmailAnyProvider(
+      providerUser.email
+    );
   }
 
   private async _track(
@@ -290,12 +322,10 @@ export class AuthService {
   async resendActivationEmail(email: string) {
     const user = await this._userService.getUserByEmail(email);
 
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    if (user.activated) {
-      throw new Error('Account is already activated');
+    // same reply whether the e-mail is unknown, pending or already activated,
+    // so the endpoint cannot be used to find out which addresses have accounts
+    if (!user || user.activated) {
+      return true;
     }
 
     await this._emailService.sendEmailSync(
@@ -340,8 +370,8 @@ export class AuthService {
     if (!user) {
       throw new Error('Invalid user');
     }
-    const checkExists = await this._userService.getUserByProvider(
-      user.id,
+    const checkExists = await this.getUserForProviderLogin(
+      user,
       provider as Provider
     );
     if (checkExists) {
@@ -351,7 +381,9 @@ export class AuthService {
     return { token };
   }
 
-  private async jwt(user: User) {
+  private async jwt(
+    user: Omit<User, 'password'> & { password?: string | null }
+  ) {
     if (user.password) {
       delete user.password;
     }

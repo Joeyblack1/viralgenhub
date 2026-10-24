@@ -2,7 +2,10 @@ import 'reflect-metadata';
 
 import { Injectable } from '@nestjs/common';
 import { XProvider } from '@gitroom/nestjs-libraries/integrations/social/x.provider';
-import { SocialProvider } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
+import {
+  providerHelperFunctions,
+  SocialProvider,
+} from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { LinkedinProvider } from '@gitroom/nestjs-libraries/integrations/social/linkedin.provider';
 import { RedditProvider } from '@gitroom/nestjs-libraries/integrations/social/reddit.provider';
 import { DevToProvider } from '@gitroom/nestjs-libraries/integrations/social/dev.to.provider';
@@ -187,6 +190,23 @@ export class IntegrationManager {
     );
   }
 
+  // A client may only call provider methods marked with @Tool (see getAllTools)
+  // or listed in providerHelperFunctions; anything else is not a public helper.
+  isPublicFunction(identifier: string, methodName: string) {
+    const provider = this.getSocialIntegration(identifier);
+    if (!provider) {
+      return false;
+    }
+
+    const tools = this.getAllTools()[identifier] || [];
+    return (
+      // @ts-ignore
+      typeof provider[methodName] === 'function' &&
+      (tools.some((p) => p.methodName === methodName) ||
+        providerHelperFunctions.includes(methodName))
+    );
+  }
+
   getAllTools(): {
     [key: string]: {
       description: string;
@@ -262,4 +282,23 @@ export class IntegrationManager {
   getSocialIntegration(integration: string): SocialProvider {
     return socialIntegrationList.find((i) => i.identifier === integration)!;
   }
+}
+
+// Removes credential keys from whatever a provider helper returns before it
+// goes back to the client (helpers may echo the integration they were given).
+const secretKeys = ['accessToken', 'refreshToken', 'token'];
+export function stripSecretKeys<T>(value: T): T {
+  if (Array.isArray(value)) {
+    return value.map((item) => stripSecretKeys(item)) as T;
+  }
+
+  if (!value || typeof value !== 'object' || value.constructor !== Object) {
+    return value;
+  }
+
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([key]) => !secretKeys.includes(key))
+      .map(([key, item]) => [key, stripSecretKeys(item)])
+  ) as T;
 }

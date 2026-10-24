@@ -44,7 +44,10 @@ async function start() {
       ],
       origin: [
         process.env.FRONTEND_URL,
-        'http://localhost:6274',
+        // Local dev tools (MCP inspector) only; never a credentialed origin in production
+        ...(process.env.NODE_ENV !== 'production'
+          ? ['http://localhost:6274']
+          : []),
         ...(process.env.MAIN_URL ? [process.env.MAIN_URL] : []),
         // Optional: the Canva app calls the public API from its iframe origin
         // (browsers send it lowercase, e.g. https://app-aabbcc.canva-apps.com)
@@ -59,7 +62,24 @@ async function start() {
     },
   });
 
+  // Baseline security headers (helmet is not a dependency). No CSP: it would
+  // break the app's inline scripts and embeds.
+  app.use((req: any, res: any, next: any) => {
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+    res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+    res.setHeader(
+      'Permissions-Policy',
+      'camera=(), microphone=(), geolocation=()'
+    );
+    next();
+  });
+
   await startMcp(app);
+
+  // one proxy hop (the nginx in the image) in front of the backend: req.ip is
+  // the single X-Forwarded-For entry nginx sets, never a client-supplied one
+  app.getHttpAdapter().getInstance().set('trust proxy', 1);
 
   app.useGlobalPipes(
     new ValidationPipe({

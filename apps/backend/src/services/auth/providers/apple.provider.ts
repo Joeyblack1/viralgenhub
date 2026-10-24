@@ -132,11 +132,24 @@ export class AppleProvider extends AuthProviderAbstract {
         audience,
         issuer: 'https://appleid.apple.com',
       }
-    ) as unknown as { sub: string; email: string };
+    ) as unknown as {
+      sub: string;
+      email: string;
+      email_verified?: boolean | string;
+      is_private_email?: boolean | string;
+    };
+
+    // Apple sends these claims as booleans or the strings 'true'/'false'.
+    // A "Hide My Email" relay address is unique to this app, so it can never
+    // match an account made elsewhere and must not be used for linking.
+    const isTrue = (value?: boolean | string) =>
+      value === true || value === 'true';
 
     return {
       id: payload.sub,
       email: payload.email,
+      emailVerified:
+        isTrue(payload.email_verified) && !isTrue(payload.is_private_email),
     };
   }
 }

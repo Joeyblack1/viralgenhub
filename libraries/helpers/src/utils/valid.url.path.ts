@@ -31,9 +31,22 @@ export const isAllowedUploadPath = (text: string) => {
     return true;
   }
 
-  return (
-    (text || 'invalid url').indexOf(process.env.RESTRICT_UPLOAD_DOMAINS) > -1
-  );
+  // Compare the host, not the string: a substring match let
+  // `http://169.254.169.254/x.png?cdn.domain` through. The value may be a
+  // bare domain or a URL, and a subdomain of it is accepted on a dot boundary.
+  const allowed = process.env.RESTRICT_UPLOAD_DOMAINS.trim()
+    .toLowerCase()
+    .replace(/^[a-z]+:\/\//, '')
+    .split(/[/:?#]/)[0];
+
+  let hostname: string;
+  try {
+    hostname = new URL(text || 'invalid url').hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+
+  return hostname === allowed || hostname.endsWith('.' + allowed);
 };
 
 @ValidatorConstraint({ name: 'checkValidPath', async: false })

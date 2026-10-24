@@ -19,7 +19,53 @@ jest.mock(
 );
 jest.mock('nestjs-temporal-core', () => ({ TemporalService: class {} }));
 
-import { AutopostService } from './autopost.service';
+// no DNS in a unit test: one public feed host, everything else is "internal"
+jest.mock('@gitroom/nestjs-libraries/dtos/webhooks/webhook.url.validator', () => ({
+  isSafePublicHttpsUrl: jest.fn(
+    async (url: string) => new URL(url).hostname === 'feed.example'
+  ),
+}));
+
+import { AutopostService, fetchPublicText } from './autopost.service';
+
+const response = (status: number, headers: Record<string, string>, body = '') =>
+  new Response(body, { status, headers });
+
+describe('fetchPublicText, redirects', () => {
+  const fetchMock = jest.fn();
+  beforeEach(() => {
+    fetchMock.mockReset();
+    global.fetch = fetchMock as any;
+  });
+
+  it('re-validates a redirect hop and refuses one that leaves the public internet', async () => {
+    fetchMock.mockResolvedValueOnce(
+      response(302, { location: 'https://[::ffff:7f00:1]/feed.xml' })
+    );
+    await expect(fetchPublicText('https://feed.example/rss')).rejects.toThrow(
+      'Blocked URL'
+    );
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({ redirect: 'manual' });
+  });
+
+  it('follows a redirect that stays public and returns the body', async () => {
+    fetchMock
+      .mockResolvedValueOnce(response(301, { location: '/feed.xml' }))
+      .mockResolvedValueOnce(response(200, {}, '<rss/>'));
+    await expect(fetchPublicText('https://feed.example/rss')).resolves.toBe(
+      '<rss/>'
+    );
+    expect(fetchMock.mock.calls[1][0]).toBe('https://feed.example/feed.xml');
+  });
+
+  it('refuses the feed address itself when it is not public', async () => {
+    await expect(fetchPublicText('https://10.0.0.1/rss')).rejects.toThrow(
+      'Blocked URL'
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+});
 
 const integration = (id: string, providerIdentifier: string) =>
   ({ id, providerIdentifier, organizationId: 'org' } as any);

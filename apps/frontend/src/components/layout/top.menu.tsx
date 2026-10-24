@@ -22,6 +22,7 @@ export const useMenuItem = () => {
   const { isGeneral } = useVariables();
   const t = useT();
   const { openModal } = useModals();
+  const user = useUser();
 
   const handleAgentMediaClick = useCallback(() => {
     openModal({
@@ -71,8 +72,8 @@ export const useMenuItem = () => {
         </svg>
       ),
       path: '/agents',
-      // ViralGenHub: AI agent needs AI provider keys we have not configured.
-      hide: true,
+      // ViralGenHub: the AI agent is sold on the Business plan only.
+      hide: !user?.tier?.ai,
     },
     {
       name: t('analytics', 'Analytics'),

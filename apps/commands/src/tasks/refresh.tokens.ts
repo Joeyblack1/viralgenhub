@@ -10,7 +10,13 @@ export class RefreshTokens {
     describe: 'Refresh all tokens',
   })
   async refresh() {
-    await this._integrationService.refreshTokens();
+    const { refreshed, failed } =
+      await this._integrationService.refreshTokens();
+    console.log(
+      `Refreshed ${refreshed} token(s), ${failed.length} failed${
+        failed.length ? `: ${failed.join(', ')}` : ''
+      }`
+    );
     return true;
   }
 }

@@ -20,7 +20,61 @@ import { TypedSearchAttributes } from '@temporalio/common';
 import {
   organizationId,
 } from '@gitroom/nestjs-libraries/temporal/temporal.search.attribute';
+import { isSafePublicHttpsUrl } from '@gitroom/nestjs-libraries/dtos/webhooks/webhook.url.validator';
+import { ssrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 const parser = new Parser();
+
+// The feed address comes from the user and the article links from whoever
+// runs the feed, so every read goes through the pinned-DNS SSRF guard with
+// each redirect hop re-validated (same as /public/stream), a deadline and a
+// cap on the body. rss-parser's own client follows redirects unguarded, so
+// the XML is fetched here and handed to it as a string.
+const FEED_READ_TIMEOUT = 15_000;
+const FEED_MAX_REDIRECTS = 5;
+const FEED_MAX_BYTES = 10 * 1024 * 1024;
+
+export async function fetchPublicText(url: string): Promise<string> {
+  let currentUrl = url;
+  for (let hop = 0; hop <= FEED_MAX_REDIRECTS; hop++) {
+    if (!(await isSafePublicHttpsUrl(currentUrl))) {
+      throw new Error('Blocked URL');
+    }
+
+    const response = await fetch(currentUrl, {
+      redirect: 'manual',
+      signal: AbortSignal.timeout(FEED_READ_TIMEOUT),
+      // @ts-ignore — undici option, not in lib.dom fetch types
+      dispatcher: ssrfSafeDispatcher,
+    });
+
+    if (response.status >= 300 && response.status < 400) {
+      await response.body?.cancel();
+      const location = response.headers.get('location');
+      if (!location) {
+        throw new Error('Redirect without Location');
+      }
+      currentUrl = new URL(location, currentUrl).toString();
+      continue;
+    }
+
+    if (!response.ok) {
+      await response.body?.cancel();
+      throw new Error(`Upstream responded ${response.status}`);
+    }
+    if (Number(response.headers.get('content-length')) > FEED_MAX_BYTES) {
+      await response.body?.cancel();
+      throw new Error('Response too large');
+    }
+
+    const body = Buffer.from(await response.arrayBuffer());
+    if (body.length > FEED_MAX_BYTES) {
+      throw new Error('Response too large');
+    }
+    return body.toString('utf8');
+  }
+
+  throw new Error('Too many redirects');
+}
 
 interface WorkflowChannelsState {
   messages: BaseMessage[];
@@ -140,7 +194,7 @@ export class AutopostService {
 
   async loadXML(url: string) {
     try {
-      const { items } = await parser.parseURL(url);
+      const { items } = await parser.parseString(await fetchPublicText(url));
       const findLast = items.reduce(
         (all: any, current: any) => {
           if (dayjs(current.pubDate).isAfter(all.pubDate)) {
@@ -190,7 +244,7 @@ export class AutopostService {
 
   async loadUrl(url: string) {
     try {
-      const loadDom = new JSDOM(await (await fetch(url)).text());
+      const loadDom = new JSDOM(await fetchPublicText(url));
       loadDom.window.document
         .querySelectorAll('script')
         .forEach((s) => s.remove());

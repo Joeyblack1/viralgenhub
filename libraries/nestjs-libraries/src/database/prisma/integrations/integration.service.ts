@@ -344,43 +344,63 @@ export class IntegrationService {
     return this._integrationRepository.setBetweenRefreshSteps(id);
   }
 
+  // Refreshes every token that is about to expire. One channel failing must
+  // not stop the pass for the others, so each is handled on its own.
   async refreshTokens() {
     const integrations = await this._integrationRepository.needsToBeRefreshed();
+    const summary = { refreshed: 0, failed: [] as string[] };
     for (const integration of integrations) {
-      const provider = this._integrationManager.getSocialIntegration(
-        integration.providerIdentifier
-      );
-
-      const data = await this.refreshToken(provider, integration.refreshToken!);
-
-      if (!data) {
-        await this.informAboutRefreshError(
-          integration.organizationId,
-          integration
+      try {
+        const provider = this._integrationManager.getSocialIntegration(
+          integration.providerIdentifier
         );
-        await this._integrationRepository.refreshNeeded(
-          integration.organizationId,
-          integration.id
+
+        const data = await this.refreshToken(
+          provider,
+          integration.refreshToken!
         );
-        return;
+
+        if (!data) {
+          await this.informAboutRefreshError(
+            integration.organizationId,
+            integration
+          );
+          await this._integrationRepository.refreshNeeded(
+            integration.organizationId,
+            integration.id
+          );
+          summary.failed.push(integration.id);
+          continue;
+        }
+
+        const { refreshToken, accessToken, expiresIn } = data;
+
+        await this.createOrUpdateIntegration(
+          undefined,
+          !!provider.oneTimeToken,
+          integration.organizationId,
+          integration.name,
+          undefined,
+          'social',
+          integration.internalId,
+          integration.providerIdentifier,
+          accessToken,
+          refreshToken,
+          expiresIn
+        );
+        summary.refreshed++;
+      } catch (err) {
+        console.log(
+          'Could not refresh the token of integration',
+          integration.id,
+          integration.providerIdentifier,
+          err
+        );
+        summary.failed.push(integration.id);
       }
-
-      const { refreshToken, accessToken, expiresIn } = data;
-
-      await this.createOrUpdateIntegration(
-        undefined,
-        !!provider.oneTimeToken,
-        integration.organizationId,
-        integration.name,
-        undefined,
-        'social',
-        integration.internalId,
-        integration.providerIdentifier,
-        accessToken,
-        refreshToken,
-        expiresIn
-      );
     }
+
+    return summary;
   }
 
   async disableChannel(org: string, id: string) {

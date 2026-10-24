@@ -121,8 +121,40 @@ const AnalyticsCard: FC<{
   );
 };
 
-const EmptyState: FC<{ onRefresh: () => void }> = ({ onRefresh }) => {
+// ViralGenHub: an empty result only means "reconnect" when the channel is
+// flagged; otherwise the platform has simply not shared figures yet.
+const EmptyState: FC<{ refreshNeeded: boolean; onRefresh: () => void }> = ({
+  refreshNeeded,
+  onRefresh,
+}) => {
   const t = useT();
+
+  if (!refreshNeeded) {
+    return (
+      <div className="col-span-full flex flex-col items-center justify-center py-[48px] px-[24px] bg-newTableHeader border border-newTableBorder rounded-[12px]">
+        <div className="w-[48px] h-[48px] mb-[16px] rounded-full bg-[#612bd3]/10 flex items-center justify-center">
+          <svg
+            width="24"
+            height="24"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            className="text-[#612bd3]"
+          >
+            <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            <path d="M12 8v4l2 2" />
+          </svg>
+        </div>
+        <p className="text-[15px] text-newTableText text-center">
+          {t(
+            'no_analytics_data_yet',
+            'No analytics data yet for this channel. Platforms share figures only after a post has been live for a while.'
+          )}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="col-span-full flex flex-col items-center justify-center py-[48px] px-[24px] bg-newTableHeader border border-newTableBorder rounded-[12px]">
@@ -239,7 +271,10 @@ export const RenderAnalytics: FC<{
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-[16px]">
       {data?.length === 0 && (
-        <EmptyState onRefresh={refreshChannel(integration as any)} />
+        <EmptyState
+          refreshNeeded={!!integration.refreshNeeded}
+          onRefresh={refreshChannel(integration as any)}
+        />
       )}
       {data?.map((item: AnalyticsDataItem, index: number) => (
         <AnalyticsCard

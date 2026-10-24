@@ -2,6 +2,7 @@ import {
   IsDefined,
   IsIn,
   IsString,
+  MaxLength,
   MinLength,
   ValidateIf,
 } from 'class-validator';
@@ -10,7 +11,8 @@ import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 export class ForgotReturnPasswordDto {
   @IsString()
   @IsDefined()
-  @MinLength(3)
+  @MinLength(8)
+  @MaxLength(128)
   password: string;
 
   @IsString()

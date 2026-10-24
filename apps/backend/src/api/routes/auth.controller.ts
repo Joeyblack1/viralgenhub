@@ -44,6 +44,9 @@ export class AuthController {
     };
   }
 
+  // sign-up abuse: 5 accounts an hour per address
+  @UseGuards(ThrottlerRealIpGuard)
+  @Throttle({ default: { limit: 5, ttl: 3600000 } })
   @Post('/register')
   async register(
     @Req() req: Request,
@@ -80,7 +83,7 @@ export class AuthController {
           ? {
               secure: true,
               httpOnly: true,
-              sameSite: 'none',
+              sameSite: 'lax',
             }
           : {}),
         expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
@@ -97,7 +100,7 @@ export class AuthController {
             ? {
                 secure: true,
                 httpOnly: true,
-                sameSite: 'none',
+                sameSite: 'lax',
               }
             : {}),
           expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
@@ -118,6 +121,9 @@ export class AuthController {
     }
   }
 
+  // credential stuffing: 10 attempts per 15 minutes per address
+  @UseGuards(ThrottlerRealIpGuard)
+  @Throttle({ default: { limit: 10, ttl: 900000 } })
   @Post('/login')
   async login(
     @Req() req: Request,
@@ -145,7 +151,7 @@ export class AuthController {
           ? {
               secure: true,
               httpOnly: true,
-              sameSite: 'none',
+              sameSite: 'lax',
             }
           : {}),
         expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
@@ -162,7 +168,7 @@ export class AuthController {
             ? {
                 secure: true,
                 httpOnly: true,
-                sameSite: 'none',
+                sameSite: 'lax',
               }
             : {}),
           expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
@@ -182,6 +188,9 @@ export class AuthController {
     }
   }
 
+  // sends an email per call, so cap it per address
+  @UseGuards(ThrottlerRealIpGuard)
+  @Throttle({ default: { limit: 5, ttl: 3600000 } })
   @Post('/forgot')
   async forgot(@Body() body: ForgotPasswordDto) {
     try {
@@ -196,6 +205,9 @@ export class AuthController {
     }
   }
 
+  // token guessing
+  @UseGuards(ThrottlerRealIpGuard)
+  @Throttle({ default: { limit: 20, ttl: 3600000 } })
   @Post('/forgot-return')
   async forgotReturn(@Body() body: ForgotReturnPasswordDto) {
     const reset = await this._authService.forgotReturn(body);
@@ -230,7 +242,7 @@ export class AuthController {
         ? {
             secure: true,
             httpOnly: true,
-            sameSite: 'none',
+            sameSite: 'lax',
           }
         : {}),
       expires: new Date(Date.now() + 1000 * 60 * 10),
@@ -239,6 +251,9 @@ export class AuthController {
     return this._authService.oauthLink(provider, { ...query, state });
   }
 
+  // token guessing
+  @UseGuards(ThrottlerRealIpGuard)
+  @Throttle({ default: { limit: 20, ttl: 3600000 } })
   @Post('/activate')
   async activate(
     @Body('code') code: string,
@@ -259,7 +274,7 @@ export class AuthController {
         ? {
             secure: true,
             httpOnly: true,
-            sameSite: 'none',
+            sameSite: 'lax',
           }
         : {}),
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
@@ -274,6 +289,9 @@ export class AuthController {
     return response.status(200).json({ can: true });
   }
 
+  // sends an email per call, so cap it per address
+  @UseGuards(ThrottlerRealIpGuard)
+  @Throttle({ default: { limit: 5, ttl: 3600000 } })
   @Post('/resend-activation')
   async resendActivation(@Body() body: ResendActivationDto) {
     try {
@@ -366,7 +384,7 @@ export class AuthController {
         ? {
             secure: true,
             httpOnly: true,
-            sameSite: 'none',
+            sameSite: 'lax',
           }
         : {}),
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),

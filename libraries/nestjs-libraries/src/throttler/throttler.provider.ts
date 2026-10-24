@@ -5,6 +5,30 @@ import { Request } from 'express';
 const isPublicComment = (method: string, url: string) =>
   method === 'POST' && /^\/public\/posts\/[^/]+\/comments/.test(url);
 
+// The client controls the FIRST X-Forwarded-For entry, so never key a limit
+// on it. nginx overwrites the header with the single address it saw and
+// express runs with `trust proxy` = 1, so req.ip is that address; the LAST
+// entry is the fallback when express has no opinion. CF-Connecting-IP is only
+// honoured when the deployment says it sits behind Cloudflare, otherwise any
+// client could send it and pick its own bucket.
+export const getClientIp = (req: Record<string, any>): string => {
+  const cloudflare = String(req.headers?.['cf-connecting-ip'] || '').trim();
+  if (process.env.TRUST_CF_CONNECTING_IP && cloudflare) {
+    return cloudflare;
+  }
+
+  if (req.ip) {
+    return req.ip;
+  }
+
+  const forwarded = String(req.headers?.['x-forwarded-for'] || '')
+    .split(',')
+    .map((p) => p.trim())
+    .filter(Boolean);
+
+  return forwarded[forwarded.length - 1] || req.socket?.remoteAddress || '';
+};
+
 @Injectable()
 export class ThrottlerBehindProxyGuard extends ThrottlerGuard {
   public override async canActivate(
@@ -25,10 +49,7 @@ export class ThrottlerBehindProxyGuard extends ThrottlerGuard {
     req: Record<string, any>
   ): Promise<string> {
     if (!req.org) {
-      const forwarded = String(req.headers?.['x-forwarded-for'] || '')
-        .split(',')[0]
-        .trim();
-      return 'ip_' + (forwarded || req.ip || 'unknown');
+      return 'ip_' + (getClientIp(req) || 'unknown');
     }
 
     return (
@@ -44,7 +65,6 @@ export class ThrottlerRealIpGuard extends ThrottlerGuard {
   protected override async getTracker(
     req: Record<string, any>
   ): Promise<string> {
-    const forwarded = String(req.headers?.['x-forwarded-for'] || '');
-    return forwarded.split(',')[0].trim() || req.ip;
+    return getClientIp(req) || 'unknown';
   }
 }

@@ -15,6 +15,7 @@ import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import { MediaService } from '@gitroom/nestjs-libraries/database/prisma/media/media.service';
 import { ImportMediaDto } from '@gitroom/nestjs-libraries/dtos/third-party/import-media.dto';
+import { stripSecretKeys } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 
 @ApiTags('Third Party')
 @Controller('/third-party')
@@ -116,9 +117,25 @@ export class ThirdPartyController {
       throw new HttpException('Invalid identifier', 400);
     }
 
-    return thirdPartyInstance?.instance?.[functionName](
-      AuthService.fixedDecryption(thirdParty.apiKey),
-      data
+    // Only the provider's own helper methods are callable from the client; the
+    // connection contract (checkConnection, sendData) and anything inherited
+    // (constructor, toString...) stay internal.
+    const instance = thirdPartyInstance.instance;
+    if (
+      !Object.getOwnPropertyNames(Object.getPrototypeOf(instance)).includes(
+        functionName
+      ) ||
+      ['constructor', 'checkConnection', 'sendData'].includes(functionName) ||
+      typeof instance[functionName] !== 'function'
+    ) {
+      throw new HttpException('Function not available', 400);
+    }
+
+    return stripSecretKeys(
+      await instance[functionName](
+        AuthService.fixedDecryption(thirdParty.apiKey),
+        data
+      )
     );
   }
 

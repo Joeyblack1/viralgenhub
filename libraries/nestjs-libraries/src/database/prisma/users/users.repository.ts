@@ -172,6 +172,50 @@ export class UsersRepository {
     });
   }
 
+  // Users are unique on (email, providerName), so a verified social sign-in
+  // has to find the account that already owns this e-mail whatever provider
+  // created it. Only activated accounts count: an unactivated one could have
+  // been pre-registered by someone else with the victim's address.
+  getActivatedUserByEmailAnyProvider(email: string) {
+    return this._user.model.user.findFirst({
+      where: {
+        email: {
+          equals: email,
+          mode: 'insensitive',
+        },
+        activated: true,
+        deletedAt: null,
+      },
+      select: {
+        id: true,
+        email: true,
+        providerName: true,
+        providerId: true,
+        name: true,
+        lastName: true,
+        isSuperAdmin: true,
+        bio: true,
+        audience: true,
+        pictureId: true,
+        timezone: true,
+        createdAt: true,
+        updatedAt: true,
+        lastReadNotifications: true,
+        inviteId: true,
+        activated: true,
+        account: true,
+        connectedAccount: true,
+        lastOnline: true,
+        ip: true,
+        agent: true,
+        deletedAt: true,
+        sendSuccessEmails: true,
+        sendFailureEmails: true,
+        sendStreakEmails: true,
+      },
+    });
+  }
+
   async deleteAccount(userId: string) {
     const user = await this._user.model.user.findUnique({
       where: {
@@ -209,14 +253,15 @@ export class UsersRepository {
     });
   }
 
-  updatePassword(id: string, password: string) {
+  async updatePassword(id: string, password: string) {
+    const hashed = await AuthService.hashPassword(password);
     return this._user.model.user.update({
       where: {
         id,
         providerName: Provider.LOCAL,
       },
       data: {
-        password: AuthService.hashPassword(password),
+        password: hashed,
       },
     });
   }

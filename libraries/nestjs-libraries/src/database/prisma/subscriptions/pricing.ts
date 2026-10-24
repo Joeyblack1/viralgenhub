@@ -33,8 +33,9 @@ export interface PricingInterface {
 //                         300 X posts/month
 // X posts are capped per calendar month of their publish date (Joseph,
 // 2026-10-17): X's API is pay-per-use, about $0.015 a post, $0.20 with a URL.
-// PRO and ULTIMATE are upstream tiers we do not sell. AI features are off in
-// every plan: they need provider keys we have not configured.
+// PRO and ULTIMATE are upstream tiers we do not sell. AI features (agent,
+// post generator, image generator) are on for Business only; video generation
+// and clipping stay off in every plan.
 export const pricing: PricingInterface = {
   FREE: {
     current: 'FREE',
@@ -85,13 +86,13 @@ export const pricing: PricingInterface = {
     channel: 25,
     posts_per_month: 1000000,
     x_posts_per_month: 300,
-    image_generation_count: 0,
+    image_generation_count: 100,
     community_features: true,
     team_members: true,
     featured_by_gitroom: true,
-    ai: false,
+    ai: true,
     import_from_channels: true,
-    image_generator: false,
+    image_generator: true,
     public_api: true,
     public_api_daily_limit: 0,
     webhooks: 10,

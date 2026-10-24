@@ -1,5 +1,5 @@
 import { sign, verify } from 'jsonwebtoken';
-import { hashSync, compareSync } from 'bcrypt';
+import { hash, compare } from 'bcrypt';
 import crypto from 'crypto';
 // @ts-ignore
 import EVP_BytesToKey from 'evp_bytestokey';
@@ -33,11 +33,12 @@ export function encrypt_legacy_using_IV(utf8Plaintext: string) {
   return out.toString('hex');
 }
 export class AuthService {
+  // async so a bcrypt round does not block the event loop for every login
   static hashPassword(password: string) {
-    return hashSync(password, 10);
+    return hash(password, 10);
   }
-  static comparePassword(password: string, hash: string) {
-    return compareSync(password, hash);
+  static comparePassword(password: string, hashed: string) {
+    return compare(password, hashed);
   }
   static signJWT(value: object) {
     return sign(value, process.env.JWT_SECRET!);

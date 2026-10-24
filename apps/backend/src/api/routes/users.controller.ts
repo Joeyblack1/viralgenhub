@@ -188,7 +188,7 @@ export class UsersController {
         ? {
             secure: true,
             httpOnly: true,
-            sameSite: 'none',
+            sameSite: 'lax',
           }
         : {}),
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
@@ -390,7 +390,7 @@ export class UsersController {
         ? {
             secure: true,
             httpOnly: true,
-            sameSite: 'none',
+            sameSite: 'lax',
           }
         : {}),
       expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),
@@ -454,7 +454,7 @@ export class UsersController {
         ? {
             secure: true,
             httpOnly: true,
-            sameSite: 'none',
+            sameSite: 'lax',
           }
         : {}),
       maxAge: -1,
@@ -467,7 +467,7 @@ export class UsersController {
         ? {
             secure: true,
             httpOnly: true,
-            sameSite: 'none',
+            sameSite: 'lax',
           }
         : {}),
       maxAge: -1,
@@ -480,7 +480,7 @@ export class UsersController {
         ? {
             secure: true,
             httpOnly: true,
-            sameSite: 'none',
+            sameSite: 'lax',
           }
         : {}),
       maxAge: -1,
@@ -518,7 +518,7 @@ export class UsersController {
           ? {
               secure: true,
               httpOnly: true,
-              sameSite: 'none',
+              sameSite: 'lax',
             }
           : {}),
         expires: new Date(Date.now() + 1000 * 60 * 60 * 24 * 365),

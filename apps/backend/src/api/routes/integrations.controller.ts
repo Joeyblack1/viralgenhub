@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -9,7 +10,10 @@ import {
   Query,
 } from '@nestjs/common';
 import { ioRedis } from '@gitroom/nestjs-libraries/redis/redis.service';
-import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
+import {
+  IntegrationManager,
+  stripSecretKeys,
+} from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { IntegrationService } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.service';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { Organization, User } from '@prisma/client';
@@ -392,6 +396,17 @@ export class IntegrationsController {
       throw new Error('Invalid provider');
     }
 
+    // Only @Tool methods and the composer helpers are callable from the client;
+    // the result is stripped of credentials before it goes back.
+    if (
+      !this._integrationManager.isPublicFunction(
+        getIntegration.providerIdentifier,
+        body.name
+      )
+    ) {
+      throw new BadRequestException('Function not available');
+    }
+
     // @ts-ignore
     if (integrationProvider[body.name]) {
       try {
@@ -403,7 +418,7 @@ export class IntegrationsController {
           getIntegration
         );
 
-        return load;
+        return stripSecretKeys(load);
       } catch (err) {
         // The platform will keep rejecting this channel until the user
         // re-connects it: mark it as needing a refresh instead of retrying.

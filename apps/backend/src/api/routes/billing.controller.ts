@@ -102,6 +102,7 @@ export class BillingController {
   }
 
   @Post('/embedded')
+  @CheckPolicies([AuthorizationActions.Create, Sections.ADMIN])
   async embedded(
     @GetOrgFromRequest() org: Organization,
     @GetUserFromRequest() user: User,
@@ -124,6 +125,7 @@ export class BillingController {
   }
 
   @Post('/subscribe')
+  @CheckPolicies([AuthorizationActions.Create, Sections.ADMIN])
   async subscribe(
     @GetOrgFromRequest() org: Organization,
     @GetUserFromRequest() user: User,
@@ -167,6 +169,7 @@ export class BillingController {
   }
 
   @Get('/portal')
+  @CheckPolicies([AuthorizationActions.Create, Sections.ADMIN])
   async modifyPayment(@GetOrgFromRequest() org: Organization) {
     const { url } = await (await this.provider(org)).portalLink(org.id);
     return {
@@ -191,6 +194,7 @@ export class BillingController {
   }
 
   @Post('/cancel')
+  @CheckPolicies([AuthorizationActions.Create, Sections.ADMIN])
   async cancel(
     @GetOrgFromRequest() org: Organization,
     @GetUserFromRequest() user: User,

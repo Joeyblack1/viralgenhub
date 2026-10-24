@@ -22,14 +22,21 @@ const nextConfig = {
   },
   reactStrictMode: false,
   transpilePackages: ['crypto-hash'],
-  // Enable production sourcemaps for Sentry
-  productionBrowserSourceMaps: true,
+  // Never serve browser sourcemaps publicly; Sentry gets them from the webpack
+  // config below (hidden-source-map + upload, then deleted from the build).
+  productionBrowserSourceMaps: false,
 
   // Custom webpack config to ensure sourcemaps are generated properly
   webpack: (config, { buildId, dev, isServer, defaultLoaders }) => {
-    // Enable sourcemaps for both client and server in production
+    // Server maps stay (never served). Browser maps only when a Sentry token
+    // is present to upload and delete them; our image build has none, and a
+    // hidden-source-map still leaves the .map files fetchable under /_next.
     if (!dev) {
-      config.devtool = isServer ? 'source-map' : 'hidden-source-map';
+      config.devtool = isServer
+        ? 'source-map'
+        : process.env.SENTRY_AUTH_TOKEN
+          ? 'hidden-source-map'
+          : false;
     }
 
     return config;

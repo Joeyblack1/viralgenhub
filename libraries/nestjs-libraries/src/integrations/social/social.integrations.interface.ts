@@ -247,3 +247,18 @@ export interface SocialProvider
     data: any
   ): Promise<FetchPageInformationResult>;
 }
+
+// Optional lookup helpers the composer calls through POST /integrations/function
+// in addition to the methods a provider marks with @Tool. Only these and @Tool
+// methods are reachable from the client; everything else on a provider
+// (authenticate, refreshToken, reConnect...) stays internal.
+export const providerHelperFunctions = [
+  'mention',
+  'audioSearch',
+  'locationSearch',
+  'restrictions',
+  'company',
+  'companies',
+  'subreddits',
+  'tags',
+];

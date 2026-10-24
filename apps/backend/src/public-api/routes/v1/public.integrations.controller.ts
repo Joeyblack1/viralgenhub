@@ -1,3 +1,4 @@
+import { isAllowedUploadPath } from '@gitroom/helpers/utils/valid.url.path';
 import {
   BadRequestException,
   Body,
@@ -155,9 +156,7 @@ export class PublicIntegrationsController {
       process.env.RESTRICT_UPLOAD_DOMAINS &&
       body.posts.some((p) =>
         p.value.some((a) =>
-          a.image.some(
-            (i) => i.path.indexOf(process.env.RESTRICT_UPLOAD_DOMAINS) === -1
-          )
+          a.image.some((i) => !isAllowedUploadPath(i.path))
         )
       )
     ) {

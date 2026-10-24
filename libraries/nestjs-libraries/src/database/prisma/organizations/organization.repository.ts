@@ -5,6 +5,7 @@ import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { CreateOrgUserDto } from '@gitroom/nestjs-libraries/dtos/auth/create.org.user.dto';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
+import { TRIAL_DAYS } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 
 @Injectable()
 export class OrganizationRepository {
@@ -14,7 +15,13 @@ export class OrganizationRepository {
     private _user: PrismaRepository<'user'>
   ) {}
 
-  createMaxUser(id: string, name: string, saasName: string, email: string) {
+  async createMaxUser(
+    id: string,
+    name: string,
+    saasName: string,
+    email: string
+  ) {
+    const password = await AuthService.hashPassword(makeSecureId(500));
     return this._organization.model.organization.create({
       select: {
         id: true,
@@ -43,7 +50,7 @@ export class OrganizationRepository {
                   : `${saasName}+` + makeId(10) + '@postiz.com',
                 name: name ? `${name}###${id}` : `Unnamed User###${id}`,
                 providerName: 'LOCAL',
-                password: AuthService.hashPassword(makeSecureId(500)),
+                password,
                 timezone: 0,
               },
             },
@@ -464,12 +471,17 @@ export class OrganizationRepository {
     ip: string,
     userAgent: string
   ) {
+    const password = body.password
+      ? await AuthService.hashPassword(body.password)
+      : '';
     return this._organization.model.organization.create({
       data: {
         name: body.company,
         apiKey: AuthService.fixedEncryption(makeSecureId(20)),
         allowTrial: true,
-        isTrailing: true,
+        // no trial configured (STRIPE_TRIAL_DAYS=0) means the new workspace
+        // is not trialing, the Free plan is the try-before-you-buy
+        isTrailing: TRIAL_DAYS > 0,
         users: {
           create: {
             role: Role.SUPERADMIN,
@@ -477,9 +489,7 @@ export class OrganizationRepository {
               create: {
                 activated: body.provider !== 'LOCAL' || !hasEmail,
                 email: body.email,
-                password: body.password
-                  ? AuthService.hashPassword(body.password)
-                  : '',
+                password,
                 providerName: body.provider,
                 providerId: body.providerId || '',
                 timezone: 0,

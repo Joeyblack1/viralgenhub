@@ -17,13 +17,48 @@ export const removeAuth = (res: Response) => {
       ? {
           secure: true,
           httpOnly: true,
-          sameSite: 'none',
+          sameSite: 'lax',
         }
       : {}),
     expires: new Date(0),
     maxAge: -1,
   });
   res.header('logout', 'true');
+};
+
+// the same origins main.ts lets through CORS with credentials
+const allowedOriginHosts = () =>
+  [process.env.FRONTEND_URL, process.env.MAIN_URL, process.env.CANVA_APP_ORIGIN]
+    .filter(Boolean)
+    .map((url) => {
+      try {
+        return new URL(url!).host;
+      } catch (e) {
+        return '';
+      }
+    })
+    .filter(Boolean);
+
+// CSRF: a cookie session may only be spent by our own pages, so a
+// state-changing request that says where it came from must come from here.
+// Header-authenticated calls (mobile app, NOT_SECURED) cannot be forged by a
+// third-party page and are not checked; neither is a request with no Origin.
+const isForeignOrigin = (req: Request) => {
+  const origin = req.headers.origin;
+  if (
+    !origin ||
+    req.headers.auth ||
+    !['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method)
+  ) {
+    return false;
+  }
+
+  try {
+    return !allowedOriginHosts().includes(new URL(origin).host);
+  } catch (e) {
+    // "null" or anything unparseable is not one of our pages
+    return true;
+  }
 };
 
 @Injectable()
@@ -35,6 +70,9 @@ export class AuthMiddleware implements NestMiddleware {
   async use(req: Request, res: Response, next: NextFunction) {
     const auth = req.headers.auth || req.cookies.auth;
     if (!auth) {
+      throw new HttpForbiddenException();
+    }
+    if (isForeignOrigin(req)) {
       throw new HttpForbiddenException();
     }
     try {
