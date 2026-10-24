@@ -40,9 +40,11 @@ export class SkoolProvider extends SocialAbstract implements SocialProvider {
         auth_token: string;
       };
     } catch {
-      // Legacy format: Skool accounts connected before the storage format was
-      // changed kept their credentials as a signed JWT. Read those as-is so
-      // already-connected accounts keep working without a reconnect.
+      // Legacy format: a signed JWT. Written by the first connect before the
+      // storage format changed, and by /integrations/extension-refresh until
+      // security release S2 (it now encrypts too). Every daily extension
+      // refresh rewrites the row in the current format, so this branch can go
+      // once no Skool row still holds a JWT (check: fixedDecryption fails).
       return AuthService.verifyJWT(stored) as {
         client_id: string;
         auth_token: string;

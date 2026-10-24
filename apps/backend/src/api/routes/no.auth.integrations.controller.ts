@@ -379,6 +379,10 @@ export class NoAuthIntegrationsController {
   async extensionRefreshCookies(
     @Body() body: { jwt: string; cookies: string }
   ) {
+    if (typeof body?.jwt !== 'string' || typeof body?.cookies !== 'string') {
+      throw new HttpException('Invalid token payload', 400);
+    }
+
     let payload: any;
     try {
       payload = AuthService.verifyJWT(body.jwt);
@@ -438,8 +442,11 @@ export class NoAuthIntegrationsController {
       false,
       undefined,
       undefined,
-      AuthService.signJWT(
-        JSON.parse(Buffer.from(body.cookies, 'base64').toString())
+      // Stored the same way the first connect stores them: encrypted at rest,
+      // never as a JWT. Signing client-chosen JSON with the session secret
+      // would hand any extension holder a server-signed token of its choosing.
+      AuthService.fixedEncryption(
+        Buffer.from(body.cookies, 'base64').toString()
       )
     );
 
