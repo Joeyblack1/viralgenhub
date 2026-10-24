@@ -166,7 +166,7 @@ export async function prepareUploadParts(req: Request, res: Response) {
     parts.length > MAX_MULTIPART_PARTS ||
     parts.some((part) => !isValidPartNumber(part?.number))
   ) {
-    return res.status(400).json({ message: 'Too many upload parts.' });
+    return res.status(400).json({ message: 'Invalid upload parts.' });
   }
 
   const response = {
@@ -221,7 +221,19 @@ export async function completeMultipartUpload(req: Request, res: Response) {
     parts.length > MAX_MULTIPART_PARTS ||
     parts.some((part) => !isValidPartNumber(part?.PartNumber))
   ) {
-    return res.status(400).json({ message: 'Too many upload parts.' });
+    // the parts already uploaded would otherwise sit in the bucket
+    try {
+      await R2.send(
+        new AbortMultipartUploadCommand({
+          Bucket: CLOUDFLARE_BUCKETNAME,
+          Key: key,
+          UploadId: uploadId,
+        })
+      );
+    } catch (err) {
+      console.log('Error', err);
+    }
+    return res.status(400).json({ message: 'Invalid upload parts.' });
   }
 
   try {
@@ -333,7 +345,7 @@ export async function signPart(req: Request, res: Response) {
   const { key, uploadId } = req.body;
   const partNumber = parseInt(req.body.partNumber);
   if (!isValidPartNumber(partNumber)) {
-    return res.status(400).json({ message: 'Too many upload parts.' });
+    return res.status(400).json({ message: 'Invalid upload parts.' });
   }
 
   const params = {

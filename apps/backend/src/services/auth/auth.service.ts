@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { HttpException, Injectable } from '@nestjs/common';
 import { Provider, User } from '@prisma/client';
 import { CreateOrgUserDto } from '@gitroom/nestjs-libraries/dtos/auth/create.org.user.dto';
 import { LoginUserDto } from '@gitroom/nestjs-libraries/dtos/auth/login.user.dto';
@@ -388,7 +388,11 @@ export class AuthService {
   // sessions, this refuses new logins with a message the user can act on
   private assertNotDisabled(user: { disabled?: boolean }) {
     if (user.disabled) {
-      throw new Error('This account has been disabled. Contact support.');
+      // an HttpException: the OAuth callback route has no try/catch of its own
+      throw new HttpException(
+        'This account has been disabled. Contact support.',
+        400
+      );
     }
   }
 

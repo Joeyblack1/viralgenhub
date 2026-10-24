@@ -1,11 +1,14 @@
 import { sign, verify } from 'jsonwebtoken';
 
-// ViralGenHub: every token that is not a login session carries a single
-// `purpose` and expires: emailed links (account activation, password reset),
-// team-invite links and the subscription-change token of the public API.
-// Session tokens never have `purpose`, and the auth middleware refuses any
-// token that does, so none of these can be used as a login, and a session can
-// never be used as a reset link, an invite or a plan change.
+// ViralGenHub: the rules for every JWT the server signs for a user.
+// Purpose tokens (this half of the file): every token that is not a login
+// session carries a single `purpose` and expires: emailed links (account
+// activation, password reset), team-invite links and the subscription-change
+// token of the public API. Session tokens never have `purpose`, and the auth
+// middleware refuses any token that does, so none of these can be used as a
+// login, and a session can never be used as a reset link, an invite or a plan
+// change. The session rules (30-day life, tokenVersion revocation) are at the
+// bottom.
 export type TokenPurpose =
   | 'activate'
   | 'reset'

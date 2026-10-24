@@ -71,9 +71,11 @@ export class AdminController {
     });
   }
 
-  // Disabling refuses the user's sessions and logins at once (the auth
-  // middleware checks the flag on every request); enabling lifts it. A super
-  // admin cannot disable themselves or another super admin.
+  // Disabling refuses the user's cookie/header sessions and new logins at
+  // once (the auth middleware checks the flag on every request); enabling
+  // lifts it. It does not touch the organisation's public API key or OAuth
+  // app tokens, which belong to the workspace. A super admin cannot disable
+  // themselves or another super admin.
   @Post('/users/:id/disabled')
   async setUserDisabled(
     @GetUserFromRequest() user: User,

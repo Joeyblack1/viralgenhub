@@ -11,15 +11,15 @@ import {
 } from './custom.upload.validation';
 
 describe('upload size caps (multipart R2 uploads)', () => {
-  it('images are capped at 10 MB and videos at 1 GB', () => {
-    expect(getMaxSize('image/png')).toBe(10 * 1024 * 1024);
+  it('images are capped at 30 MB and videos at 1 GB', () => {
+    expect(getMaxSize('image/png')).toBe(30 * 1024 * 1024);
     expect(getMaxSize('video/mp4')).toBe(1024 * 1024 * 1024);
     expect(() => getMaxSize('application/pdf')).toThrow();
   });
 
   it('a declared size at the cap passes, one byte over fails', () => {
-    expect(isWithinMaxSize('image/jpeg', 10 * 1024 * 1024)).toBe(true);
-    expect(isWithinMaxSize('image/jpeg', 10 * 1024 * 1024 + 1)).toBe(false);
+    expect(isWithinMaxSize('image/jpeg', 30 * 1024 * 1024)).toBe(true);
+    expect(isWithinMaxSize('image/jpeg', 30 * 1024 * 1024 + 1)).toBe(false);
     expect(isWithinMaxSize('video/mp4', 1024 * 1024 * 1024)).toBe(true);
     expect(isWithinMaxSize('video/mp4', 1024 * 1024 * 1024 + 1)).toBe(false);
     expect(isWithinMaxSize('video/quicktime', 500 * 1024 * 1024)).toBe(true);

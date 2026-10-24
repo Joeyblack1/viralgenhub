@@ -345,6 +345,7 @@ export class UsersRepository {
         // every session of the deleted account stops working at once
         tokenVersion: { increment: 1 },
       },
+      select: { id: true },
     });
   }
 
@@ -360,6 +361,7 @@ export class UsersRepository {
         // a reset logs every other session of the account out
         tokenVersion: { increment: 1 },
       },
+      select: { id: true },
     });
   }
 

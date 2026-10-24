@@ -19,7 +19,9 @@ export const UPLOAD_ALLOWED_MIME = new Set<string>([
 
 export function getMaxSize(mimeType: string): number {
   if (mimeType.startsWith('image/')) {
-    return 10 * 1024 * 1024; // 10 MB
+    // what the composer's uploader promises (new.uploader.tsx); the R2
+    // multipart path accepted images of this size long before it had a cap
+    return 30 * 1024 * 1024; // 30 MB
   } else if (mimeType.startsWith('video/')) {
     return 1024 * 1024 * 1024; // 1 GB
   } else {

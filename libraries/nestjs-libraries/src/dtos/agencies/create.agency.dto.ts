@@ -8,6 +8,7 @@ import {
   IsUrl,
   MinLength,
   ValidateIf,
+  ValidateNested,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -53,7 +54,9 @@ export class CreateAgencyDto {
   @IsOptional()
   tiktok: string;
 
+  @IsOptional()
   @Type(() => CreateAgencyLogoDto)
+  @ValidateNested()
   logo: CreateAgencyLogoDto;
 
   @IsString()
