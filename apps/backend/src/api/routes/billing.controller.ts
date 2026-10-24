@@ -214,6 +214,32 @@ export class BillingController {
     return result;
   }
 
+  // ViralGenHub #210: UK cooling-off. Within 14 days of subscribing the
+  // customer can end the plan today and get the unused part refunded, instead
+  // of waiting for the period end like /cancel.
+  @Post('/cancel-now')
+  @CheckPolicies([AuthorizationActions.Create, Sections.ADMIN])
+  async cancelNow(
+    @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User
+  ) {
+    this.assertPaidPlansOpen();
+    const result = await (await this.provider(org)).cancelNowWithRefund(org.id);
+    const refunded = `${result.refunded / 100} ${result.currency}`;
+
+    // the money has moved: a failed notice must not turn into an error page
+    try {
+      await this._notificationService.sendEmail(
+        process.env.EMAIL_FROM_ADDRESS,
+        'Subscription ended in cooling-off period',
+        `Organization ${org.name} ended their subscription within the cooling-off period and was refunded ${refunded}`,
+        user.email
+      );
+    } catch (err) {}
+
+    return result;
+  }
+
   @Post('/prorate')
   async prorate(
     @GetOrgFromRequest() org: Organization,

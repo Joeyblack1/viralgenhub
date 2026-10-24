@@ -33,6 +33,30 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || 'sk_nothing');
 const STRIPE_CURRENCY = (process.env.STRIPE_CURRENCY || 'usd').toLowerCase();
 const toMinor = (amount: number) => Math.round(amount * 100);
 
+// ViralGenHub #210: UK consumer cooling-off. Within COOLING_OFF_DAYS of the
+// subscription's creation the customer can end it at once and get the unused
+// part of the latest payment back. `created` is unix seconds.
+export const COOLING_OFF_DAYS = 14;
+export const coolingOffUntil = (created: number) =>
+  new Date((created + COOLING_OFF_DAYS * 24 * 60 * 60) * 1000);
+
+// The unused part of a payment, in minor units: amount_paid times the share of
+// the period still ahead, rounded down, never above amount_paid, never below 0.
+// All times are unix seconds.
+export const coolingOffRefund = (
+  amountPaid: number,
+  periodStart: number,
+  periodEnd: number,
+  now: number
+) => {
+  const length = periodEnd - periodStart;
+  if (amountPaid <= 0 || length <= 0) {
+    return 0;
+  }
+  const unused = Math.min(Math.max(periodEnd - now, 0), length);
+  return Math.min(Math.floor((amountPaid * unused) / length), amountPaid);
+};
+
 @PaymentProvider({ provider: STRIPE_PROVIDER })
 export class StripeService extends PaymentProviderAbstract {
   platform: PaymentPlatform = 'web';
@@ -780,7 +804,155 @@ body.period === 'MONTHLY'
         (trialing ? sub.trial_end : sub?.items.data[0]?.current_period_end) ||
         null,
       trialing,
+      coolingOffUntil: this.isInCoolingOff(sub)
+        ? coolingOffUntil(sub!.created).toISOString()
+        : null,
     };
+  }
+
+  // ViralGenHub #210: a live subscription younger than COOLING_OFF_DAYS
+  private isInCoolingOff(sub?: Stripe.Subscription) {
+    return (
+      !!sub &&
+      (sub.status === 'active' || sub.status === 'trialing') &&
+      coolingOffUntil(sub.created).getTime() > Date.now()
+    );
+  }
+
+  // The charge behind a paid invoice. Stripe's current API reaches it through
+  // the invoice's payments (a payment intent, or a bare charge on old invoices).
+  private async getInvoiceCharge(invoice: Stripe.Invoice) {
+    const payment = invoice.payments?.data.find(
+      (p) => p.status === 'paid'
+    )?.payment;
+    if (!payment) {
+      return null;
+    }
+    if (payment.charge) {
+      return typeof payment.charge === 'string'
+        ? stripe.charges.retrieve(payment.charge)
+        : payment.charge;
+    }
+    if (!payment.payment_intent) {
+      return null;
+    }
+    const intent =
+      typeof payment.payment_intent === 'string'
+        ? await stripe.paymentIntents.retrieve(payment.payment_intent, {
+            expand: ['latest_charge'],
+          })
+        : payment.payment_intent;
+    if (!intent.latest_charge) {
+      return null;
+    }
+    return typeof intent.latest_charge === 'string'
+      ? stripe.charges.retrieve(intent.latest_charge)
+      : intent.latest_charge;
+  }
+
+  // ViralGenHub #210: end the subscription today and refund the unused part of
+  // every payment made for it (UK 14-day cooling-off). An upgrade inside the
+  // window adds a proration invoice, so each paid invoice gives back its own
+  // unused share. Refunds go first, so a failure after them leaves the customer
+  // with their money and a live subscription they can retry on (a charge that
+  // is already refunded is skipped); the idempotency key stops a retried refund
+  // from paying twice. The customer.subscription.deleted webhook then moves the
+  // workspace to Free, like every other Stripe cancellation.
+  async cancelNowWithRefund(organizationId: string) {
+    const customer = await this.getCustomerByOrganizationId(organizationId);
+    const subscriptions = await this.getLiveSubscriptions(customer);
+    const sub = subscriptions[0];
+
+    if (!sub) {
+      throw new BadRequestException('No active subscription found');
+    }
+
+    if (!this.isInCoolingOff(sub)) {
+      throw new BadRequestException(
+        `The ${COOLING_OFF_DAYS}-day cooling-off period for this subscription has ended. You can still cancel at the end of the billing period.`
+      );
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    const refunds: {
+      invoice: Stripe.Invoice;
+      charge: Stripe.Charge;
+      amount: number;
+    }[] = [];
+    for (const s of subscriptions) {
+      const item = s.items.data[0];
+      const invoices = (
+        await stripe.invoices.list({
+          customer: customer!,
+          subscription: s.id,
+          status: 'paid',
+          limit: 100,
+          expand: ['data.payments'],
+        })
+      ).data.filter((invoice) => invoice.amount_paid > 0);
+
+      for (const invoice of invoices) {
+        const charge = await this.getInvoiceCharge(invoice);
+        // a paid invoice we cannot refund must stop the cancel, the customer
+        // clicked "refund"
+        if (!charge) {
+          throw new BadRequestException(
+            'We could not find the payment to refund. Please contact support, or cancel at the end of the billing period.'
+          );
+        }
+        // already given back (a retry after a failed cancel, or by an admin)
+        if (charge.amount_refunded > 0) {
+          continue;
+        }
+        const amount = item
+          ? Math.min(
+              coolingOffRefund(
+                invoice.amount_paid,
+                item.current_period_start,
+                item.current_period_end,
+                now
+              ),
+              charge.amount
+            )
+          : 0;
+        if (amount > 0) {
+          refunds.push({ invoice, charge, amount });
+        }
+      }
+    }
+
+    for (const refund of refunds) {
+      await stripe.refunds.create(
+        {
+          charge: refund.charge.id,
+          amount: refund.amount,
+          metadata: {
+            reason: 'cooling_off_refund',
+            organizationId,
+            invoiceId: refund.invoice.id,
+          },
+        },
+        { idempotencyKey: `cooling_off_refund_${refund.charge.id}` }
+      );
+    }
+
+    // no proration invoice: cancel() does not invoice by default
+    for (const s of subscriptions) {
+      await stripe.subscriptions.cancel(s.id);
+    }
+
+    const refunded = refunds.reduce((all, refund) => all + refund.amount, 0);
+    const currency = refunds[0]?.invoice.currency || sub.currency;
+    console.log('stripe_cooling_off_cancel_now', {
+      organization_id: organizationId,
+      stripe_subscription_ids: subscriptions.map((s) => s.id),
+      stripe_charge_ids: refunds.map((refund) => refund.charge.id),
+      refunded,
+      currency,
+      outcome: refunded > 0 ? 'refunded' : 'nothing_to_refund',
+    });
+
+    return { refunded, currency };
   }
 
   async getInvoices(organizationId: string): Promise<PaymentInvoice[]> {
