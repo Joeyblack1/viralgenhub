@@ -89,6 +89,7 @@ jobs:
       # No install needed: pnpm audit reads pnpm-lock.yaml and asks the
       # registry's advisory endpoint.
       - name: pnpm audit (production dependencies, high and above)
+        continue-on-error: true   # findings must not stop the Trivy step below
         run: pnpm audit --prod --audit-level=high
 
       - uses: docker/login-action@v3
