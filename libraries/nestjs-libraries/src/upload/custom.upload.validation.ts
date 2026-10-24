@@ -27,6 +27,37 @@ export function getMaxSize(mimeType: string): number {
   }
 }
 
+// Multipart (R2) uploads: the client declares the size up front and the joined
+// object's real length is checked once the parts are complete. Uppy cuts a
+// file into parts of at least 5 MiB, so the 1 GB video cap never needs more
+// than 205 parts; a client asking for more is not uploading a file we accept.
+export const MAX_MULTIPART_PARTS = 300;
+
+export function isValidPartNumber(value: unknown): value is number {
+  const n = typeof value === 'string' ? Number(value) : value;
+  return (
+    typeof n === 'number' &&
+    Number.isInteger(n) &&
+    n >= 1 &&
+    n <= MAX_MULTIPART_PARTS
+  );
+}
+
+// A size is acceptable only when it is a real byte count within the cap for
+// the type; a missing, negative or non-numeric size is rejected, never waved
+// through
+export function isWithinMaxSize(mimeType: string, size: unknown): boolean {
+  const n = typeof size === 'string' ? Number(size) : size;
+  if (typeof n !== 'number' || !Number.isFinite(n) || n < 0) {
+    return false;
+  }
+  try {
+    return n <= getMaxSize(mimeType);
+  } catch (err) {
+    return false;
+  }
+}
+
 // Passes bytes through and fails once they exceed maxSize, so a body with a
 // missing or lying Content-Length cannot be streamed into storage unbounded
 export function maxSizeStream(maxSize: number) {

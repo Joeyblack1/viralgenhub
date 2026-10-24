@@ -7,6 +7,7 @@ import {
   AbortMultipartUploadCommand,
   PutObjectCommand,
   GetObjectCommand,
+  HeadObjectCommand,
   DeleteObjectCommand,
 } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
@@ -15,6 +16,11 @@ import crypto from 'crypto';
 import path from 'path';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
+import {
+  MAX_MULTIPART_PARTS,
+  isValidPartNumber,
+  isWithinMaxSize,
+} from '@gitroom/nestjs-libraries/upload/custom.upload.validation';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { fileTypeFromBuffer } = require('file-type');
 
@@ -122,6 +128,11 @@ export async function createMultipartUpload(req: Request, res: Response) {
     return res.status(400).json({ message: 'Unsupported file type.' });
   }
   const safeContentType = multipartExtToMime()[safeExt];
+  // The client's own figure, so only a first gate: the real length is checked
+  // against the same cap when the parts are joined
+  if (!isWithinMaxSize(safeContentType, file?.size)) {
+    return res.status(400).json({ message: 'File is too large.' });
+  }
   const randomFilename = generateRandomString() + safeExt;
 
   try {
@@ -149,7 +160,14 @@ export async function createMultipartUpload(req: Request, res: Response) {
 export async function prepareUploadParts(req: Request, res: Response) {
   const { partData } = req.body;
 
-  const parts = partData.parts;
+  const parts = partData?.parts;
+  if (
+    !Array.isArray(parts) ||
+    parts.length > MAX_MULTIPART_PARTS ||
+    parts.some((part) => !isValidPartNumber(part?.number))
+  ) {
+    return res.status(400).json({ message: 'Too many upload parts.' });
+  }
 
   const response = {
     presignedUrls: {},
@@ -198,6 +216,13 @@ export async function listParts(req: Request, res: Response) {
 
 export async function completeMultipartUpload(req: Request, res: Response) {
   const { key, uploadId, parts } = req.body;
+  if (
+    !Array.isArray(parts) ||
+    parts.length > MAX_MULTIPART_PARTS ||
+    parts.some((part) => !isValidPartNumber(part?.PartNumber))
+  ) {
+    return res.status(400).json({ message: 'Too many upload parts.' });
+  }
 
   try {
     const command = new CompleteMultipartUploadCommand({
@@ -250,6 +275,16 @@ export async function completeMultipartUpload(req: Request, res: Response) {
         .json({ message: 'File contents do not match declared type.' });
     }
 
+    // The joined object's real length, against the cap for the sniffed type;
+    // the size declared at create time was the client's word only
+    const totalSize = await multipartObjectSize(key, head.ContentRange);
+    if (!isWithinMaxSize(detected.mime, totalSize)) {
+      await R2.send(
+        new DeleteObjectCommand({ Bucket: CLOUDFLARE_BUCKETNAME, Key: key })
+      );
+      return res.status(400).json({ message: 'File is too large.' });
+    }
+
     response.Location =
       process.env.CLOUDFLARE_BUCKET_URL +
       '/' +
@@ -259,6 +294,20 @@ export async function completeMultipartUpload(req: Request, res: Response) {
     console.log('Error', err);
     return res.status(500).json(err);
   }
+}
+
+// The ranged GetObject used for sniffing answers with
+// `Content-Range: bytes 0-4100/<total>`, so the total usually comes for free;
+// a HEAD is the fallback when the header is missing
+async function multipartObjectSize(key: string, contentRange?: string) {
+  const fromRange = /\/(\d+)$/.exec(contentRange || '');
+  if (fromRange) {
+    return Number(fromRange[1]);
+  }
+  const head = await R2.send(
+    new HeadObjectCommand({ Bucket: CLOUDFLARE_BUCKETNAME, Key: key })
+  );
+  return head.ContentLength;
 }
 
 export async function abortMultipartUpload(req: Request, res: Response) {
@@ -283,6 +332,9 @@ export async function abortMultipartUpload(req: Request, res: Response) {
 export async function signPart(req: Request, res: Response) {
   const { key, uploadId } = req.body;
   const partNumber = parseInt(req.body.partNumber);
+  if (!isValidPartNumber(partNumber)) {
+    return res.status(400).json({ message: 'Too many upload parts.' });
+  }
 
   const params = {
     Bucket: CLOUDFLARE_BUCKETNAME,
