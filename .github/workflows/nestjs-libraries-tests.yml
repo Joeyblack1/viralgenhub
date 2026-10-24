@@ -2,6 +2,7 @@ name: nestjs-libraries tests
 
 # The plan-limit specs (pricing, posts, autopost, integration plugs). One job,
 # no database or network: the Prisma client is only generated for its types.
+# Also runs the translation-file duplicate-key lint (#223) before the specs.
 
 on:
   push:
@@ -9,6 +10,8 @@ on:
       - 'libraries/nestjs-libraries/**'
       - 'libraries/helpers/**'
       - 'apps/backend/src/api/routes/users.controller*'
+      - 'libraries/react-shared-libraries/src/translation/locales/**'
+      - 'scripts/check-json-duplicate-keys.mjs'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - '.github/workflows/nestjs-libraries-tests.yml'
@@ -17,6 +20,8 @@ on:
       - 'libraries/nestjs-libraries/**'
       - 'libraries/helpers/**'
       - 'apps/backend/src/api/routes/users.controller*'
+      - 'libraries/react-shared-libraries/src/translation/locales/**'
+      - 'scripts/check-json-duplicate-keys.mjs'
       - 'package.json'
       - 'pnpm-lock.yaml'
       - '.github/workflows/nestjs-libraries-tests.yml'
@@ -42,6 +47,9 @@ jobs:
         with:
           node-version: '22.12.0'
           cache: pnpm
+
+      - name: Translation JSON has no duplicate keys (#223, needs no install)
+        run: pnpm run lint:json
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile

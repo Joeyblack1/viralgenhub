@@ -38,6 +38,7 @@
     "docker-create": "./var/docker/docker-create.sh",
     "postinstall": "pnpm run prisma-generate",
     "test:nestjs-libraries": "jest -c libraries/nestjs-libraries/jest.config.js",
+    "lint:json": "node scripts/check-json-duplicate-keys.mjs",
     "test": "jest --coverage --detectOpenHandles --reporters=default --reporters=jest-junit"
   },
   "dependencies": {
