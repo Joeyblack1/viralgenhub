@@ -12,6 +12,8 @@ import { useAddProvider } from '@gitroom/frontend/components/launches/add.provid
 import { useCreatePost } from '@gitroom/frontend/components/launches/new.post';
 import { useIntegrationList } from '@gitroom/frontend/components/launches/helpers/use.integration.list';
 import { useCalendar } from '@gitroom/frontend/components/launches/calendar.context';
+import { useToaster } from '@gitroom/react/toaster/toaster';
+import { usePwaInstall } from '@gitroom/frontend/components/onboarding/use.pwa.install';
 
 // Per workspace, in this browser: the checklist was closed / the team step was
 // visited. The other two steps are read from the workspace itself.
@@ -87,6 +89,8 @@ export const GettingStarted: FC<{
     error: integrationsError,
   } = useIntegrationList();
   const { posts: calendarPosts } = useCalendar();
+  const toaster = useToaster();
+  const { state: installState, promptInstall } = usePwaInstall();
   const orgId = user?.orgId || '';
   // Flags come from localStorage, so they are read after mount and nothing is
   // rendered before that (keeps the server and first client render identical).
@@ -131,6 +135,24 @@ export const GettingStarted: FC<{
     router.push(user?.tier?.team_members ? '/settings?tab=teams' : '/billing');
   }, [orgId, user?.tier?.team_members, router]);
 
+  // Install step (#224): Chromium gives a native prompt, iOS needs the manual
+  // route, and a standalone window means it is already done.
+  const installApp = useCallback(async () => {
+    if (installState === 'promptable') {
+      await promptInstall();
+      return;
+    }
+    if (installState === 'ios') {
+      toaster.show(
+        t(
+          'checklist_install_app_hint_ios',
+          'In Safari, tap Share, then "Add to Home Screen".'
+        ),
+        'success'
+      );
+    }
+  }, [installState, promptInstall, toaster, t]);
+
   const steps = useMemo(
     () => [
       {
@@ -149,15 +171,39 @@ export const GettingStarted: FC<{
       },
       {
         id: 'team',
-        label: t(
-          'checklist_invite_team',
-          'Invite your team or install the app'
-        ),
+        label: t('checklist_invite_team', 'Invite your team'),
         done: teamVisited,
         onClick: openTeam,
       },
+      // Only offered where there is a way to install from this browser.
+      ...(installState !== 'unavailable'
+        ? [
+            {
+              id: 'install',
+              label:
+                installState === 'ios'
+                  ? t(
+                      'checklist_install_app_ios',
+                      'Install the app: Share → Add to Home Screen'
+                    )
+                  : t('checklist_install_app', 'Install the app'),
+              done: installState === 'installed',
+              onClick: installApp,
+            },
+          ]
+        : []),
     ],
-    [t, hasChannels, hasPosts, teamVisited, addProvider, createPost, openTeam]
+    [
+      t,
+      hasChannels,
+      hasPosts,
+      teamVisited,
+      addProvider,
+      createPost,
+      openTeam,
+      installState,
+      installApp,
+    ]
   );
 
   // Shown only while the workspace is still empty; gone once it has a channel
