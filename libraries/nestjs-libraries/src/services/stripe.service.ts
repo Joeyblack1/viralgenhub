@@ -10,6 +10,7 @@ import {
   pricing,
   TRIAL_DAYS,
   TRIALS_ENABLED,
+  planDisplayName,
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
 import { TrackService } from '@gitroom/nestjs-libraries/track/track.service';
@@ -346,23 +347,36 @@ export class StripeService extends PaymentProviderAbstract {
     return { ...productsList };
   }
 
-  async prorate(organizationId: string, body: BillingSubscribeDto) {
-    const org = await this._organizationService.getOrgById(organizationId);
-    const customer = await this.createOrGetCustomer(org!);
-    const priceData = pricing[body.billing];
+  // The Stripe product is what customers see on Checkout, receipts and
+  // invoices, so it carries the plan's display name ("ViralGenHub Creator")
+  // and is found by metadata.tier. Products created by upstream code were
+  // named after the tier key ("STANDARD"); the name match keeps finding them.
+  async findOrCreateProduct(billing: string) {
     const allProducts = await stripe.products.list({
       active: true,
       expand: ['data.prices'],
     });
 
-    const findProduct =
+    return (
       allProducts.data.find(
-        (product) => product.name.toUpperCase() === body.billing.toUpperCase()
+        (product) => product.metadata?.tier?.toUpperCase() === billing.toUpperCase()
+      ) ||
+      allProducts.data.find(
+        (product) => product.name.toUpperCase() === billing.toUpperCase()
       ) ||
       (await stripe.products.create({
         active: true,
-        name: body.billing,
-      }));
+        name: `ViralGenHub ${planDisplayName(billing)}`,
+        metadata: { tier: billing },
+      }))
+    );
+  }
+
+  async prorate(organizationId: string, body: BillingSubscribeDto) {
+    const org = await this._organizationService.getOrgById(organizationId);
+    const customer = await this.createOrGetCustomer(org!);
+    const priceData = pricing[body.billing];
+    const findProduct = await this.findOrCreateProduct(body.billing);
 
     const pricesList = await stripe.prices.list({
       active: true,
@@ -935,19 +949,7 @@ body.period === 'MONTHLY'
     if ((await this.getLiveSubscriptions(customer)).length) {
       return { blocked: true };
     }
-    const allProducts = await stripe.products.list({
-      active: true,
-      expand: ['data.prices'],
-    });
-
-    const findProduct =
-      allProducts.data.find(
-        (product) => product.name.toUpperCase() === body.billing.toUpperCase()
-      ) ||
-      (await stripe.products.create({
-        active: true,
-        name: body.billing,
-      }));
+    const findProduct = await this.findOrCreateProduct(body.billing);
 
     const pricesList = await stripe.prices.list({
       active: true,
@@ -1002,19 +1004,7 @@ body.period === 'MONTHLY'
     const priceData = pricing[body.billing];
     const org = await this._organizationService.getOrgById(organizationId);
     const customer = await this.createOrGetCustomer(org!);
-    const allProducts = await stripe.products.list({
-      active: true,
-      expand: ['data.prices'],
-    });
-
-    const findProduct =
-      allProducts.data.find(
-        (product) => product.name.toUpperCase() === body.billing.toUpperCase()
-      ) ||
-      (await stripe.products.create({
-        active: true,
-        name: body.billing,
-      }));
+    const findProduct = await this.findOrCreateProduct(body.billing);
 
     const pricesList = await stripe.prices.list({
       active: true,
