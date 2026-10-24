@@ -8,7 +8,14 @@ export const useIntegrationList = () => {
   const fetch = useFetch();
 
   const load = useCallback(async (path: string) => {
-    return (await (await fetch(path)).json()).integrations;
+    const response = await fetch(path);
+    const { integrations } = await response.json();
+    // A failed load must surface as `error`, not as the empty fallback list:
+    // an empty list means "this workspace has no channels" to the onboarding.
+    if (!response.ok || !Array.isArray(integrations)) {
+      throw new Error('Could not load the channel list');
+    }
+    return integrations as any;
   }, []);
 
   return useSWR('/integrations/list', load, {
