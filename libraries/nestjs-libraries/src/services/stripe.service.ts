@@ -940,6 +940,9 @@ body.period === 'MONTHLY'
     for (const s of subscriptions) {
       await stripe.subscriptions.cancel(s.id);
     }
+    // Drop the workspace to Free now, like the neighbouring cancel paths do;
+    // the customer.subscription.deleted webhook repeats this harmlessly.
+    await this._subscriptionService.deleteSubscription(customer, STRIPE_PROVIDER);
 
     const refunded = refunds.reduce((all, refund) => all + refund.amount, 0);
     const currency = refunds[0]?.invoice.currency || sub.currency;

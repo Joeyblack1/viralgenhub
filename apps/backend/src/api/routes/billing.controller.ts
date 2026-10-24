@@ -223,7 +223,7 @@ export class BillingController {
     @GetOrgFromRequest() org: Organization,
     @GetUserFromRequest() user: User
   ) {
-    this.assertPaidPlansOpen();
+    // Cancelling must always be possible, like /cancel: no paid-plans guard here.
     const result = await (await this.provider(org)).cancelNowWithRefund(org.id);
     const refunded = `${result.refunded / 100} ${result.currency}`;
 
