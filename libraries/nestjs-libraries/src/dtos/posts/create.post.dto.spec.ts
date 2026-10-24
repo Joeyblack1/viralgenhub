@@ -1,10 +1,13 @@
 import { ValidationPipe } from '@nestjs/common';
 import { CreatePostDto } from './create.post.dto';
 
-// The global pipe in apps/backend/src/main.ts runs with whitelist: true. These
-// specs pin down what must survive it: the tags (nested via @Type), the
-// settings discriminator that the publishing code reads, and the
-// draft/normal post marker; and that an undeclared field really is dropped.
+// The global pipe in apps/backend/src/main.ts runs with whitelist: true.
+// POST /posts takes `any` and validates in PostsService.mapTypeToPost with a
+// pipe of its own that does not whitelist, so today nothing here is stripped;
+// these specs make sure the DTO is ready for the day that pipe does, pinning
+// what must survive: the tags (nested via @Type), the settings discriminator
+// that the publishing code reads, the per-post type marker and the media
+// thumbnail offset; and that an undeclared field really is dropped.
 const pipe = new ValidationPipe({ transform: true, whitelist: true });
 
 const body = (settings: object, extra: object = {}) => ({
@@ -19,7 +22,14 @@ const body = (settings: object, extra: object = {}) => ({
       value: [
         {
           content: 'hello',
-          image: [{ id: 'm1', path: 'https://cdn.example.com/a.png', alt: 'a' }],
+          image: [
+            {
+              id: 'm1',
+              path: 'https://cdn.example.com/a.png',
+              alt: 'a',
+              thumbnailTimestamp: 3,
+            },
+          ],
         },
       ],
       settings,
@@ -58,6 +68,7 @@ describe('CreatePostDto under whitelist: true', () => {
       id: 'm1',
       path: 'https://cdn.example.com/a.png',
       alt: 'a',
+      thumbnailTimestamp: 3,
     });
     expect((out as any).somethingNew).toBeUndefined();
   });
