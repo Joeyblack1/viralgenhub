@@ -104,11 +104,16 @@ export async function uploadStreamToStorage(
     throw new BadRequestException('File is too large.');
   }
 
-  // pipeline (not pipe) so failing the cap also tears down the source
+  // pipeline (not pipe) so failing the cap also tears down the source.
+  // Remember the cap's own rejection: tearing down the web stream can raise a
+  // Node webstreams TypeError that would otherwise reach the caller as a 500.
+  let capError: Error | undefined;
   const body = pipeline(
     Readable.fromWeb(sniffed as any),
     maxSizeStream(maxSize),
-    () => {}
+    (err) => {
+      if (err instanceof BadRequestException) capError = err;
+    }
   );
 
   try {
@@ -120,7 +125,13 @@ export async function uploadStreamToStorage(
     return { ...uploaded, ext: detected.ext };
   } catch (err) {
     // The size cap rejects mid-upload with its own BadRequestException
-    body.destroy();
+    try {
+      body.destroy();
+    } catch {
+      // the source is already gone; nothing to clean up
+    }
+    if (err instanceof BadRequestException) throw err;
+    if (capError) throw capError;
     throw err;
   }
 }
