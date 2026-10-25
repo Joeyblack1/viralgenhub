@@ -1,10 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "Postiz",
-  "version": "2.0.0",
-  "description": "Postiz browser extension for social media scheduling",
+  "name": "ViralGenHub",
+  "version": "1.0.0",
+  "description": "Connects your Skool account to ViralGenHub so you can schedule Skool posts from the app. Only works with viralgenhub.com.",
   "icons": {
+    "16": "icon-16.png",
     "32": "icon-32.png",
+    "48": "icon-48.png",
     "128": "icon-128.png"
   },
   "permissions": [
@@ -13,7 +15,8 @@
     "storage"
   ],
   "host_permissions": [
-    "*://*.skool.com/*"
+    "https://www.skool.com/*",
+    "https://app.viralgenhub.com/*"
   ],
   "background": {
     "service_worker": "background.js",
@@ -21,9 +24,7 @@
   },
   "externally_connectable": {
     "matches": [
-      "http://localhost/*",
-      "https://localhost/*",
-      "https://*.postiz.com/*"
+      "https://app.viralgenhub.com/*"
     ]
   }
 }

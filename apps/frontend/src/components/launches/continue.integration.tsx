@@ -10,6 +10,10 @@ import dayjs from 'dayjs';
 import { continueProviderList } from '@gitroom/frontend/components/new-launch/providers/continue-provider/list';
 import { IntegrationContext } from '@gitroom/frontend/components/launches/helpers/use.integration';
 import { newDayjs } from '@gitroom/frontend/components/layout/set.timezone';
+import {
+  clearExtensionCode,
+  readExtensionCode,
+} from '@gitroom/frontend/components/launches/extension.code.stash';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 
 interface TwoStepState {
@@ -100,6 +104,18 @@ export const ContinueIntegration: FC<{
       };
     }
 
+    // Extension providers (Skool): the cookies were stashed by the add-provider
+    // modal, not put in the URL; they go out in the POST body below.
+    if (searchParams.state && !searchParams.code) {
+      const stashed =
+        typeof window !== 'undefined'
+          ? readExtensionCode(searchParams.state)
+          : '';
+      if (stashed) {
+        return { ...searchParams, code: stashed };
+      }
+    }
+
     return searchParams;
   }, []);
 
@@ -126,6 +142,10 @@ export const ContinueIntegration: FC<{
             body: JSON.stringify({ ...modifiedParams, timezone }),
           });
         }
+      }
+
+      if (searchParams.state) {
+        clearExtensionCode(searchParams.state);
       }
 
       if (data.status === HttpStatusCode.PreconditionFailed) {

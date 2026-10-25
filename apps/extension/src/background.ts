@@ -2,18 +2,17 @@ import { ExtensionRequest, GetCookiesResponse, ProviderInfo, StoredRefreshEntry 
 import { getAllProviders, getProvider } from './providers/provider.registry';
 import { CookieProvider } from './providers/cookie-provider.interface';
 
-const EXTENSION_VERSION = '2.0.0';
+// Injected at build time by vite.config.ts (see EXT_ENV). Production: only
+// https://app.viralgenhub.com. The staging build also allows staging.
+declare const __ALLOWED_ORIGINS__: string[];
+
+const EXTENSION_VERSION = '1.0.0';
 const REFRESH_ALARM_NAME = 'cookie-refresh';
 const STORAGE_KEY = 'refreshEntries';
 
-const ALLOWED_ORIGIN_PATTERNS = [
-  /^https?:\/\/localhost(:\d+)?$/,
-  /^https?:\/\/([a-z0-9-]+\.)*postiz\.com$/,
-];
-
 function isOriginAllowed(origin: string | undefined): boolean {
   if (!origin) return false;
-  return ALLOWED_ORIGIN_PATTERNS.some((pattern) => pattern.test(origin));
+  return __ALLOWED_ORIGINS__.includes(origin.replace(/\/$/, ''));
 }
 
 async function extractCookies(provider: CookieProvider): Promise<GetCookiesResponse> {
@@ -171,6 +170,18 @@ chrome.runtime.onMessageExternal.addListener(
       }
 
       case 'STORE_REFRESH_TOKEN': {
+        // The refresh call sends the saved login token to backendUrl, so it may
+        // only ever point at an origin this build trusts.
+        let backendOrigin = '';
+        try {
+          backendOrigin = new URL(message.backendUrl).origin;
+        } catch {
+          // falls through to the check below
+        }
+        if (!__ALLOWED_ORIGINS__.includes(backendOrigin)) {
+          sendResponse({ success: false, error: 'Untrusted backend URL' });
+          break;
+        }
         (async () => {
           const entries = await getStoredEntries();
           entries[message.integrationId] = {
