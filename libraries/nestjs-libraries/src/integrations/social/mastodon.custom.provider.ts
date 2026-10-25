@@ -96,7 +96,9 @@ export class MastodonCustomProvider extends MastodonProvider {
         instanceUrl || process.env.MASTODON_URL || 'https://mastodon.social'
       );
     } catch (err) {
-      return process.env.MASTODON_URL || 'https://mastodon.social';
+      return normalizeBaseUrl(
+        process.env.MASTODON_URL || 'https://mastodon.social'
+      );
     }
   }
 

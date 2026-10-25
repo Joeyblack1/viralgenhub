@@ -145,7 +145,14 @@ export class NostrProvider extends SocialAbstract implements SocialProvider {
           await relay.connect({ timeout: 6000 });
           await relay.publish(event);
         } finally {
+          const connected = relay.connected;
           relay.close();
+          // close() only shuts an OPEN socket: after a connect timeout it is
+          // still CONNECTING and would stay open once the handshake ends.
+          // terminate() is the ws socket's (global.WebSocket is ws, above).
+          if (!connected) {
+            (relay as any).ws?.terminate?.();
+          }
         }
       })
     );
@@ -154,8 +161,11 @@ export class NostrProvider extends SocialAbstract implements SocialProvider {
       throw new BadBody(
         this.identifier,
         JSON.stringify(
-          results.map((result) =>
-            result.status === 'rejected' ? String(result.reason) : 'ok'
+          results.map(
+            (result, index) =>
+              `${list[index]}: ${
+                result.status === 'rejected' ? String(result.reason) : 'ok'
+              }`
           )
         ),
         JSON.stringify({ id: event.id }),
