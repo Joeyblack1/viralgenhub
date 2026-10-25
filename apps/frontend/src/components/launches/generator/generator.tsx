@@ -355,6 +355,7 @@ export const GeneratorComponent = () => {
   return (
     <div
       className="h-[44px] w-[44px] group-[.sidebar]:w-full bg-ai justify-center items-center flex rounded-[8px] cursor-pointer"
+      data-tooltip-id="tooltip" data-tooltip-content={t('vgh_ai_generator_tip', 'Write posts with AI from an idea or a link')} aria-label={t('vgh_ai_generator_tip', 'Write posts with AI from an idea or a link')}
       onClick={generate}
     >
       <svg

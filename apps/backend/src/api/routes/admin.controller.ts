@@ -122,6 +122,12 @@ export class AdminController {
     return this._earlyAccessService.notifyWaitlist(provider);
   }
 
+  @Get('/x-spend')
+  async getXSpend(@GetUserFromRequest() user: User) {
+    this.assertSuperAdmin(user);
+    return this._adminStatsService.getXSpend();
+  }
+
   @Get('/stats')
   async getStats(
     @GetUserFromRequest() user: User,

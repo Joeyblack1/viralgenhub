@@ -6,6 +6,7 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { Button } from '@gitroom/react/form/button';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import { XSpendCard } from '@gitroom/frontend/components/admin/x-spend.card';
 
 interface PerSocial {
   provider: string;
@@ -160,6 +161,10 @@ export const AdminStatsComponent: FC = () => {
             {new Date(data.to).toLocaleDateString()}
           </div>
         )}
+      </div>
+
+      <div className="max-w-[420px]">
+        <XSpendCard />
       </div>
 
       <div className="flex flex-wrap gap-[8px]">

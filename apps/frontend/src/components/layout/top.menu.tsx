@@ -284,6 +284,30 @@ export const useMenuItem = () => {
       hide: true,
     },
     {
+      name: t('admin', 'Admin'),
+      icon: (
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          width="20"
+          height="21"
+          viewBox="0 0 24 24"
+          fill="none"
+        >
+          <path
+            d="M12 22C12 22 20 18 20 12V5L12 2L4 5V12C4 18 12 22 12 22Z"
+            stroke="currentColor"
+            strokeWidth="1.8"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      ),
+      path: '/admin',
+      role: ['ADMIN', 'SUPERADMIN', 'USER'],
+      // ViralGenHub: the super-admin area (users, errors, stats, announcements).
+      hide: !user?.isSuperAdmin,
+    },
+    {
       name: t('billing', 'Billing'),
       icon: (
         <svg

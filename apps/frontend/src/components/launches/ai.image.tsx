@@ -95,6 +95,8 @@ ${style}
           {list.map((p) => (
             <div
               key={p}
+              data-tooltip-id="tooltip"
+              data-tooltip-content={`${t('vgh_ai_style_tip', 'Render the image in this style')}: ${p}`}
               onClick={() => setStyle(p)}
               className={clsx(
                 'cursor-pointer rounded-[4px] px-[10px] h-[30px] flex items-center text-[12px] border',
@@ -109,7 +111,12 @@ ${style}
         </div>
       </div>
       <div className="flex">
-        <Button type="button" onClick={generate} className="flex-1">
+        <Button
+          type="button"
+          onClick={generate}
+          className="flex-1"
+          data-tooltip-id="tooltip" data-tooltip-content={t('vgh_ai_generate_tip', 'Create the image from your prompt. It uses one AI image credit and is saved to your media library')} aria-label={t('vgh_ai_generate_tip', 'Create the image from your prompt. It uses one AI image credit and is saved to your media library')}
+        >
           {t('generate', 'Generate')}
         </Button>
       </div>

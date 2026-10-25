@@ -157,7 +157,10 @@ export const SelectCurrent: FC = () => {
               <div
                 {...{
                   'data-tooltip-id': 'tooltip',
-                  'data-tooltip-content': integration.name,
+                  'data-tooltip-content': `${integration.name}: ${t(
+                    'vgh_channel_tab_tip',
+                    'click to edit the post just for this channel'
+                  )}`,
                 }}
                 className={clsx(
                   'relative w-full h-full rounded-full flex justify-center items-center filter transition-all duration-500'

@@ -29,6 +29,10 @@ import { XDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/x.
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
 import { hasExtension } from '@gitroom/helpers/utils/has.extension';
 import { isAllowedUploadPath } from '@gitroom/helpers/utils/valid.url.path';
+import {
+  isXPostingPaused,
+  xPausedMessage,
+} from '@gitroom/nestjs-libraries/integrations/social/x.spend';
 
 // Travels through the workflow history between postPending, checkPostStatus
 // and finalizePost - keep it small JSON (media ids and the tweet content).
@@ -804,6 +808,17 @@ export class XProvider extends SocialAbstract implements SocialProvider {
     }>[],
     integration: Integration
   ): Promise<PostResponse[]> {
+    // ViralGenHub pays X for every post: once the month's estimate reaches
+    // X_PAUSE_AT_USD nothing more is sent (non-retrying, before any upload).
+    if (await isXPostingPaused()) {
+      throw new BadBody(
+        this.identifier,
+        JSON.stringify({ reason: 'x_budget_paused' }),
+        Buffer.from('{}'),
+        xPausedMessage()
+      );
+    }
+
     const client = await this.getClient(accessToken);
     const [firstPost] = postDetails;
     const isArticle = firstPost?.settings?.post_type === 'article';

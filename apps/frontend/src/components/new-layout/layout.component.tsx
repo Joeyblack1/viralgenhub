@@ -108,7 +108,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                 jakartaSans.className
               )}
             >
-              <div>{user?.admin ? <Impersonate /> : <div />}</div>
+              <div>{user?.admin && user?.impersonate ? <Impersonate /> : <div />}</div>
               {/* ViralGenHub has a real Free plan (limits are enforced by the
                   backend policies), so FREE users get the app, not a paywall;
                   upgrades live under Billing. */}
@@ -136,7 +136,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                         id="left-menu"
                         className={clsx(
                           'fixed h-full w-[64px] start-[20px] flex flex-1 top-0 mobile:static mobile:h-auto mobile:min-h-full mobile:mx-auto',
-                          user?.admin && 'pt-[52px] max-h-[1000px]:w-[500px]'
+                          user?.admin && user?.impersonate && 'pt-[52px] max-h-[1000px]:w-[500px]'
                         )}
                       >
                         <div className="flex flex-col h-full gap-[32px] mobile:gap-[16px] flex-1 pt-[12px] pb-[20px] mobile:pb-[12px]">

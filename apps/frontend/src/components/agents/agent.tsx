@@ -147,6 +147,8 @@ export const AgentList: FC<{ onChange: (arr: any[]) => void }> = ({
         >
           {sortedIntegrations.map((integration, index) => (
             <div
+              data-tooltip-id="tooltip"
+              data-tooltip-content={`${integration.name}: ${t('vgh_agent_channel_tip', 'click to let the agent use this channel or not')}`}
               onClick={setIntegration(integration)}
               key={integration.id}
               className={clsx(
@@ -240,6 +242,7 @@ const Threads: FC = () => {
       <div className="absolute top-0 start-0 w-full h-full p-[20px] mobile:p-[12px] mobile:static mobile:h-auto mobile:flex mobile:gap-[8px] mobile:items-center overflow-auto scrollbar scrollbar-thumb-fifth scrollbar-track-newBgColor">
         <div className="mb-[15px] mobile:mb-0 justify-center flex group-[.sidebar]:pb-[15px] mobile:shrink-0">
           <Link
+            data-tooltip-id="tooltip" data-tooltip-content={t('vgh_new_chat_tip', 'Start a new conversation with the agent')} aria-label={t('vgh_new_chat_tip', 'Start a new conversation with the agent')}
             href={`/agents`}
             className="text-white whitespace-nowrap flex-1 pt-[12px] pb-[14px] ps-[16px] pe-[20px] group-[.sidebar]:p-0 min-h-[44px] max-h-[44px] rounded-md bg-btnPrimary flex justify-center items-center gap-[5px] outline-none"
           >

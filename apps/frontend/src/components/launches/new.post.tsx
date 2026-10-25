@@ -86,6 +86,7 @@ export const NewPost = () => {
   const createAPost = useCreatePost();
   return (
     <button
+      data-tooltip-id="tooltip" data-tooltip-content={t('vgh_create_post_tip', 'Write a new post and schedule it')} aria-label={t('vgh_create_post_tip', 'Write a new post and schedule it')}
       onClick={createAPost}
       className="text-white flex-1 pt-[12px] pb-[14px] ps-[16px] pe-[20px] group-[.sidebar]:p-0 min-h-[44px] max-h-[44px] rounded-md bg-btnPrimary flex justify-center items-center gap-[5px] outline-none"
     >

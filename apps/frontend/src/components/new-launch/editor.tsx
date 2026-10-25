@@ -1073,6 +1073,7 @@ export const Editor: FC<{
                             'insert_emoji',
                             'Insert Emoji'
                           )}
+                          aria-label={t('insert_emoji', 'Insert Emoji')}
                           className="select-none cursor-pointer rounded-[6px] mobile:rounded-[8px] w-[30px] h-[30px] mobile:w-[40px] mobile:h-[40px] bg-newColColor mobile:bg-newSettings flex justify-center items-center"
                           onClick={() => setEmojiPickerOpen(!emojiPickerOpen)}
                         >
