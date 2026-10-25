@@ -159,8 +159,15 @@ export class DevToProvider extends SocialAbstract implements SocialProvider {
             title: settings.title,
             body_markdown: postDetails?.[0].message,
             published: true,
+            // same absolute URL for a stored relative path as hashnode's cover
             ...(settings?.main_image?.path
-              ? { main_image: settings?.main_image?.path }
+              ? {
+                  main_image: `${
+                    settings?.main_image?.path?.indexOf('http') === -1
+                      ? `${process.env.NEXT_PUBLIC_BACKEND_URL}/${process.env.NEXT_PUBLIC_UPLOAD_STATIC_DIRECTORY}`
+                      : ``
+                  }${settings?.main_image?.path}`,
+                }
               : {}),
             tags: settings?.tags?.map((t: any) => t.label),
             organization_id: settings.organization,
