@@ -27,6 +27,7 @@ model Organization {
   clippings           Clipping[]
   customers           Customer[]
   errors              Errors[]
+  earlyAccess         EarlyAccess[]
   github              GitHub[]
   Integration         Integration[]
   media               Media[]
@@ -130,6 +131,7 @@ model User {
   @@index([lastOnline])
   @@index([pictureId])
   @@index([deletedAt])
+  earlyAccess           EarlyAccess[]
 }
 
 model UsedCodes {
@@ -742,6 +744,24 @@ model Errors {
 
   @@index([organizationId])
   @@index([createdAt])
+}
+
+model EarlyAccess {
+  id             String       @id @default(uuid())
+  organizationId String
+  userId         String
+  provider       String
+  kind           String
+  note           String?
+  newsletter     Boolean      @default(false)
+  status         String       @default("requested")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  user           User         @relation(fields: [userId], references: [id])
+
+  @@unique([organizationId, provider])
+  @@index([provider, status])
 }
 
 model Mentions {
