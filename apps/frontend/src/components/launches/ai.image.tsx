@@ -69,8 +69,24 @@ ${style}
       ).json();
       if (image) {
         onChange(image);
+      } else {
+        toaster.show(
+          t(
+            'vgh_ai_image_no_credits',
+            "You're out of AI image credits this month. Upgrade your plan on the Billing page for more."
+          ),
+          'warning'
+        );
       }
-    } catch (e) {}
+    } catch (e) {
+      toaster.show(
+        t(
+          'vgh_ai_image_failed',
+          "Couldn't create the image. Please try again."
+        ),
+        'warning'
+      );
+    }
     setLocked(false);
     setLoading(false);
   }, [prompt, style, onChange]);

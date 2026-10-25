@@ -264,7 +264,7 @@ const FirstStep: FC = (props) => {
                   </option>
                 </Select>
                 <Select
-                  label={t('output_format', 'Output format')}
+                  label={t('vgh_tone', 'Tone')}
                   {...form.register('tone')}
                 >
                   <option value="personal">

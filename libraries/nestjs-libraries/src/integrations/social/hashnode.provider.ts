@@ -16,6 +16,13 @@ import { Integration } from '@prisma/client';
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
 import { Tool } from '@gitroom/nestjs-libraries/integrations/tool.decorator';
 
+// The one place the Hashnode GraphQL endpoint lives. gql.hashnode.com now
+// 301-redirects to the changelog page, gql-beta.hashnode.com still answers.
+const HASHNODE_API_URL = 'https://gql-beta.hashnode.com';
+
+export const HASHNODE_PRO_REQUIRED_MESSAGE =
+  'Hashnode now requires a Hashnode Pro plan on your blog to post through its API. Upgrade your blog to Pro in Hashnode → Billing, then try again.';
+
 export class HashnodeProvider extends SocialAbstract implements SocialProvider {
   override maxConcurrentJob = 3; // Hashnode has lenient publishing limits
   identifier = 'hashnode';
@@ -49,6 +56,26 @@ export class HashnodeProvider extends SocialAbstract implements SocialProvider {
     };
   }
 
+  override handleErrors(
+    body: string,
+    status: number
+  ):
+    | { type: 'refresh-token' | 'bad-body' | 'retry'; value: string }
+    | undefined {
+    // Since 13 May 2026 every Hashnode GraphQL request needs Pro on the blog.
+    if (
+      status === 402 ||
+      status === 403 ||
+      /pro plan|hashnode pro|requires? (a )?pro|upgrade to pro|payment required|paid (plan|access)|FORBIDDEN/i.test(
+        body
+      )
+    ) {
+      return { type: 'bad-body', value: HASHNODE_PRO_REQUIRED_MESSAGE };
+    }
+
+    return undefined;
+  }
+
   async customFields() {
     return [
       {
@@ -72,7 +99,7 @@ export class HashnodeProvider extends SocialAbstract implements SocialProvider {
           me: { name, id, profilePicture, username },
         },
       } = await (
-        await fetch('https://gql-beta.hashnode.com', {
+        await fetch(HASHNODE_API_URL, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -125,7 +152,7 @@ export class HashnodeProvider extends SocialAbstract implements SocialProvider {
         },
       },
     } = await (
-      await fetch('https://gql-beta.hashnode.com', {
+      await fetch(HASHNODE_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -203,7 +230,7 @@ export class HashnodeProvider extends SocialAbstract implements SocialProvider {
     );
 
     const { data, errors } = await (
-      await this.fetch('https://gql-beta.hashnode.com', {
+      await this.fetch(HASHNODE_API_URL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -216,11 +243,14 @@ export class HashnodeProvider extends SocialAbstract implements SocialProvider {
     ).json();
 
     if (errors?.length || !data?.publishPost?.post) {
+      const errorBody = JSON.stringify(errors || data || {});
       throw new BadBody(
         this.identifier,
-        JSON.stringify(errors || data || {}),
+        errorBody,
         '{}',
-        errors?.[0]?.message || 'Hashnode could not publish the post'
+        this.handleErrors(errorBody, 200)?.value ||
+          errors?.[0]?.message ||
+          'Hashnode could not publish the post'
       );
     }
 

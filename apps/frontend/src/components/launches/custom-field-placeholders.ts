@@ -20,7 +20,7 @@ export const customFieldPlaceholders: Record<string, string> = {
   'nostr.password': 'nsec1... (your Nostr private key)',
   'devto.apiKey': 'API key from dev.to/settings/extensions',
   'hashnode.apiKey':
-    'Personal access token from hashnode.com/settings/developer',
+    'Personal access token from hashnode.com/settings/developer. Your Hashnode blog needs a Pro plan for API posting.',
   'medium.apiKey': 'Integration token from medium.com/me/settings/security',
 };
 
