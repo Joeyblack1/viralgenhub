@@ -257,6 +257,7 @@ export const ThirdPartyMediaLibrary: FC<{
 
   return (
     <button
+      data-tooltip-id="tooltip" data-tooltip-content={t('vgh_import_media_tip', 'Import media from a connected service into your library')} aria-label={t('vgh_import_media_tip', 'Import media from a connected service into your library')}
       onClick={() => {
         modals.openModal({
           title: t('import_from', 'Import From'),

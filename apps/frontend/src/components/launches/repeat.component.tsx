@@ -118,6 +118,7 @@ export const RepeatComponent: FC<{
       )}
     >
       <div
+        data-tooltip-id="tooltip" data-tooltip-content={t('vgh_repeat_tip', 'Publish this post again on a repeating schedule')} aria-label={t('vgh_repeat_tip', 'Publish this post again on a repeating schedule')}
         onClick={() => setIsOpen(!isOpen)}
         className="px-[16px] justify-center flex gap-[8px] items-center h-full select-none flex-1"
       >

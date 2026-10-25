@@ -94,6 +94,7 @@ export const Modal: FC<{
                   <div className="flex-1 flex">
                     <Button
                       className="!flex-1"
+                      data-tooltip-id="tooltip" data-tooltip-content={"Tall 9:16 video for Stories, Reels and Shorts"} aria-label={"Tall 9:16 video for Stories, Reels and Shorts"}
                       onClick={() => setPosition('vertical')}
                       secondary={position === 'horizontal'}
                     >
@@ -103,6 +104,7 @@ export const Modal: FC<{
                   <div className="flex-1 flex mt-[10px] mobile:mt-0">
                     <Button
                       className="!flex-1"
+                      data-tooltip-id="tooltip" data-tooltip-content={"Wide 16:9 video for a normal post"} aria-label={"Wide 16:9 video for a normal post"}
                       onClick={() => setPosition('horizontal')}
                       secondary={position === 'vertical'}
                     >

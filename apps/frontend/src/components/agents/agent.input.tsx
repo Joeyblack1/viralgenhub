@@ -1,4 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import {
   useCopilotChatInternal,
   useCopilotContext,
@@ -17,6 +18,7 @@ export const Input = ({
   hideStopButton = false,
   onChange,
 }: InputProps & { onChange: (value: string) => void }) => {
+  const t = useT();
   const context = useChatContext();
   const copilotContext = useCopilotContext();
   const showPoweredBy = !copilotContext.copilotApiConfig?.publicApiKey;
@@ -93,7 +95,11 @@ export const Input = ({
         />
         <div className="copilotKitInputControls">
           {onUpload && (
-            <button onClick={onUpload} className="copilotKitInputControlButton">
+            <button
+              data-tooltip-id="tooltip" data-tooltip-content={t('vgh_agent_attach_tip', 'Attach a file for the agent')} aria-label={t('vgh_agent_attach_tip', 'Attach a file for the agent')}
+              onClick={onUpload}
+              className="copilotKitInputControlButton"
+            >
               {context.icons.uploadIcon}
             </button>
           )}
@@ -101,6 +107,7 @@ export const Input = ({
           <div style={{ flexGrow: 1 }} />
           <button
             disabled={sendDisabled}
+            data-tooltip-id="tooltip" data-tooltip-content={isInProgress && !hideStopButton ? t('vgh_agent_stop_tip', 'Stop the agent') : t('vgh_agent_send_tip', 'Send your message (Enter)')} aria-label={isInProgress && !hideStopButton ? t('vgh_agent_stop_tip', 'Stop the agent') : t('vgh_agent_send_tip', 'Send your message (Enter)')}
             onClick={isInProgress && !hideStopButton ? onStop : send}
             data-copilotkit-in-progress={inProgress}
             data-test-id={

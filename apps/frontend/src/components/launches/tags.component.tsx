@@ -256,7 +256,7 @@ export const TagsComponentInner: FC<{
           </div>
         ))}
         <div
-          onClick={addTag}
+          data-tooltip-id="tooltip" data-tooltip-content={t('vgh_add_tag_tip', 'Create a new tag')} aria-label={t('vgh_add_tag_tip', 'Create a new tag')} onClick={addTag}
           className="cursor-pointer gap-[8px] flex w-full h-[44px] rounded-[8px] px-[16px] justify-center items-center bg-[#D82D7E] text-white select-none"
         >
           <PlusIcon size={20} />
@@ -277,6 +277,7 @@ export const TagsComponentInner: FC<{
       )}
     >
       <div
+        data-tooltip-id="tooltip" data-tooltip-content={t('vgh_tags_tip', 'Add tags to this post to organise your calendar')} aria-label={t('vgh_tags_tip', 'Add tags to this post to organise your calendar')}
         onClick={() => setIsOpen(!isOpen)}
         className="px-[16px] justify-center flex gap-[8px] items-center h-full select-none flex-1"
       >
@@ -325,6 +326,7 @@ export const TagsComponentInner: FC<{
                 </span>
               </div>
               <div
+                data-tooltip-id="tooltip" data-tooltip-content={t('vgh_edit_tag_tip', 'Rename or recolour this tag')} aria-label={t('vgh_edit_tag_tip', 'Rename or recolour this tag')}
                 onClick={(e) => editTag(p, e)}
                 className="ms-auto me-[12px] transition-opacity cursor-pointer opacity-60 hover:opacity-100"
               >
@@ -332,6 +334,7 @@ export const TagsComponentInner: FC<{
               </div>
               {!tagValue.find((a) => a.id === p.id) && (
                 <div
+                  data-tooltip-id="tooltip" data-tooltip-content={t('vgh_delete_tag_tip', 'Delete this tag everywhere')} aria-label={t('vgh_delete_tag_tip', 'Delete this tag everywhere')}
                   onClick={(e) => deleteTag(p, e)}
                   className="transition-opacity cursor-pointer text-red-500 text-[14px] font-[600]"
                 >
@@ -341,7 +344,7 @@ export const TagsComponentInner: FC<{
             </div>
           ))}
           <div
-            onClick={addTag}
+            data-tooltip-id="tooltip" data-tooltip-content={t('vgh_add_tag_tip', 'Create a new tag')} aria-label={t('vgh_add_tag_tip', 'Create a new tag')} onClick={addTag}
             className="cursor-pointer gap-[8px] flex w-full h-[34px] rounded-[8px] mt-[12px] px-[16px] justify-center items-center bg-[#612BD3] text-white"
           >
             <div>

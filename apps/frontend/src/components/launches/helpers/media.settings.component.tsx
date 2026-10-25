@@ -252,6 +252,7 @@ export const CreateThumbnail: FC<{
 
           <div className="flex justify-center">
             <button
+              data-tooltip-id="tooltip" data-tooltip-content={"Use the frame shown above as the thumbnail"} aria-label={"Use the frame shown above as the thumbnail"}
               onClick={captureFrame}
               disabled={isCapturing}
               className="bg-forth text-white px-6 py-2 rounded-lg hover:bg-opacity-80 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -400,6 +401,7 @@ export const MediaComponentInner: FC<{
                 <div className="flex space-x-2">
                   <button
                     disabled={loading}
+                    data-tooltip-id="tooltip" data-tooltip-content={"Pick a frame of the video as its cover picture"} aria-label={"Pick a frame of the video as its cover picture"}
                     onClick={() => setIsEditingThumbnail(true)}
                     className="bg-third text-textColor px-6 py-2 rounded-lg hover:bg-opacity-80 transition-all flex-1 border border-tableBorder"
                   >
@@ -410,6 +412,7 @@ export const MediaComponentInner: FC<{
                   {(thumbnail || newThumbnail) && (
                     <button
                       disabled={loading}
+                      data-tooltip-id="tooltip" data-tooltip-content={"Remove the cover picture of this video"} aria-label={"Remove the cover picture of this video"}
                       onClick={() => {
                         setNewThumbnail(null);
                         setThumbnail(null);
@@ -482,6 +485,7 @@ export const MediaComponentInner: FC<{
             Cancel
           </button>
           <button
+            data-tooltip-id="tooltip" data-tooltip-content={"Save the media settings"} aria-label={"Save the media settings"}
             onClick={save}
             className="flex-1 bg-forth text-white px-6 py-2 rounded-lg hover:bg-opacity-80 transition-all"
           >

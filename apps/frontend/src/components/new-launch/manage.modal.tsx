@@ -830,6 +830,14 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
     ? t('schedule', 'Schedule')
     : t('update', 'Update');
 
+  const scheduleTip = selectedIntegrations.length === 0
+    ? t('vgh_schedule_none_tip', 'Choose at least one channel above first')
+    : dummy
+    ? t('vgh_create_output_tip', 'Create the output for the selected channels')
+    : existingData?.integration
+    ? t('vgh_update_post_tip', 'Save your changes to this post')
+    : t('vgh_schedule_tip', 'Add this post to the calendar for the date and time chosen');
+
   const mobileActions: MobileTopBarAction[] = addEditSets
     ? [
         {
@@ -1053,6 +1061,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                       />
                     </div>
                     <div
+                      data-tooltip-id="tooltip" data-tooltip-content={t('vgh_channel_settings_tip', 'Show or hide the settings of this channel')} aria-label={t('vgh_channel_settings_tip', 'Show or hide the settings of this channel')}
                       onClick={() => setShowSettings(!showSettings)}
                       className={clsx(
                         'bg-[#612BD3] rounded-[12px] flex items-center gap-[8px] cursor-pointer p-[12px] mobile:hidden',
@@ -1139,6 +1148,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           <div className="pe-[20px] flex items-center justify-end gap-[8px]">
             {existingData?.integration && (
               <button
+                data-tooltip-id="tooltip" data-tooltip-content={t('vgh_delete_post_btn', 'Delete this post from the calendar')} aria-label={t('vgh_delete_post_btn', 'Delete this post from the calendar')}
                 onClick={deletePost}
                 className="cursor-pointer flex text-[#FF3F3F] gap-[8px] items-center text-[15px] font-[600]"
               >
@@ -1154,6 +1164,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                 disabled={
                   selectedIntegrations.length === 0 || loading || locked
                 }
+                data-tooltip-id="tooltip" data-tooltip-content={t('vgh_save_draft_tip', 'Save as a draft: nothing is published, finish it later')} aria-label={t('vgh_save_draft_tip', 'Save as a draft: nothing is published, finish it later')}
                 onClick={schedule('draft')}
                 className="relative cursor-pointer disabled:cursor-not-allowed px-[20px] h-[44px] bg-btnSimple justify-center items-center flex rounded-[8px] text-[15px] font-[600]"
               >
@@ -1174,6 +1185,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                   selectedIntegrations.length === 0 || loading || locked
                 }
                 onClick={schedule('draft')}
+                data-tooltip-id="tooltip" data-tooltip-content={t('vgh_save_set_tip', 'Save these channels and this content as a reusable set')} aria-label={t('vgh_save_set_tip', 'Save these channels and this content as a reusable set')}
               >
                 Save Set
               </button>
@@ -1183,7 +1195,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                 ref={postNowRef}
                 className="group cursor-pointer relative"
                 data-tooltip-id="tooltip"
-                data-tooltip-content={publishBlockedReason}
+                data-tooltip-content={publishBlockedReason || scheduleTip}
               >
                 <button
                   disabled={
@@ -1233,6 +1245,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
 
                 {!dummy && (
                   <button
+                    data-tooltip-id="tooltip" data-tooltip-content={t('vgh_post_now_tip', 'Publish right now to the selected channels')} aria-label={t('vgh_post_now_tip', 'Publish right now to the selected channels')}
                     onClick={schedule('now')}
                     disabled={
                       selectedIntegrations.length === 0 ||

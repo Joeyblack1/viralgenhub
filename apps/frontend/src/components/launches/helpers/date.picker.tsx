@@ -284,6 +284,7 @@ export const DatePicker: FC<{
   });
   return (
     <div
+      data-tooltip-id="tooltip" data-tooltip-content={t('vgh_date_picker_tip', 'Pick the date and time this post is published')} aria-label={t('vgh_date_picker_tip', 'Pick the date and time this post is published')}
       className="px-[16px] border border-newTextColor/10 mobile:border-newTextColor/[0.08] rounded-[8px] mobile:rounded-[6px] justify-center flex gap-[8px] items-center relative h-[44px] mobile:h-[34px] text-[15px] mobile:text-[13px] whitespace-nowrap font-[600] ml-[7px] mobile:ml-0 select-none flex-1 mobile:min-w-0"
       onClick={onOpen || changeShow}
       ref={ref}

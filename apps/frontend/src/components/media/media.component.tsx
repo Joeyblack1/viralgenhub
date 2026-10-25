@@ -453,6 +453,7 @@ export const MediaBox: FC<{
   const btn = useMemo(() => {
     return (
       <button
+        data-tooltip-id="tooltip" data-tooltip-content={t('vgh_upload_media_tip', 'Upload pictures or videos from your device (or drop files here)')} aria-label={t('vgh_upload_media_tip', 'Upload pictures or videos from your device (or drop files here)')}
         disabled={loading}
         onClick={() => uploaderRef?.current?.click()}
         className="relative cursor-pointer bg-btnSimple changeColor flex gap-[8px] h-[44px] px-[18px] justify-center items-center rounded-[8px]"
@@ -511,6 +512,7 @@ export const MediaBox: FC<{
           )}
           {!!selected.length && (
             <div
+              data-tooltip-id="tooltip" data-tooltip-content={t('vgh_delete_selected_tip', 'Permanently delete the selected media from your library')} aria-label={t('vgh_delete_selected_tip', 'Permanently delete the selected media from your library')}
               onClick={deleteSelected}
               className="hidden mobile:flex basis-full justify-center items-center gap-[8px] h-[24px] text-[15px] font-[600] text-[#FF3F3F] cursor-pointer select-none"
             >
@@ -626,6 +628,8 @@ export const MediaBox: FC<{
                         ? 'border-[#612BD3]'
                         : 'border-transparent'
                     )}
+                    data-tooltip-id="tooltip"
+                    data-tooltip-content={`${media.originalName || ''} ${t('vgh_select_media_tip', 'Click to select or unselect. Numbers show the order they are added in.')}`}
                     onClick={addRemoveSelected(media)}
                   >
                     {!!selected.find((p: any) => p.id === media.id) ? (
@@ -719,6 +723,7 @@ export const MediaBox: FC<{
             </button>
             {!isLoading && !!data?.results?.length && (
               <button
+                data-tooltip-id="tooltip" data-tooltip-content={t('vgh_add_selected_tip', 'Add the selected media to your post')} aria-label={t('vgh_add_selected_tip', 'Add the selected media to your post')}
                 onClick={standalone ? () => {} : addMedia}
                 disabled={selected.length === 0}
                 className="cursor-pointer text-white disabled:opacity-80 disabled:cursor-not-allowed h-[52px] px-[20px] items-center justify-center bg-[#612BD3] flex rounded-[10px] mobile:h-[44px] mobile:rounded-[8px] mobile:font-[600] mobile:disabled:opacity-100 mobile:disabled:bg-btnSimple mobile:disabled:text-textItemBlur"

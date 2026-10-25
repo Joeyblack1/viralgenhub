@@ -132,6 +132,14 @@ export const PicksSocialsComponent: FC<{
                 })}
               >
                 <div
+                  data-tooltip-id="tooltip"
+                  data-tooltip-content={`${integration.name}: ${
+                    selectedIntegrations.some(
+                      (p) => p.integration.id === integration.id
+                    )
+                      ? 'click to remove from this post'
+                      : 'click to post to this channel'
+                  }`}
                   onClick={toggleIntegration(integration)}
                   className={clsx(
                     'cursor-pointer border-[2px] relative rounded-full flex justify-center items-center bg-fifth filter transition-all duration-500',

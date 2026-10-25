@@ -26,6 +26,7 @@ export const SignatureBox: FC<{
         onClick={addSignature}
         data-tooltip-id="tooltip"
         data-tooltip-content="Add Signature"
+        aria-label="Add Signature"
         className="select-none cursor-pointer rounded-[6px] mobile:rounded-[8px] w-[30px] h-[30px] mobile:w-[40px] mobile:h-[40px] bg-newColColor mobile:bg-newSettings flex justify-center items-center"
       >
         <svg
