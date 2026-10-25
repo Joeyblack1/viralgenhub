@@ -311,6 +311,7 @@ export const CustomVariables: FC<{
 };
 const ExtensionNotFound: FC = () => {
   const modals = useModals();
+  const { extensionId } = useVariables();
   const t = useT();
   return (
     <div className="flex flex-col gap-[16px] pt-[8px]">
@@ -326,7 +327,7 @@ const ExtensionNotFound: FC = () => {
           className="flex-1"
           onClick={() => {
             window.open(
-              'https://chromewebstore.google.com/detail/postiz/cidhffagahknaeodkplfbcpfeielnkjl?hl=en',
+              `https://chromewebstore.google.com/detail/${extensionId}`,
               '_blank'
             );
             modals.closeCurrent();
@@ -744,6 +745,14 @@ export const AddProviderComponent: FC<{
         >
           {social
             .filter((item) => {
+              // Extension-based channels need the ViralGenHub browser
+              // extension; until one is published (EXTENSION_ID unset) the
+              // tile would only lead to an install prompt that cannot work.
+              // Locked (coming-soon / early-access) tiles stay.
+              if (item.isChromeExtension && !extensionId && !isLockedTile(item)) {
+                return false;
+              }
+
               if (!props.invite) {
                 return true;
               }

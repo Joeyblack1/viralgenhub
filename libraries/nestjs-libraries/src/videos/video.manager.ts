@@ -46,6 +46,10 @@ export class VideoManager {
       (p: any) => p.identifier === identifier
     );
 
+    if (!video) {
+      return undefined;
+    }
+
     return {
       ...video,
       instance: this._moduleRef.get(video.target, {

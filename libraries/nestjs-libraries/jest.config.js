@@ -20,6 +20,7 @@ module.exports = {
     '<rootDir>/libraries/helpers/src/auth/purpose.tokens.spec.ts',
     '<rootDir>/apps/backend/src/api/routes/users.controller.*.spec.ts',
     '<rootDir>/apps/backend/src/api/routes/admin.controller.*.spec.ts',
+    '<rootDir>/apps/backend/src/public-api/routes/v1/*.spec.ts',
     '<rootDir>/apps/backend/src/services/auth/permissions/*.spec.ts',
   ],
   transform: {
