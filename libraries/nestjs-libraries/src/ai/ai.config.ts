@@ -167,7 +167,11 @@ export const langchainImageModel = () =>
  * on every provider; the bare `openai(model)` form is OpenAI's Responses API,
  * which the others do not have.
  */
-export const aiSdkTextModel = () => {
+// Explicit return type: declaration emit cannot name the inferred type (it
+// lives in a nested @ai-sdk/provider copy), which fails the Docker build.
+export const aiSdkTextModel = (): ReturnType<
+  import('@ai-sdk/openai').OpenAIProvider['chat']
+> => {
   const { apiKey, baseURL, textModel } = aiTextConfig();
   // loaded here, not at the top: the orchestrator imports this module (autopost) and has no use for the AI SDK
   const { createOpenAI } =
