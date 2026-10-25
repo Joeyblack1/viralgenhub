@@ -3,6 +3,7 @@ import { IUploadProvider } from './upload.interface';
 import { LocalStorage } from './local.storage';
 import { IMediaProcessor } from './media.processor.interface';
 import { RunPodMediaProcessor } from './runpod.media.processor';
+import { aiTextEnabled } from '@gitroom/nestjs-libraries/ai/ai.config';
 import {
   ClipJob,
   ClipResult,
@@ -60,8 +61,8 @@ export class UploadFactory {
       !!process.env.RUNPOD_INGEST_ENDPOINT_ID &&
       !!process.env.RUNPOD_CLIPPER_ENDPOINT_ID &&
       !!process.env.DEEPGRAM_API_KEY &&
-      // the clips are picked by the model
-      !!process.env.OPENAI_API_KEY
+      // the clips are picked by the text model
+      aiTextEnabled()
     );
   }
 
