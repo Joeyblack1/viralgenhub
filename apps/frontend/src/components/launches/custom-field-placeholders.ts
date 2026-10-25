@@ -29,3 +29,22 @@ export const getCustomFieldPlaceholder = (
   key: string,
   fromBackend?: string
 ) => fromBackend || customFieldPlaceholders[`${identifier}.${key}`];
+
+// ViralGenHub: "Where do I get this?" help pages on viralgenhub.com.
+const connectHelpIdentifiers = [
+  'devto',
+  'hashnode',
+  'wordpress',
+  'listmonk',
+  'bluesky',
+  'lemmy',
+  'nostr',
+  'mastodon-custom',
+  'medium',
+  'heygen',
+];
+
+export const connectHelpUrl = (identifier: string): string | undefined =>
+  connectHelpIdentifiers.includes(identifier)
+    ? `https://viralgenhub.com/help/connect/${identifier}`
+    : undefined;

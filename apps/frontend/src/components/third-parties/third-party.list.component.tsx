@@ -10,6 +10,7 @@ import { FieldValues, FormProvider, useForm } from 'react-hook-form';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { Input } from '@gitroom/react/form/input';
 import { useToaster } from '@gitroom/react/toaster/toaster';
+import { ConnectHelpLink } from '@gitroom/frontend/components/launches/connect-help-link';
 import { ModalWrapperComponent } from '@gitroom/frontend/components/new-launch/modal.wrapper.component';
 
 export const ApiModal: FC<{
@@ -83,6 +84,7 @@ export const ApiModal: FC<{
           <div className="pt-[10px]">
             <Input label="API Key" name="api" />
           </div>
+          <ConnectHelpLink identifier={identifier} />
           <div>
             <Button loading={loading} type="submit">
               {t('add_integration', 'Add Integration')}

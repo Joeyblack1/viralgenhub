@@ -5,6 +5,7 @@ import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import React, { FC, useCallback, useMemo, useState } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Input } from '@gitroom/react/form/input';
+import { ConnectHelpLink } from '@gitroom/frontend/components/launches/connect-help-link';
 import { getCustomFieldPlaceholder } from '@gitroom/frontend/components/launches/custom-field-placeholders';
 import { FieldValues, FormProvider, useForm } from 'react-hook-form';
 import { Button } from '@gitroom/react/form/button';
@@ -177,6 +178,7 @@ export const UrlModal: FC<{
           <div className="pt-[10px]">
             <Input label="URL" name="url" placeholder={getCustomFieldPlaceholder('mastodon-custom', 'url')} className="[&_input::placeholder]:text-newTextColor/50" />
           </div>
+          <ConnectHelpLink identifier="mastodon-custom" />
           <div>
             <Button type="submit">{t('connect', 'Connect')}</Button>
           </div>
@@ -303,6 +305,7 @@ export const CustomVariables: FC<{
             </div>
           ))}
           <div>
+          <ConnectHelpLink identifier={identifier} />
             <Button type="submit">{t('connect', 'Connect')}</Button>
           </div>
         </form>
