@@ -85,6 +85,12 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
       username: '',
     };
   }
+  // The OAuth callback lands on the connect page of this provider's own
+  // identifier, so mastodon-custom finishes through its own authenticate.
+  protected redirectUri(url: string) {
+    return `${url}/integrations/social/${this.identifier}`;
+  }
+
   protected generateUrlDynamic(
     customUrl: string,
     state: string,
@@ -92,7 +98,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
     url: string
   ) {
     return `${customUrl}/oauth/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(
-      `${url}/integrations/social/mastodon`
+      this.redirectUri(url)
     )}&scope=${this.scopes.join('+')}&state=${state}`;
   }
 
@@ -122,10 +128,7 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
     form.append('client_secret', clientSecret);
     form.append('code', code);
     form.append('grant_type', 'authorization_code');
-    form.append(
-      'redirect_uri',
-      `${process.env.FRONTEND_URL}/integrations/social/mastodon`
-    );
+    form.append('redirect_uri', this.redirectUri(process.env.FRONTEND_URL!));
     form.append('scope', this.scopes.join(' '));
 
     const tokenInformation = await (

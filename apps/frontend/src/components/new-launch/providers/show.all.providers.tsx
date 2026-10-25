@@ -127,6 +127,10 @@ export const Providers = [
     component: MastodonProvider,
   },
   {
+    identifier: 'mastodon-custom',
+    component: MastodonProvider,
+  },
+  {
     identifier: 'bluesky',
     component: BlueskyProvider,
   },
