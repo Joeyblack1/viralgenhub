@@ -10,9 +10,12 @@ import {
 } from '@nestjs/common';
 import {
   CopilotRuntime,
-  OpenAIAdapter,
   copilotRuntimeNodeHttpEndpoint,
 } from '@copilotkit/runtime';
+import {
+  aiTextEnabled,
+  copilotServiceAdapter,
+} from '@gitroom/nestjs-libraries/ai/ai.config';
 import { GetOrgFromRequest } from '@gitroom/nestjs-libraries/user/org.from.request';
 import { Organization } from '@prisma/client';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
@@ -47,11 +50,10 @@ export class CopilotController {
   ) {}
   @Post('/chat')
   chatAgent(@Req() req: Request, @Res() res: Response) {
-    if (
-      process.env.OPENAI_API_KEY === undefined ||
-      process.env.OPENAI_API_KEY === ''
-    ) {
-      Logger.warn('OpenAI API key not set, chat functionality will not work');
+    if (!aiTextEnabled()) {
+      Logger.warn(
+        'AI text provider key not set, chat functionality will not work'
+      );
       // ViralGenHub: answer now instead of leaving the request open until the
       // proxy times out (60 s per page load, then a 504 in the browser console)
       res.status(503).json({ error: 'AI features are not enabled' });
@@ -62,9 +64,7 @@ export class CopilotController {
       endpoint: '/copilot/chat',
       cors: copilotCors(),
       runtime: new CopilotRuntime(),
-      serviceAdapter: new OpenAIAdapter({
-        model: 'gpt-4.1',
-      }),
+      serviceAdapter: copilotServiceAdapter(),
     });
 
     return copilotRuntimeHandler(req, res);
@@ -77,11 +77,10 @@ export class CopilotController {
     @Res() res: Response,
     @GetOrgFromRequest() organization: Organization
   ) {
-    if (
-      process.env.OPENAI_API_KEY === undefined ||
-      process.env.OPENAI_API_KEY === ''
-    ) {
-      Logger.warn('OpenAI API key not set, chat functionality will not work');
+    if (!aiTextEnabled()) {
+      Logger.warn(
+        'AI text provider key not set, chat functionality will not work'
+      );
       // ViralGenHub: answer now instead of leaving the request open until the
       // proxy times out (60 s per page load, then a 504 in the browser console)
       res.status(503).json({ error: 'AI features are not enabled' });
@@ -111,9 +110,7 @@ export class CopilotController {
       endpoint: '/copilot/agent',
       cors: copilotCors(),
       runtime,
-      serviceAdapter: new OpenAIAdapter({
-        model: 'gpt-4.1',
-      }),
+      serviceAdapter: copilotServiceAdapter(),
     });
 
     return copilotRuntimeHandler(req, res);
