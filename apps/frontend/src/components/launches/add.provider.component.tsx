@@ -186,6 +186,7 @@ export const CustomVariables: FC<{
     validation: string;
     type: 'text' | 'password';
     hint?: string;
+    optional?: boolean;
   }>;
   close?: () => void;
   identifier: string;
@@ -205,9 +206,12 @@ export const CustomVariables: FC<{
         );
         return {
           ...aIcc,
-          [item.key]: string()
-            .matches(regex, `${item.label} is invalid`)
-            .required(),
+          [item.key]: item.optional
+            ? string().matches(regex, {
+                message: `${item.label} is invalid`,
+                excludeEmptyString: true,
+              })
+            : string().matches(regex, `${item.label} is invalid`).required(),
         };
       }, {}),
     });
@@ -418,6 +422,7 @@ export const AddProviderComponent: FC<{
       validation: string;
       type: 'text' | 'password';
       hint?: string;
+      optional?: boolean;
     }>;
   }>;
   article: Array<{
@@ -449,6 +454,7 @@ export const AddProviderComponent: FC<{
           defaultValue?: string;
           type: 'text' | 'password';
           hint?: string;
+          optional?: boolean;
         }>
       ) =>
       async () => {

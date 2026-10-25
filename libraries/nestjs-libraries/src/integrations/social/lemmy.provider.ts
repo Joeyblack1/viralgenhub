@@ -43,7 +43,12 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
       };
     }
 
-    if (body.includes('not_logged_in') || body.includes('incorrect_login')) {
+    if (
+      body.includes('not_logged_in') ||
+      body.includes('incorrect_login') ||
+      body.includes('missing_totp_token') ||
+      body.includes('incorrect_totp_token')
+    ) {
       return {
         type: 'refresh-token',
         value: 'Lemmy session is no longer valid, please reconnect the channel',
@@ -126,6 +131,14 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
         validation: `/^.{3,}$/`,
         type: 'password' as const,
       },
+      {
+        key: 'totp',
+        label: '2FA code (only if 2-factor is on)',
+        validation: `/^\\d{6}$/`,
+        type: 'text' as const,
+        hint: 'The 6-digit code from your authenticator app. Leave it empty if your Lemmy account has no 2-factor authentication.',
+        optional: true,
+      },
     ];
   }
 
@@ -163,6 +176,7 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
       body: JSON.stringify({
         username_or_email: body.identifier,
         password: body.password,
+        ...(body.totp ? { totp_2fa_token: body.totp } : {}),
       }),
       method: 'POST',
       headers: {
@@ -170,15 +184,24 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
       },
     });
 
-    if (load.status === 401) {
+    const login = await load.json().catch(() => ({}));
+    if (!login.jwt) {
+      if (login.error === 'missing_totp_token') {
+        return 'This Lemmy account has 2-factor authentication on, please add the 6-digit code from your authenticator app';
+      }
+      if (login.error === 'incorrect_totp_token') {
+        return 'The 2-factor code was wrong or has expired, please try a new one';
+      }
       return 'Invalid credentials';
     }
 
-    const { jwt } = await load.json();
+    const jwt: string = login.jwt;
 
     try {
-      const user = await (
-        await fetch(body.service + `/api/v3/user?username=${body.identifier}`, {
+      // The logged-in profile comes from the token, so the Identifier can be
+      // a username or an email address.
+      const { my_user } = await (
+        await fetch(body.service + '/api/v3/site', {
           // @ts-ignore - undici-only option; blocks SSRF to internal IPs
           dispatcher: getSsrfSafeDispatcher(),
           headers: {
@@ -186,18 +209,16 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
           },
         })
       ).json();
+      const person = my_user.local_user_view.person;
 
       return {
-        refreshToken: jwt!,
+        refreshToken: jwt,
         expiresIn: dayjs().add(100, 'years').unix() - dayjs().unix(),
-        accessToken: jwt!,
-        id: String(user.person_view.person.id),
-        name:
-          user.person_view.person.display_name ||
-          user.person_view.person.name ||
-          '',
-        picture: user?.person_view?.person?.avatar || '',
-        username: body.identifier || '',
+        accessToken: jwt,
+        id: String(person.id),
+        name: person.display_name || person.name || '',
+        picture: person.avatar || '',
+        username: person.name || body.identifier || '',
       };
     } catch (e) {
       console.log(e);
@@ -205,10 +226,37 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
     }
   }
 
-  private async getJwtAndService(integration: Integration): Promise<{ jwt: string; service: string }> {
+  private async isLoggedIn(service: string, jwt: string) {
+    try {
+      const { my_user } = await (
+        await fetch(service + '/api/v3/site', {
+          // @ts-ignore - undici-only option; blocks SSRF to internal IPs
+          dispatcher: getSsrfSafeDispatcher(),
+          headers: {
+            Authorization: `Bearer ${jwt}`,
+          },
+        })
+      ).json();
+      return !!my_user;
+    } catch (err) {
+      return false;
+    }
+  }
+
+  private async getJwtAndService(
+    integration: Integration,
+    accessToken?: string
+  ): Promise<{ jwt: string; service: string }> {
     const body = JSON.parse(
       AuthService.fixedDecryption(integration.customInstanceDetails!)
     );
+
+    // The token saved at connect is used while Lemmy still accepts it, so an
+    // account with 2-factor on (whose password login needs a fresh code)
+    // keeps posting. A password login is the fallback.
+    if (accessToken && (await this.isLoggedIn(body.service, accessToken))) {
+      return { jwt: accessToken, service: body.service };
+    }
 
     const options = {
       // @ts-ignore - undici-only option; blocks SSRF to internal IPs
@@ -261,7 +309,10 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
     integration: Integration
   ): Promise<PostResponse[]> {
     const [firstPost] = postDetails;
-    const { jwt, service } = await this.getJwtAndService(integration);
+    const { jwt, service } = await this.getJwtAndService(
+      integration,
+      accessToken
+    );
 
     const valueArray: PostResponse[] = [];
 
@@ -322,7 +373,10 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
     integration: Integration
   ): Promise<PostResponse[]> {
     const [commentPost] = postDetails;
-    const { jwt, service } = await this.getJwtAndService(integration);
+    const { jwt, service } = await this.getJwtAndService(
+      integration,
+      accessToken
+    );
 
     // postId can be comma-separated if posted to multiple communities
     const postIds = postId.split(',');
@@ -379,7 +433,10 @@ export class LemmyProvider extends SocialAbstract implements SocialProvider {
     id: string,
     integration: Integration
   ) {
-    const { jwt, service } = await this.getJwtAndService(integration);
+    const { jwt, service } = await this.getJwtAndService(
+      integration,
+      accessToken
+    );
 
     const { communities } = await (
       await this.fetch(
