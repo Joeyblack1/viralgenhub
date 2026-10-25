@@ -4,7 +4,10 @@ import {
   PostResponse,
   SocialProvider,
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
-import { SocialAbstract } from '@gitroom/nestjs-libraries/integrations/social.abstract';
+import {
+  normalizeBaseUrl,
+  SocialAbstract,
+} from '@gitroom/nestjs-libraries/integrations/social.abstract';
 import dayjs from 'dayjs';
 import { Integration } from '@prisma/client';
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
@@ -111,7 +114,9 @@ export class WordpressProvider
 
     // Normalize the domain - users often paste it with surrounding whitespace
     // or a trailing slash, which would otherwise build `https://site.com//wp-json/...`.
-    const domain = body.domain.trim().replace(/\/+$/, '');
+    // The token below keeps the domain as typed, so post() and wpGet()
+    // normalize it again at use.
+    const domain = normalizeBaseUrl(body.domain);
 
     const auth = Buffer.from(`${body.username}:${body.password}`).toString(
       'base64'
@@ -197,6 +202,7 @@ export class WordpressProvider
       refreshToken: '',
       expiresIn: dayjs().add(100, 'years').unix() - dayjs().unix(),
       accessToken: params.code,
+      // the domain as typed: this is the channel's stored internal id
       id: body.domain + '_' + id,
       name,
       picture: avatar_urls?.[String(biggestImage)] || '',
@@ -220,7 +226,7 @@ export class WordpressProvider
       'base64'
     );
 
-    const response = await fetch(`${body.domain}${path}`, {
+    const response = await fetch(`${normalizeBaseUrl(body.domain)}${path}`, {
       headers: {
         Authorization: `Basic ${auth}`,
         'User-Agent': WORDPRESS_USER_AGENT,
@@ -303,6 +309,7 @@ export class WordpressProvider
     const auth = Buffer.from(`${body.username}:${body.password}`).toString(
       'base64'
     );
+    const domain = normalizeBaseUrl(body.domain);
 
     let mediaId = '';
     if (postDetails?.[0]?.settings?.main_image?.path) {
@@ -316,7 +323,7 @@ export class WordpressProvider
       ).then((r) => r.blob());
 
       const mediaResponse = await (
-        await this.fetch(`${body.domain}/wp-json/wp/v2/media`, {
+        await this.fetch(`${domain}/wp-json/wp/v2/media`, {
           method: 'POST',
           headers: {
             Authorization: `Basic ${auth}`,
@@ -342,7 +349,7 @@ export class WordpressProvider
 
     const submit = await (
       await this.fetch(
-        `${body.domain}/wp-json/wp/v2/${postDetails?.[0]?.settings?.type}`,
+        `${domain}/wp-json/wp/v2/${postDetails?.[0]?.settings?.type}`,
         {
           headers: {
             Authorization: `Basic ${auth}`,

@@ -1,5 +1,5 @@
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
-import { SocialAbstract } from '../social.abstract';
+import { normalizeBaseUrl, SocialAbstract } from '../social.abstract';
 import {
   AuthTokenDetails,
   PostDetails,
@@ -87,14 +87,13 @@ export class ListmonkProvider extends SocialAbstract implements SocialProvider {
     const body: { url: string; username: string; password: string } =
       JSON.parse(Buffer.from(params.code, 'base64').toString());
 
-    console.log(body);
     try {
       const basic = Buffer.from(body.username + ':' + body.password).toString(
         'base64'
       );
 
       const { data } = await (
-        await this.fetch(body.url + '/api/settings', {
+        await this.fetch(normalizeBaseUrl(body.url) + '/api/settings', {
           headers: {
             'Content-Type': 'application/json',
             Accept: 'application/json',
@@ -135,7 +134,7 @@ export class ListmonkProvider extends SocialAbstract implements SocialProvider {
     );
 
     const postTypes = await (
-      await this.fetch(`${body.url}/api/lists`, {
+      await this.fetch(`${normalizeBaseUrl(body.url)}/api/lists`, {
         headers: {
           Authorization: `Basic ${auth}`,
         },
@@ -162,7 +161,7 @@ export class ListmonkProvider extends SocialAbstract implements SocialProvider {
     );
 
     const postTypes = await (
-      await this.fetch(`${body.url}/api/templates`, {
+      await this.fetch(`${normalizeBaseUrl(body.url)}/api/templates`, {
         headers: {
           Authorization: `Basic ${auth}`,
         },
@@ -189,6 +188,7 @@ export class ListmonkProvider extends SocialAbstract implements SocialProvider {
     const auth = Buffer.from(`${body.username}:${body.password}`).toString(
       'base64'
     );
+    const url = normalizeBaseUrl(body.url);
 
     const sendBody = `
 <style>
@@ -240,7 +240,7 @@ export class ListmonkProvider extends SocialAbstract implements SocialProvider {
     const {
       data: { uuid: postId, id: campaignId },
     } = await (
-      await this.fetch(body.url + '/api/campaigns', {
+      await this.fetch(url + '/api/campaigns', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -265,7 +265,7 @@ export class ListmonkProvider extends SocialAbstract implements SocialProvider {
       })
     ).json();
 
-    await this.fetch(body.url + `/api/campaigns/${campaignId}/status`, {
+    await this.fetch(url + `/api/campaigns/${campaignId}/status`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
@@ -281,7 +281,7 @@ export class ListmonkProvider extends SocialAbstract implements SocialProvider {
       {
         id: postDetails[0].id,
         status: 'completed',
-        releaseURL: `${body.url}/api/campaigns/${campaignId}/preview`,
+        releaseURL: `${url}/api/campaigns/${campaignId}/preview`,
         postId,
       },
     ];

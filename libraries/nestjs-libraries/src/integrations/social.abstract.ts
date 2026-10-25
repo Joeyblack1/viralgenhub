@@ -34,6 +34,15 @@ export const stripQuery = (url: string) => {
   }
 };
 
+// A base URL the customer typed (a WordPress site, a Mastodon instance):
+// surrounding whitespace and trailing slashes would build `site.com//wp-json`
+// or `%20` URLs, and a bare host has no scheme. Applied where the URL is used,
+// so the values already stored for existing channels keep their meaning.
+export const normalizeBaseUrl = (url: string) => {
+  const trimmed = (url || '').trim().replace(/\/+$/, '');
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+};
+
 export type ValidityMedia = {
   path: string;
   thumbnail?: string;
