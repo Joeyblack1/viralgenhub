@@ -12,7 +12,9 @@ import { Integration } from '@prisma/client';
 
 export class MastodonCustomProvider extends MastodonProvider {
   override identifier = 'mastodon-custom';
-  override name = 'Mastodon'; // any instance; the user enters its address
+  // any instance; the user enters its address. Named apart from 'mastodon'
+  // (the MASTODON_URL server) so Add Channel does not list two "Mastodon"s.
+  override name = 'Mastodon (other server)';
   override maxConcurrentJob = 5; // Custom Mastodon instances typically have generous limits
   editor = 'normal' as const;
 
