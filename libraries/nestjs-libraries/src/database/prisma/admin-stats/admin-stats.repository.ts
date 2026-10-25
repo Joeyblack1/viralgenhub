@@ -436,6 +436,20 @@ export class AdminStatsRepository {
     };
   }
 
+  // Content of the posts PUBLISHED on X channels in a window (deleted rows
+  // included: X billed them), for the X spend estimate.
+  async getPublishedXPostContents(from: Date, to: Date) {
+    const rows = await this._post.model.post.findMany({
+      where: {
+        integration: { providerIdentifier: 'x' },
+        state: 'PUBLISHED',
+        publishDate: { gte: from, lt: to },
+      },
+      select: { content: true },
+    });
+    return rows.map((row) => row.content);
+  }
+
   async getOrgActivity(
     params: OrgActivityParams
   ): Promise<OrgActivityResponse> {

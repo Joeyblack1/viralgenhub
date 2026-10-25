@@ -612,7 +612,7 @@ const colorOptions = [
   { value: 'ERROR', label: 'Error (Red)', className: 'bg-red-600' },
 ];
 
-const AddAnnouncementModal: FC<{ close: () => void }> = ({ close }) => {
+export const AddAnnouncementModal: FC<{ close: () => void }> = ({ close }) => {
   const fetch = useFetch();
   const { mutate } = useSWRConfig();
   const t = useT();
@@ -1025,19 +1025,11 @@ const SwitchUser = () => {
   );
 };
 
-export const Impersonate = () => {
+// The same stop handler the toolbar always had, shared by the strip below.
+const useStopImpersonating = () => {
   const fetch = useFetch();
-  const [name, setName] = useState('');
-  const { isSecured, billingEnabled } = useVariables();
-  const user = useUser();
-  const load = useCallback(async () => {
-    if (!name) {
-      return [];
-    }
-    const value = await (await fetch(`/user/impersonate?name=${name}`)).json();
-    return value;
-  }, [name]);
-  const stopImpersonating = useCallback(async () => {
+  const { isSecured } = useVariables();
+  return useCallback(async () => {
     if (!isSecured) {
       setCookie('impersonate', '', -10);
     } else {
@@ -1050,6 +1042,19 @@ export const Impersonate = () => {
     }
     window.location.reload();
   }, []);
+};
+
+// Search a user and impersonate them. Lives on the /admin page.
+export const ImpersonatePicker = () => {
+  const fetch = useFetch();
+  const [name, setName] = useState('');
+  const load = useCallback(async () => {
+    if (!name) {
+      return [];
+    }
+    const value = await (await fetch(`/user/impersonate?name=${name}`)).json();
+    return value;
+  }, [name]);
   const t = useT();
 
   const setUser = useCallback(
@@ -1087,76 +1092,70 @@ export const Impersonate = () => {
     );
   }, [data]);
   return (
-    <div>
-      <div className="bg-forth h-[52px] mobile:h-auto mobile:py-[8px] mobile:px-[8px] flex justify-center items-center border-input border rounded-[8px] text-white">
-        <div
-          className={`relative flex flex-col ${
-            user?.impersonate ? 'w-full px-[20px] mobile:px-0' : 'w-[600px] mobile:w-full'
-          }`}
-        >
-          <div className="relative z-[1]">
-            {user?.impersonate ? (
-              <div className="text-center flex justify-center items-center gap-[10px] mobile:flex-wrap">
-                <div className="whitespace-nowrap">
-                  {t('currently_impersonating', 'Currently Impersonating')}
-                </div>
-                <div>
-                  <div
-                    className="px-[10px] rounded-[4px] bg-red-500 text-white cursor-pointer"
-                    onClick={stopImpersonating}
-                  >
-                    X
-                  </div>
-                </div>
-                {user?.tier?.current === 'FREE' && <Subscription />}
-                {user?.tier?.team_members && <AddTeamMember />}
-                {billingEnabled && <ManageBilling />}
-                <SwitchUser />
-              </div>
-            ) : (
-              <div className="flex items-center gap-[10px] mobile:flex-wrap">
-                <div className="flex-1 mobile:basis-full">
-                  <Input
-                    autoComplete="off"
-                    placeholder="Write the user details"
-                    name="impersonate"
-                    disableForm={true}
-                    label=""
-                    removeError={true}
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
-                <ImportDebugPost />
-                <AddAnnouncement />
-                <ViewErrors />
-                <ViewStats />
-                <ViewUsers />
-              </div>
-            )}
-          </div>
-          {!!data?.length && (
-            <>
+    <div className="relative flex flex-col">
+      <Input
+        autoComplete="off"
+        placeholder="Write the user details"
+        name="impersonate"
+        disableForm={true}
+        label=""
+        removeError={true}
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+      {!!data?.length && (
+        <>
+          <div
+            className="bg-primary/80 fixed start-0 top-0 w-full h-full z-[998]"
+            onClick={() => setName('')}
+          />
+          <div className="absolute top-[100%] w-max min-w-full max-w-[90vw] start-0 bg-sixth border border-customColor6 text-textColor z-[999]">
+            {mapData?.map((user: any) => (
               <div
-                className="bg-primary/80 fixed start-0 top-0 w-full h-full z-[998]"
-                onClick={() => setName('')}
-              />
-              <div className="absolute top-[100%] w-max min-w-full max-w-[90vw] start-0 bg-sixth border border-customColor6 text-textColor z-[999]">
-                {mapData?.map((user: any) => (
-                  <div
-                    onClick={setUser(user?.id)}
-                    key={user?.id}
-                    className="p-[10px] border-b border-customColor6 hover:bg-tableBorder cursor-pointer whitespace-nowrap truncate"
-                  >
-                    {t('user_1', 'user:')}
-                    {user?.id?.split('-')?.at(-1)} - {user?.name} - {user?.email}{' '}
-                    - {user?.orgName} ({user?.role} / {user?.tier})
-                  </div>
-                ))}
+                onClick={setUser(user?.id)}
+                key={user?.id}
+                className="p-[10px] border-b border-customColor6 hover:bg-tableBorder cursor-pointer whitespace-nowrap truncate"
+              >
+                {t('user_1', 'user:')}
+                {user?.id?.split('-')?.at(-1)} - {user?.name} - {user?.email}{' '}
+                - {user?.orgName} ({user?.role} / {user?.tier})
               </div>
-            </>
-          )}
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+};
+
+// Slim red strip across the top, rendered only while a super admin is
+// impersonating (see layout.component). Everything else the old toolbar held
+// moved to the /admin page.
+export const Impersonate = () => {
+  const { billingEnabled } = useVariables();
+  const user = useUser();
+  const stopImpersonating = useStopImpersonating();
+  const t = useT();
+  return (
+    <div className="bg-red-600 min-h-[36px] mobile:py-[8px] px-[16px] mobile:px-[8px] flex justify-center items-center rounded-[8px] text-white text-[13px]">
+      <div className="text-center flex justify-center items-center gap-[10px] mobile:flex-wrap">
+        <div className="whitespace-nowrap">
+          {t('viewing_as', 'Viewing as')}{' '}
+          <span className="font-[600]">{user?.name || user?.email}</span>
+          {user?.name && user?.email ? ` (${user.email})` : ''}
         </div>
+        <div>
+          <div
+            className="px-[10px] rounded-[4px] bg-white text-red-700 font-[600] cursor-pointer"
+            onClick={stopImpersonating}
+          >
+            {t('stop_impersonating', 'Stop')}
+          </div>
+        </div>
+        {user?.tier?.current === 'FREE' && <Subscription />}
+        {user?.tier?.team_members && <AddTeamMember />}
+        {billingEnabled && <ManageBilling />}
+        <SwitchUser />
       </div>
     </div>
   );
