@@ -16,6 +16,7 @@ import {
   RefreshToken,
   SocialAbstract,
   ValidityMedia,
+  localUploadPath,
   stripQuery,
 } from '@gitroom/nestjs-libraries/integrations/social.abstract';
 import * as process from 'node:process';
@@ -450,7 +451,8 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
 
   // Resolves the total byte size of the media without loading it into memory:
   // a HEAD request for remote URLs, statSync for local files.
-  private async youtubeMediaSize(path: string): Promise<number> {
+  private async youtubeMediaSize(media: string): Promise<number> {
+    const path = localUploadPath(media) || media;
     if (path.indexOf('http') === 0) {
       // the media path is user-influenced, keep the SSRF-safe dispatcher that
       // this.fetch applies to every other outbound request. identity encoding
@@ -480,7 +482,8 @@ export class YoutubeProvider extends SocialAbstract implements SocialProvider {
   // Returns a streaming body for the [start, end] byte range of the media so we
   // never hold the whole file in memory: a ranged GET for remote URLs, a ranged
   // read stream for local files.
-  private async youtubeChunkStream(path: string, start: number, end: number) {
+  private async youtubeChunkStream(media: string, start: number, end: number) {
+    const path = localUploadPath(media) || media;
     if (path.indexOf('http') === 0) {
       // identity encoding so the store keeps content-length and can answer
       // with the requested range: a transformed (compressed) response loses

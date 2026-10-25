@@ -1,4 +1,6 @@
 import { timer } from '@gitroom/helpers/utils/timer';
+import { existsSync } from 'fs';
+import { resolve, sep } from 'path';
 import { Integration } from '@prisma/client';
 import {
   AuthTokenDetails,
@@ -38,6 +40,28 @@ export const stripQuery = (url: string) => {
 // surrounding whitespace and trailing slashes would build `site.com//wp-json`
 // or `%20` URLs, and a bare host has no scheme. Applied where the URL is used,
 // so the values already stored for existing channels keep their meaning.
+// A media URL on this app's own local upload store (STORAGE_PROVIDER=local, the
+// same public prefix LocalStorage.removeFile maps) resolves to the file on disk,
+// so a provider that streams the bytes itself does not go back out through the
+// CDN, which can drop content-length on HEAD and ignore Range. Anything else,
+// or a path that would leave the upload directory, returns undefined.
+export const localUploadPath = (url: string): string | undefined => {
+  const root = process.env.UPLOAD_DIRECTORY;
+  if (process.env.STORAGE_PROVIDER !== 'local' || !root || !url) {
+    return undefined;
+  }
+  const publicPrefix = process.env.FRONTEND_URL + '/uploads/';
+  if (!url.startsWith(publicPrefix)) {
+    return undefined;
+  }
+  const base = resolve(root);
+  const file = resolve(
+    base,
+    decodeURIComponent(url.slice(publicPrefix.length).split(/[?#]/)[0])
+  );
+  return file.startsWith(base + sep) && existsSync(file) ? file : undefined;
+};
+
 export const normalizeBaseUrl = (url: string) => {
   const trimmed = (url || '').trim().replace(/\/+$/, '');
   return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
