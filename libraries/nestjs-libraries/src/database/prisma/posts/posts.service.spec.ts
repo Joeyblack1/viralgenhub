@@ -40,7 +40,7 @@ jest.mock('nestjs-temporal-core', () => ({ TemporalService: class {} }));
 
 import { PostsService } from './posts.service';
 
-// X is capped per plan (x_posts_per_month: Free 0, Creator 100, Business 300)
+// X is capped per plan (x_posts_per_month: Free 0, Creator 20, Business 60)
 const xProvider = { name: 'X', planPostsLimit: 'x_posts_per_month' };
 
 const setup = (post: any, tier = 'STANDARD', used = 0) => {
@@ -92,7 +92,7 @@ describe('PostsService.changeDate, monthly X cap', () => {
   });
 
   it('refuses moving a queued X post into a month that is full', async () => {
-    const { service, repo } = setup(queued('x'), 'STANDARD', 100);
+    const { service, repo } = setup(queued('x'), 'STANDARD', 20);
     await expect(
       service.changeDate('org', 'p1', '2026-12-02T09:00:00Z', 'update')
     ).rejects.toMatchObject({ status: 402 });
@@ -131,7 +131,7 @@ describe('PostsService.changeDate, monthly X cap', () => {
   });
 
   it('counts a republish of a published post as a new post', async () => {
-    const { service, repo } = setup(queued('x', 'PUBLISHED'), 'STANDARD', 100);
+    const { service, repo } = setup(queued('x', 'PUBLISHED'), 'STANDARD', 20);
     await expect(
       service.changeDate('org', 'p1', '2026-12-02T09:00:00Z', 'schedule', true)
     ).rejects.toMatchObject({ status: 402 });
@@ -161,7 +161,7 @@ describe('PostsService.checkPlanPostsLimits, republish and plugs', () => {
     } as any);
 
   it('counts a republish of a PUBLISHED post as a new post', async () => {
-    const { service, repo } = setup(queued('x', 'PUBLISHED'), 'STANDARD', 100);
+    const { service, repo } = setup(queued('x', 'PUBLISHED'), 'STANDARD', 20);
     await expect(
       service.checkPlanPostsLimits('org', [body(true)])
     ).rejects.toMatchObject({ status: 402 });
@@ -170,13 +170,13 @@ describe('PostsService.checkPlanPostsLimits, republish and plugs', () => {
   });
 
   it('still excludes the post a republish of a queued post overwrites', async () => {
-    const { service, repo } = setup(queued('x', 'QUEUE'), 'STANDARD', 99);
+    const { service, repo } = setup(queued('x', 'QUEUE'), 'STANDARD', 19);
     await service.checkPlanPostsLimits('org', [body(true)]);
     expect(repo.countProviderPostsBetween.mock.calls[0][4]).toEqual(['p1']);
   });
 
   it('a normal edit of a post excludes it and never looks it up', async () => {
-    const { service, repo } = setup(queued('x'), 'STANDARD', 99);
+    const { service, repo } = setup(queued('x'), 'STANDARD', 19);
     await service.checkPlanPostsLimits('org', [body()]);
     expect(repo.countProviderPostsBetween.mock.calls[0][4]).toEqual(['p1']);
     expect(repo.getPostById).not.toHaveBeenCalled();
@@ -192,7 +192,7 @@ describe('PostsService.checkPlanPostsLimits, republish and plugs', () => {
     });
 
     it('counts recorded plug posts against the cap', async () => {
-      const { service } = setup(queued('x'), 'STANDARD', 99);
+      const { service } = setup(queued('x'), 'STANDARD', 19);
       redis.get = jest.fn().mockResolvedValue('1');
       await expect(service.plugPostCap.allow('org', 'x')).resolves.toBe(false);
       expect(redis.get.mock.calls[0][0]).toMatch(
@@ -201,7 +201,7 @@ describe('PostsService.checkPlanPostsLimits, republish and plugs', () => {
     });
 
     it('allows a plug while there is room and on Redis errors reading the count', async () => {
-      const { service } = setup(queued('x'), 'STANDARD', 98);
+      const { service } = setup(queued('x'), 'STANDARD', 18);
       redis.get = jest.fn().mockResolvedValue('1');
       await expect(service.plugPostCap.allow('org', 'x')).resolves.toBe(true);
       redis.get = jest.fn().mockRejectedValue(new Error('down'));

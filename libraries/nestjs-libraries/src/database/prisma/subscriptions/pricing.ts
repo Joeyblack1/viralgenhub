@@ -28,11 +28,12 @@ export interface PricingInterface {
 //   FREE      = Free      2 channels, 20 posts/month, no X, a taste of the
 //                         Public API + MCP (100 requests a day), 1 webhook
 //                         (Joseph, 2026-10-18)
-//   STANDARD  = Creator   £7.99/month, £79.90/year (2 months free), 100 X posts/month
+//   STANDARD  = Creator   £7.99/month, £79.90/year (2 months free), 20 X posts/month
 //   TEAM      = Business  £19.99/month, £199.90/year (2 months free), team members,
-//                         300 X posts/month
+//                         60 X posts/month
 // X posts are capped per calendar month of their publish date (Joseph,
 // 2026-10-17): X's API is pay-per-use, about $0.015 a post, $0.20 with a URL.
+// Lowered from 100 and 300 to 20 and 60 (Joseph, 2026-10-25).
 // PRO and ULTIMATE are upstream tiers we do not sell. AI features (agent,
 // post generator, image generator) are on for Business only; video generation
 // and clipping stay off in every plan.
@@ -64,7 +65,7 @@ export const pricing: PricingInterface = {
     year_price: 79.9,
     channel: 8,
     posts_per_month: 1000000,
-    x_posts_per_month: 100,
+    x_posts_per_month: 20,
     image_generation_count: 0,
     team_members: false,
     ai: false,
@@ -85,7 +86,7 @@ export const pricing: PricingInterface = {
     year_price: 199.9,
     channel: 25,
     posts_per_month: 1000000,
-    x_posts_per_month: 300,
+    x_posts_per_month: 60,
     image_generation_count: 100,
     community_features: true,
     team_members: true,
