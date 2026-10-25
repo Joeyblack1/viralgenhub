@@ -51,42 +51,17 @@ export class DribbbleProvider extends SocialAbstract implements SocialProvider {
     return 'Invalid image size. Requires 400x300 or 800x600 px images.';
   }
 
+  // Dribbble access tokens do not expire and come without a refresh token
+  // (authenticate stores expiresIn 999999999), so there is nothing to refresh
   async refreshToken(refreshToken: string): Promise<AuthTokenDetails> {
-    const { access_token, expires_in } = await (
-      await this.fetch('https://api-sandbox.pinterest.com/v5/oauth/token', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          Authorization: `Basic ${Buffer.from(
-            `${process.env.PINTEREST_CLIENT_ID}:${process.env.PINTEREST_CLIENT_SECRET}`
-          ).toString('base64')}`,
-        },
-        body: new URLSearchParams({
-          grant_type: 'refresh_token',
-          refresh_token: refreshToken,
-          scope: `${this.scopes.join(',')}`,
-          redirect_uri: `${process.env.FRONTEND_URL}/integrations/social/pinterest`,
-        }),
-      })
-    ).json();
-
-    const { id, profile_image, username } = await (
-      await this.fetch('https://api-sandbox.pinterest.com/v5/user_account', {
-        method: 'GET',
-        headers: {
-          Authorization: `Bearer ${access_token}`,
-        },
-      })
-    ).json();
-
     return {
-      id: id,
-      name: username,
-      accessToken: access_token,
-      refreshToken: refreshToken,
-      expiresIn: expires_in,
-      picture: profile_image || '',
-      username,
+      refreshToken: '',
+      expiresIn: 0,
+      accessToken: '',
+      id: '',
+      name: '',
+      picture: '',
+      username: '',
     };
   }
 

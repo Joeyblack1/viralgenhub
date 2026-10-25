@@ -31,7 +31,10 @@ export const loadConnectableProviders = async (
 ) => {
   const data = await (await fetch('/integrations')).json();
   const preview = await (await fetch('/integrations/preview')).json();
-  data.social = [...(data.social || []), ...(preview?.social || [])];
+  data.social = [
+    ...(data.social || []),
+    ...(preview?.social || []).map((p: any) => ({ ...p, preview: true })),
+  ];
   return data as {
     social: any[];
     article: any[];
@@ -403,6 +406,8 @@ export const AddProviderComponent: FC<{
     isExternal: boolean;
     isWeb3: boolean;
     isChromeExtension?: boolean;
+    // a hidden platform this workspace may connect (PREVIEW_PROVIDERS)
+    preview?: boolean;
     extensionCookies?: Array<{
       name: string;
       domain: string;
@@ -769,6 +774,23 @@ export const AddProviderComponent: FC<{
                   )}
                 >
                   {item.name}
+                  {!!item.preview && (
+                    <div
+                      className={clsx(
+                        isMobile
+                          ? 'ms-[8px] inline-block'
+                          : 'absolute top-[8px] start-[8px]',
+                        'text-[10px] rounded-[4px] px-[6px] py-[1px] bg-btnSimple'
+                      )}
+                      data-tooltip-id="tooltip"
+                      data-tooltip-content={t(
+                        'preview_platform_tooltip',
+                        'Only workspaces in the preview can connect this platform while it is being tested'
+                      )}
+                    >
+                      {t('preview', 'Preview')}
+                    </div>
+                  )}
                   {!!item.toolTip && !isMobile && (
                     <svg
                       width="15"
