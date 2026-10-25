@@ -60,6 +60,7 @@ import { GetOrgActivityDto } from '@gitroom/nestjs-libraries/dtos/analytics/get.
 import { ResetCreditsDto } from '@gitroom/nestjs-libraries/dtos/billing/reset.credits.dto';
 import { SubscriptionService } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/subscription.service';
 import dayjs from 'dayjs';
+import { EarlyAccessService } from '@gitroom/nestjs-libraries/database/prisma/early-access/early.access.service';
 
 @ApiTags('Public API')
 @Controller('/public/v1')
@@ -75,7 +76,8 @@ export class PublicIntegrationsController {
     private _adminStatsService: AdminStatsService,
     private _organizationService: OrganizationService,
     private _clippingService: ClippingService,
-    private _subscriptionService: SubscriptionService
+    private _subscriptionService: SubscriptionService,
+    private _earlyAccessService: EarlyAccessService
   ) {}
 
   @Post('/upload')
@@ -331,6 +333,29 @@ export class PublicIntegrationsController {
       !this._integrationManager
         .getAllowedSocialsIntegrations()
         .includes(integration)
+    ) {
+      throw new HttpException({ msg: 'Integration not allowed' }, 400);
+    }
+
+    // Same rule as the dashboard route: a hidden / coming-soon provider only
+    // for preview organizations; reconnecting a channel the organization
+    // already has stays possible. `refresh` is client input, so it only counts
+    // when it names one of this organization's own channels of this provider.
+    const reconnecting =
+      !!refresh &&
+      (
+        await this._integrationService.getIntegrationByInternalId(
+          org.id,
+          refresh
+        )
+      )?.providerIdentifier === integration;
+    if (
+      !reconnecting &&
+      !this._integrationManager.isAvailableTo(
+        integration,
+        org.id,
+        await this._earlyAccessService.approvedProviders(org.id)
+      )
     ) {
       throw new HttpException({ msg: 'Integration not allowed' }, 400);
     }
@@ -693,7 +718,8 @@ export class PublicIntegrationsController {
       throw new HttpException({ msg: 'Tool not found' }, 404);
     }
 
-    while (true) {
+    // a token refreshed more than a few times in one call is a provider loop
+    for (let attempt = 0; attempt < 4; attempt++) {
       try {
         // @ts-ignore
         const result = await integrationProvider[body.methodName](
@@ -736,5 +762,7 @@ export class PublicIntegrationsController {
         throw new HttpException({ msg: 'Unexpected error' }, 500);
       }
     }
+
+    throw new HttpException({ msg: 'Unexpected error' }, 500);
   }
 }
