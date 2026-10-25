@@ -53,7 +53,7 @@ const build = (opts: {
       (id: string, _org: string, approved: string[]) =>
         !opts.hidden || approved.includes(id)
     ),
-    getMigrationTarget: () => undefined,
+    getMigrationTarget: (): undefined => undefined,
     getSocialIntegration: () => provider,
   };
   const integrationService: any = {
