@@ -1,5 +1,6 @@
 'use client';
 
+import { stashExtensionCode } from '@gitroom/frontend/components/launches/extension.code.stash';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import React, { FC, useCallback, useMemo, useState } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
@@ -675,10 +676,29 @@ export const AddProviderComponent: FC<{
               return;
             }
             const { url } = await response.json();
+            // Cookies never go in the URL: stash them for the next page, which
+            // POSTs them in the request body.
+            if (
+              !stashExtensionCode(
+                url,
+                Buffer.from(JSON.stringify(cookieResponse.cookies)).toString(
+                  'base64'
+                )
+              )
+            ) {
+              toaster.show(
+                t(
+                  'extension_communication_error',
+                  'Failed to communicate with the browser extension.'
+                ),
+                'warning'
+              );
+              return;
+            }
             modal.closeAll();
-            window.location.href = `/integrations/social/${identifier}?state=${url}&code=${Buffer.from(
-              JSON.stringify(cookieResponse.cookies)
-            ).toString('base64')}${onboarding ? '&onboarding=true' : ''}`;
+            window.location.href = `/integrations/social/${identifier}?state=${url}${
+              onboarding ? '&onboarding=true' : ''
+            }`;
           } catch {
             toaster.show(
               t(
