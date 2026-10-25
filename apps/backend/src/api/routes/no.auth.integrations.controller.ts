@@ -22,6 +22,7 @@ import {
   Sections,
 } from '@gitroom/backend/services/auth/permissions/permission.exception.class';
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
+import { EarlyAccessService } from '@gitroom/nestjs-libraries/database/prisma/early-access/early.access.service';
 import { OrganizationService } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.service';
 import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 
@@ -32,7 +33,8 @@ export class NoAuthIntegrationsController {
     private _integrationManager: IntegrationManager,
     private _integrationService: IntegrationService,
     private _refreshIntegrationService: RefreshIntegrationService,
-    private _organizationService: OrganizationService
+    private _organizationService: OrganizationService,
+    private _earlyAccessService: EarlyAccessService
   ) {}
 
   @Get('/')
@@ -98,7 +100,13 @@ export class NoAuthIntegrationsController {
     // already checked when it stored refresh: for this state.
     if (
       !refresh &&
-      !this._integrationManager.isAvailableTo(integration, org?.id)
+      !this._integrationManager.isAvailableTo(
+        integration,
+        org?.id,
+        org?.id
+          ? await this._earlyAccessService.approvedProviders(org.id)
+          : []
+      )
     ) {
       throw new Error('Integration not allowed');
     }

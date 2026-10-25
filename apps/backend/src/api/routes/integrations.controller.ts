@@ -40,6 +40,8 @@ import {
   Sections,
 } from '@gitroom/backend/services/auth/permissions/permission.exception.class';
 import { uniqBy } from 'lodash';
+import { EarlyAccessService } from '@gitroom/nestjs-libraries/database/prisma/early-access/early.access.service';
+import { EarlyAccessRequestDto } from '@gitroom/nestjs-libraries/dtos/integrations/early.access.dto';
 import { RefreshIntegrationService } from '@gitroom/nestjs-libraries/integrations/refresh.integration.service';
 
 @ApiTags('Integrations')
@@ -49,7 +51,8 @@ export class IntegrationsController {
     private _integrationManager: IntegrationManager,
     private _integrationService: IntegrationService,
     private _postService: PostsService,
-    private _refreshIntegrationService: RefreshIntegrationService
+    private _refreshIntegrationService: RefreshIntegrationService,
+    private _earlyAccessService: EarlyAccessService
   ) {}
 
   @Post('/provider/:id/connect')
@@ -74,7 +77,21 @@ export class IntegrationsController {
 
   @Get('/preview')
   getPreviewIntegrations(@GetOrgFromRequest() org: Organization) {
-    return this._integrationManager.getPreviewIntegrations(org.id);
+    return this._earlyAccessService.previewIntegrations(org.id);
+  }
+
+  @Get('/early-access')
+  getEarlyAccess(@GetOrgFromRequest() org: Organization) {
+    return this._earlyAccessService.listMine(org.id);
+  }
+
+  @Post('/early-access')
+  requestEarlyAccess(
+    @GetOrgFromRequest() org: Organization,
+    @GetUserFromRequest() user: User,
+    @Body() body: EarlyAccessRequestDto
+  ) {
+    return this._earlyAccessService.request(org.id, user.id, body);
   }
 
   @Put('/customers/:id')
@@ -256,7 +273,11 @@ export class IntegrationsController {
       )?.providerIdentifier === integration;
     if (
       !reconnecting &&
-      !this._integrationManager.isAvailableTo(integration, org.id)
+      !this._integrationManager.isAvailableTo(
+        integration,
+        org.id,
+        await this._earlyAccessService.approvedProviders(org.id)
+      )
     ) {
       throw new Error('Integration not allowed');
     }

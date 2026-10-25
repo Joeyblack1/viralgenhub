@@ -1,7 +1,7 @@
 'use client';
 
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
-import React, { FC, useCallback, useMemo } from 'react';
+import React, { FC, useCallback, useMemo, useState } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Input } from '@gitroom/react/form/input';
 import { getCustomFieldPlaceholder } from '@gitroom/frontend/components/launches/custom-field-placeholders';
@@ -20,6 +20,11 @@ import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import clsx from 'clsx';
 import copy from 'copy-to-clipboard';
 import { capitalize } from 'lodash';
+import {
+  EarlyAccessBadges,
+  isLockedTile,
+  useOpenEarlyAccess,
+} from '@gitroom/frontend/components/launches/early-access.dialog';
 const resolver = classValidatorResolver(ApiKeyDto);
 
 // The platforms the current organization may connect: /integrations leaves out
@@ -418,6 +423,11 @@ export const AddProviderComponent: FC<{
     isChromeExtension?: boolean;
     // a hidden platform this workspace may connect (PREVIEW_PROVIDERS)
     preview?: boolean;
+    // early access tiers (see early-access.dialog.tsx)
+    testerAccess?: boolean;
+    comingSoon?: boolean;
+    waiting?: number;
+    myRequest?: string;
     extensionCookies?: Array<{
       name: string;
       domain: string;
@@ -446,6 +456,10 @@ export const AddProviderComponent: FC<{
   const router = useRouter();
   const fetch = useFetch();
   const modal = useModals();
+  const [requested, setRequested] = useState<string[]>([]);
+  const openEarlyAccess = useOpenEarlyAccess(
+    useCallback((provider: string) => setRequested((r) => [...r, provider]), [])
+  );
   const getSocialLink = useCallback(
     (
         invite: boolean,
@@ -735,6 +749,7 @@ export const AddProviderComponent: FC<{
               }
 
               return (
+                !isLockedTile(item) &&
                 !item.isExternal &&
                 !item.isWeb3 &&
                 !item.isChromeExtension &&
@@ -744,14 +759,18 @@ export const AddProviderComponent: FC<{
             .map((item) => (
               <div
                 key={item.identifier}
-                onClick={getSocialLink(
-                  props.invite,
-                  item.identifier,
-                  item.isExternal,
-                  item.isWeb3,
-                  item.isChromeExtension,
-                  item.customFields
-                )}
+                onClick={
+                  isLockedTile(item)
+                    ? () => openEarlyAccess(item)
+                    : getSocialLink(
+                        props.invite,
+                        item.identifier,
+                        item.isExternal,
+                        item.isWeb3,
+                        item.isChromeExtension,
+                        item.customFields
+                      )
+                }
                 {...(!!item.toolTip
                   ? {
                       'data-tooltip-id': 'tooltip',
@@ -762,7 +781,8 @@ export const AddProviderComponent: FC<{
                   isMobile
                     ? 'flex-row h-[72px] p-[16px]'
                     : 'flex-col p-[10px] h-[100px] justify-center mobile:text-[13px] mobile:leading-[1.2]',
-                  'w-full text-[14px] rounded-[8px] bg-newTableHeader text-textColor relative items-center flex gap-[10px] cursor-pointer'
+                  'w-full text-[14px] rounded-[8px] bg-newTableHeader text-textColor relative items-center flex gap-[10px] cursor-pointer',
+                  isLockedTile(item) && 'opacity-60'
                 )}
               >
                 <div>
@@ -786,7 +806,16 @@ export const AddProviderComponent: FC<{
                   )}
                 >
                   {item.name}
-                  {!!item.preview && (
+                  {isLockedTile(item) && (
+                    <EarlyAccessBadges
+                      item={item}
+                      isMobile={isMobile}
+                      requested={
+                        !!item.myRequest || requested.includes(item.identifier)
+                      }
+                    />
+                  )}
+                  {!!item.preview && !isLockedTile(item) && (
                     <div
                       className={clsx(
                         isMobile

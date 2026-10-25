@@ -12,6 +12,7 @@ import { User } from '@prisma/client';
 import { ApiTags } from '@nestjs/swagger';
 import { ErrorsService } from '@gitroom/nestjs-libraries/database/prisma/errors/errors.service';
 import { AdminStatsService } from '@gitroom/nestjs-libraries/database/prisma/admin-stats/admin-stats.service';
+import { EarlyAccessService } from '@gitroom/nestjs-libraries/database/prisma/early-access/early.access.service';
 import dayjs from 'dayjs';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { AdminSetUserDisabledDto } from '@gitroom/nestjs-libraries/dtos/users/admin.set.user.disabled.dto';
@@ -22,7 +23,8 @@ export class AdminController {
   constructor(
     private _errorsService: ErrorsService,
     private _adminStatsService: AdminStatsService,
-    private _usersService: UsersService
+    private _usersService: UsersService,
+    private _earlyAccessService: EarlyAccessService
   ) {}
 
   private assertSuperAdmin(user: User) {
@@ -94,6 +96,30 @@ export class AdminController {
       throw new HttpException('A super admin cannot be disabled', 400);
     }
     return this._usersService.setDisabled(id, body.disabled);
+  }
+
+  @Get('/early-access')
+  async listEarlyAccess(@GetUserFromRequest() user: User) {
+    this.assertSuperAdmin(user);
+    return this._earlyAccessService.adminList();
+  }
+
+  @Post('/early-access/:id/approve')
+  async approveEarlyAccess(
+    @GetUserFromRequest() user: User,
+    @Param('id') id: string
+  ) {
+    this.assertSuperAdmin(user);
+    return this._earlyAccessService.approve(id);
+  }
+
+  @Post('/early-access/notify/:provider')
+  async notifyEarlyAccess(
+    @GetUserFromRequest() user: User,
+    @Param('provider') provider: string
+  ) {
+    this.assertSuperAdmin(user);
+    return this._earlyAccessService.notifyWaitlist(provider);
   }
 
   @Get('/stats')

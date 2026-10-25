@@ -96,25 +96,49 @@ export class IntegrationManager {
       .includes(identifier);
   }
 
-  // PREVIEW_PROVIDERS ("facebook,instagram") are hidden providers that the
-  // organizations in PREVIEW_ORGS (comma list of organization ids) can still
-  // connect, e.g. while the platform's public app review is pending. Everyone
-  // else cannot start or finish a connect of a hidden provider: hiding it from
-  // the list alone would leave the connect endpoints open.
-  isPreviewProvider(identifier: string, orgId?: string) {
-    const list = (name: string) =>
-      (process.env[name] || '').split(',').map((p) => p.trim());
+  private envList(name: string) {
+    return (process.env[name] || '')
+      .split(',')
+      .map((p) => p.trim())
+      .filter(Boolean);
+  }
+
+  // COMING_SOON_PROVIDERS ("mewe,tumblr") are hidden providers nobody can use
+  // yet; the add-channel screen shows them with a waitlist instead.
+  isComingSoonProvider(identifier: string) {
     return (
-      !!orgId &&
-      list('PREVIEW_PROVIDERS').includes(identifier) &&
-      list('PREVIEW_ORGS').includes(orgId)
+      this.isHiddenProvider(identifier) &&
+      this.envList('COMING_SOON_PROVIDERS').includes(identifier)
     );
   }
 
-  isAvailableTo(identifier: string, orgId?: string) {
+  // PREVIEW_PROVIDERS ("facebook,instagram") are hidden providers in tester
+  // preview. A tester organization is one listed in PREVIEW_ORGS (comma list of
+  // organization ids) or, via `approved`, one an admin approved for that
+  // provider in the early-access table. Everyone else cannot start or finish a
+  // connect of a hidden provider: hiding it from the list alone would leave the
+  // connect endpoints open.
+  isPreviewListed(identifier: string) {
+    return (
+      this.isHiddenProvider(identifier) &&
+      !this.isComingSoonProvider(identifier) &&
+      this.envList('PREVIEW_PROVIDERS').includes(identifier)
+    );
+  }
+
+  isPreviewProvider(identifier: string, orgId?: string, approved: string[] = []) {
+    return (
+      !!orgId &&
+      this.isPreviewListed(identifier) &&
+      (this.envList('PREVIEW_ORGS').includes(orgId) ||
+        approved.includes(identifier))
+    );
+  }
+
+  isAvailableTo(identifier: string, orgId?: string, approved: string[] = []) {
     return (
       !this.isHiddenProvider(identifier) ||
-      this.isPreviewProvider(identifier, orgId)
+      this.isPreviewProvider(identifier, orgId, approved)
     );
   }
 
@@ -162,16 +186,41 @@ export class IntegrationManager {
     };
   }
 
-  // Hidden providers this organization may connect (PREVIEW_PROVIDERS).
-  async getPreviewIntegrations(orgId: string) {
+  // The two hidden tiers for the add-channel screen: tester-preview providers
+  // (testerAccess says whether this organization can connect them) and
+  // coming-soon providers (nobody can). `approved` are the providers an admin
+  // approved this organization for; `waiting` and `requested` come from the
+  // early-access table (waiting count per provider, this organization's own
+  // request status per provider).
+  async getPreviewIntegrations(
+    orgId: string,
+    approved: string[] = [],
+    waiting: Record<string, number> = {},
+    requested: Record<string, string> = {}
+  ) {
+    const tiers = socialIntegrationList.filter(
+      (p) =>
+        this.isPreviewListed(p.identifier) ||
+        this.isComingSoonProvider(p.identifier)
+    );
+    const described = await this.describeIntegrations(tiers);
     return {
-      social: await this.describeIntegrations(
-        socialIntegrationList.filter(
-          (p) =>
-            this.isHiddenProvider(p.identifier) &&
-            this.isPreviewProvider(p.identifier, orgId)
-        )
-      ),
+      social: described.map((p) => ({
+        ...p,
+        ...(this.isComingSoonProvider(p.identifier)
+          ? { comingSoon: true }
+          : {
+              testerAccess: this.isPreviewProvider(
+                p.identifier,
+                orgId,
+                approved
+              ),
+            }),
+        waiting: waiting[p.identifier] || 0,
+        ...(requested[p.identifier]
+          ? { myRequest: requested[p.identifier] }
+          : {}),
+      })),
     };
   }
 
