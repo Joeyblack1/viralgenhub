@@ -293,6 +293,9 @@ export const MenuGroupComponent: FC<
           {!collapsed && (
             <div
               className="hidden group-hover:block hover:opacity-70"
+              data-tooltip-id="tooltip"
+              data-tooltip-content={t('vgh_rename_group', 'Rename group')}
+              aria-label={t('vgh_rename_group', 'Rename group')}
               onClick={editGroupName}
             >
               <EditPencil />
@@ -658,6 +661,9 @@ export const LaunchesComponent = () => {
               </h2>
               <div
                 onClick={() => setChannelsOpen(false)}
+                data-tooltip-id="tooltip"
+                data-tooltip-content={t('vgh_close_channels', 'Close')}
+                aria-label={t('vgh_close_channels', 'Close')}
                 className="hidden mobile:flex text-btnText bg-btnSimple rounded-[6px] w-[28px] h-[28px] items-center justify-center cursor-pointer select-none"
               >
                 <svg
@@ -679,6 +685,9 @@ export const LaunchesComponent = () => {
                 onClick={() =>
                   setCollapseMenu(collapseMenu === '1' ? '0' : '1')
                 }
+                data-tooltip-id="tooltip"
+                data-tooltip-content={t('vgh_collapse_channels', 'Collapse or expand the channel list')}
+                aria-label={t('vgh_collapse_channels', 'Collapse or expand the channel list')}
                 className="group-[.sidebar]:rotate-[180deg] group-[.sidebar]:mx-auto mobile:hidden text-btnText bg-btnSimple rounded-[6px] w-[24px] h-[24px] flex items-center justify-center cursor-pointer select-none"
               >
                 <svg

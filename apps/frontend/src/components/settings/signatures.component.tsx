@@ -207,6 +207,9 @@ const AddOrRemoveSignature: FC<{
           <button
             className="outline-none absolute end-[20px] top-[15px] mantine-UnstyledButton-root mantine-ActionIcon-root hover:bg-tableBorder cursor-pointer mantine-Modal-close mantine-1dcetaa"
             type="button"
+            data-tooltip-id="tooltip"
+            data-tooltip-content={t('vgh_close_tip', 'Close')}
+            aria-label={t('vgh_close_tip', 'Close')}
             onClick={() => modal.closeCurrent()}
           >
             <svg

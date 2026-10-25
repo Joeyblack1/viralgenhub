@@ -410,6 +410,9 @@ export const Menu: FC<{
   return (
     <div
       className="cursor-pointer relative select-none flex"
+      data-tooltip-id="tooltip"
+      data-tooltip-content={t('vgh_channel_options', 'Channel options')}
+      aria-label={t('vgh_channel_options', 'Channel options')}
       onClick={changeShow}
       ref={ref}
     >

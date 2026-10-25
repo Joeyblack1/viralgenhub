@@ -223,6 +223,7 @@ export interface SocialProvider
       type: 'text' | 'password';
       hint?: string;
       optional?: boolean;
+      placeholder?: string;
     }[]
   >;
   name: string;

@@ -427,6 +427,9 @@ export const EditorWrapper: FC<{
       {!!internal && !existingData?.integration && (
         <div
           className="mt-[12px] flex gap-[20px] items-center cursor-pointer select-none mobile:mt-0 mobile:w-[40px] mobile:h-[40px] mobile:justify-center mobile:rounded-[8px] mobile:bg-btnSimple"
+          data-tooltip-id="tooltip"
+          data-tooltip-content={t('vgh_back_to_global_edit', 'Back to the global editor')}
+          aria-label={t('vgh_back_to_global_edit', 'Back to the global editor')}
           onClick={goBackToGlobal}
         >
           <div className="flex gap-[6px] items-center mobile:hidden">

@@ -134,6 +134,9 @@ export const LanguageComponent = () => {
   };
   return (
     <div
+      data-tooltip-id="tooltip"
+      data-tooltip-content={t('vgh_change_language_tip', 'Change language')}
+      aria-label={t('vgh_change_language_tip', 'Change language')}
       onClick={openModal}
       className="rounded-full overflow-hidden h-[22px] w-[22px] relative cursor-pointer"
     >

@@ -211,6 +211,9 @@ export const AiVideo: FC<{
   return (
     <div className="relative">
       <div
+        data-tooltip-id="tooltip"
+        data-tooltip-content={t('vgh_ai_video_tip', 'Generate a video with AI')}
+        aria-label={t('vgh_ai_video_tip', 'Generate a video with AI')}
         onClick={openVideoModal}
         className={clsx(
           'cursor-pointer h-[30px] mobile:h-[40px] mobile:min-w-[40px] rounded-[6px] mobile:rounded-[8px] justify-center items-center flex bg-newColColor mobile:bg-newSettings px-[8px]'

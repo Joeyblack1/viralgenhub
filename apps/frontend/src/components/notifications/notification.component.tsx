@@ -103,6 +103,7 @@ export const NotificationOpenComponent = () => {
   );
 };
 const NotificationComponent = () => {
+  const t = useT();
   const fetch = useFetch();
   const [show, setShow] = useState(false);
   const loadNotifications = useCallback(async () => {
@@ -124,7 +125,7 @@ const NotificationComponent = () => {
   const ref = useClickAway<HTMLDivElement>(() => setShow(false));
   return (
     <div className="relative cursor-pointer select-none" ref={ref}>
-      <div onClick={changeShow}>
+      <div onClick={changeShow} data-tooltip-id="tooltip" data-tooltip-content={t('vgh_notifications_tip', 'Notifications')} aria-label={t('vgh_notifications_tip', 'Notifications')}>
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="24"

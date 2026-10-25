@@ -41,6 +41,9 @@ export const MobileTopBar: FC<{
   return (
     <div className="hidden mobile:flex sticky top-0 z-[450] h-[60px] items-center gap-[8px] px-[16px] bg-newBgColorInner select-none">
       <div
+        data-tooltip-id="tooltip"
+        data-tooltip-content={t('vgh_back_tip', 'Back')}
+        aria-label={t('vgh_back_tip', 'Back')}
         onClick={onBack}
         className="w-[24px] h-[24px] flex justify-center items-center cursor-pointer text-[#A3A3A3]"
       >

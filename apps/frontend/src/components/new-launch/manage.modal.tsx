@@ -882,6 +882,9 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   // on phones, the settings, tags, repeat and delete live in a settings sheet
   const settingsButton = !dummy && (
     <div
+      data-tooltip-id="tooltip"
+      data-tooltip-content={t('vgh_post_settings', 'Settings for this post')}
+      aria-label={t('vgh_post_settings', 'Settings for this post')}
       onClick={() => setMobileSheet('settings')}
       className="hidden mobile:flex shrink-0 w-[32px] h-[44px] justify-end items-center cursor-pointer text-[#A3A3A3]"
     >
@@ -892,6 +895,9 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
   // phones have no room for the preview column, it replaces the editor instead
   const previewButton = (
     <div
+      data-tooltip-id="tooltip"
+      data-tooltip-content={t('vgh_toggle_preview', 'Show or hide the preview')}
+      aria-label={t('vgh_toggle_preview', 'Show or hide the preview')}
       onClick={() => setMobileTab(mobileTab === 'preview' ? 'edit' : 'preview')}
       className={clsx(
         'hidden mobile:flex shrink-0 w-[32px] h-[44px] justify-end items-center cursor-pointer',
@@ -988,6 +994,9 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                       {!existingData.integration && (
                         <>
                           <div
+                            data-tooltip-id="tooltip"
+                            data-tooltip-content={t('vgh_choose_channels', 'Choose channels')}
+                            aria-label={t('vgh_choose_channels', 'Choose channels')}
                             onClick={() => setMobileSheet('channels')}
                             className="hidden mobile:flex shrink-0 w-[44px] h-[44px] rounded-[8px] bg-btnSimple justify-center items-center cursor-pointer"
                           >
@@ -1095,7 +1104,7 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
           >
             <div className="bg-newBgColor h-[65px] rounded-e-[20px] !rounded-b-[0] mobile:hidden flex items-center px-[20px] text-[20px] font-[600]">
               <div className="flex-1">{t('post_preview', 'Post Preview')}</div>
-              <div className="cursor-pointer mobile:hidden">
+              <div className="cursor-pointer mobile:hidden" data-tooltip-id="tooltip" data-tooltip-content={t('vgh_close_composer', 'Close')} aria-label={t('vgh_close_composer', 'Close')}>
                 <CloseIcon onClick={askClose} className="text-[#A3A3A3]" />
               </div>
             </div>
@@ -1207,6 +1216,9 @@ export const ManageModal: FC<AddEditModalProps> = (props) => {
                         e.stopPropagation();
                         setShowPostNow(!showPostNow);
                       }}
+                      data-tooltip-id="tooltip"
+                      data-tooltip-content={t('vgh_more_ways_to_post', 'More ways to post')}
+                      aria-label={t('vgh_more_ways_to_post', 'More ways to post')}
                       className="flex justify-center items-center h-[20px] w-[20px] pt-[4px] arrow-change"
                     >
                       <DropdownArrowSmallIcon

@@ -3,10 +3,12 @@
 import { useCallback, useEffect, useState } from 'react';
 import useCookie from 'react-use-cookie';
 import EventEmitter from 'events';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 
 export const modeEmitter = new EventEmitter();
 
 const ModeComponent = () => {
+  const t = useT();
   const [mode, setMode] = useCookie('mode', 'dark');
 
   const changeMode = useCallback(() => {
@@ -19,7 +21,7 @@ const ModeComponent = () => {
     document.body.classList.add(mode);
   }, [mode]);
   return (
-    <div onClick={changeMode} className="select-none cursor-pointer">
+    <div onClick={changeMode} data-tooltip-id="tooltip" data-tooltip-content={t('vgh_toggle_theme', 'Switch between dark and light mode')} aria-label={t('vgh_toggle_theme', 'Switch between dark and light mode')} className="select-none cursor-pointer">
       {mode === 'dark' ? (
         <svg
           xmlns="http://www.w3.org/2000/svg"

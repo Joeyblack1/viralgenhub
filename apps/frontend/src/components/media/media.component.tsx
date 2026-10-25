@@ -639,6 +639,9 @@ export const MediaBox: FC<{
                           // the picker deletes the selected media on phones
                           !standalone && 'mobile:!hidden'
                         )}
+                        data-tooltip-id="tooltip"
+                        data-tooltip-content={t('vgh_delete_media_tip', 'Delete from the media library')}
+                        aria-label={t('vgh_delete_media_tip', 'Delete from the media library')}
                         onClick={deleteImage(media)}
                       />
                     )}
@@ -653,6 +656,9 @@ export const MediaBox: FC<{
                     <div className="w-full h-full rounded-[6px] overflow-hidden relative">
                       <div className="absolute z-[20] left-[50%] top-[50%] -translate-x-[50%] -translate-y-[50%]">
                         <div
+                          data-tooltip-id="tooltip"
+                          data-tooltip-content={t('vgh_maximize_media_tip', 'View full size')}
+                          aria-label={t('vgh_maximize_media_tip', 'View full size')}
                           onClick={maximize(media)}
                           className={clsx(
                             'cursor-pointer p-[4px] bg-black/40 hidden group-hover:block hover:scale-150 transition-all',
@@ -886,7 +892,7 @@ export const MultiMediaComponent: FC<{
             >
               {currentMedia.map((media, index) => (
                   <div key={media.id} className="cursor-pointer rounded-[5px] w-[40px] h-[40px] mobile:w-[60px] mobile:h-[60px] mobile:rounded-[8px] border-2 mobile:border-0 border-tableBorder relative flex transition-all">
-                    <DragHandleIcon className="z-[20] dragging absolute pe-[1px] pb-[3px] -start-[4px] -top-[4px] cursor-move" />
+                    <DragHandleIcon data-tooltip-id="tooltip" data-tooltip-content={t('vgh_drag_media_tip', 'Drag to reorder')} aria-label={t('vgh_drag_media_tip', 'Drag to reorder')} className="z-[20] dragging absolute pe-[1px] pb-[3px] -start-[4px] -top-[4px] cursor-move" />
 
                     <div className="w-full h-full relative group">
                       <div
@@ -917,6 +923,9 @@ export const MultiMediaComponent: FC<{
                             ),
                           });
                         }}
+                        data-tooltip-id="tooltip"
+                        data-tooltip-content={t('vgh_media_settings_tip', 'Media settings')}
+                        aria-label={t('vgh_media_settings_tip', 'Media settings')}
                         className="absolute top-[50%] left-[50%] -translate-x-[50%] -translate-y-[50%] bg-black/80 rounded-[10px] opacity-0 group-hover:opacity-100 transition-opacity z-[9]"
                       >
                         <MediaSettingsIcon className="cursor-pointer relative z-[200]" />
@@ -932,6 +941,9 @@ export const MultiMediaComponent: FC<{
                     </div>
 
                     <CloseCircleIcon
+                      data-tooltip-id="tooltip"
+                      data-tooltip-content={t('vgh_remove_media_tip', 'Remove from this post')}
+                      aria-label={t('vgh_remove_media_tip', 'Remove from this post')}
                       onClick={clearMedia(index)}
                       className="absolute -end-[4px] -top-[4px] mobile:-end-[8px] mobile:-top-[8px] mobile:w-[24px] mobile:h-[24px] z-[20] rounded-full bg-white"
                     />
@@ -955,6 +967,9 @@ export const MultiMediaComponent: FC<{
             {!mediaNotAvailable && (
               <div className="flex py-[10px] mobile:py-0 mobile:shrink-0 b2 items-center gap-[4px]">
                 <div
+                  data-tooltip-id="tooltip"
+                  data-tooltip-content={t('vgh_insert_media_tip', 'Insert media from your library')}
+                  aria-label={t('vgh_insert_media_tip', 'Insert media from your library')}
                   onClick={showModal}
                   className="cursor-pointer h-[30px] mobile:h-[40px] mobile:min-w-[40px] rounded-[6px] mobile:rounded-[8px] justify-center items-center flex bg-newColColor mobile:bg-newSettings px-[8px]"
                 >
@@ -968,6 +983,9 @@ export const MultiMediaComponent: FC<{
                   </div>
                 </div>
                 <div
+                  data-tooltip-id="tooltip"
+                  data-tooltip-content={t('vgh_design_media_tip', 'Design an image or video in the editor')}
+                  aria-label={t('vgh_design_media_tip', 'Design an image or video in the editor')}
                   onClick={designMedia}
                   className="cursor-pointer h-[30px] rounded-[6px] justify-center items-center flex bg-newColColor px-[8px] mobile:hidden"
                 >

@@ -117,6 +117,9 @@ export const AgentList: FC<{ onChange: (arr: any[]) => void }> = ({
             {t('select_channels', 'Select Channels')}
           </h2>
           <div
+            data-tooltip-id="tooltip"
+            data-tooltip-content={t('vgh_collapse_agents', 'Collapse or expand the list')}
+            aria-label={t('vgh_collapse_agents', 'Collapse or expand the list')}
             onClick={() => setCollapseMenu(collapseMenu === '1' ? '0' : '1')}
             className="-mt-3 group-[.sidebar]:rotate-[180deg] group-[.sidebar]:mx-auto text-btnText bg-btnSimple rounded-[6px] w-[24px] h-[24px] flex items-center justify-center cursor-pointer select-none"
           >

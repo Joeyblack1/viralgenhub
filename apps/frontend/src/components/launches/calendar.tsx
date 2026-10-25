@@ -1319,6 +1319,9 @@ const CalendarItem: FC<{
               'hidden group-hover:block hover:underline cursor-pointer',
               post?.tags?.[0]?.tag?.color && 'text-shadow-tags'
             )}
+            data-tooltip-id="tooltip"
+            data-tooltip-content={t('vgh_copy_debug', 'Copy post debug JSON')}
+            aria-label={t('vgh_copy_debug', 'Copy post debug JSON')}
             onClick={copyDebugJson}
           >
             <CopyDebug />
@@ -1332,6 +1335,9 @@ const CalendarItem: FC<{
                 'hidden group-hover:block hover:underline cursor-pointer',
                 post?.tags?.[0]?.tag?.color && 'mix-blend-difference'
               )}
+              data-tooltip-id="tooltip"
+              data-tooltip-content={t('vgh_open_published', 'Open the published post')}
+              aria-label={t('vgh_open_published', 'Open the published post')}
               onClick={openPost}
             >
               <OpenPost />
@@ -1345,6 +1351,9 @@ const CalendarItem: FC<{
               'hidden group-hover:block hover:underline cursor-pointer',
               post?.tags?.[0]?.tag?.color && 'text-shadow-tags'
             )}
+            data-tooltip-id="tooltip"
+            data-tooltip-content={t('vgh_select_published', 'Select the published post')}
+            aria-label={t('vgh_select_published', 'Select the published post')}
             onClick={missingRelease}
           >
             <Statistics />
@@ -1355,6 +1364,9 @@ const CalendarItem: FC<{
               'hidden group-hover:block hover:underline cursor-pointer',
               post?.tags?.[0]?.tag?.color && 'text-shadow-tags'
             )}
+            data-tooltip-id="tooltip"
+            data-tooltip-content={t('vgh_post_stats', 'Post statistics')}
+            aria-label={t('vgh_post_stats', 'Post statistics')}
             onClick={statistics}
           >
             <Statistics />
@@ -1367,6 +1379,9 @@ const CalendarItem: FC<{
             'hidden group-hover:block hover:underline cursor-pointer',
             post?.tags?.[0]?.tag?.color && 'text-shadow-tags'
           )}
+          data-tooltip-id="tooltip"
+          data-tooltip-content={t('vgh_preview_post', 'Preview post')}
+          aria-label={t('vgh_preview_post', 'Preview post')}
           onClick={preview}
         >
           <Preview />
@@ -1376,6 +1391,9 @@ const CalendarItem: FC<{
             'hidden group-hover:block hover:underline cursor-pointer',
             post?.tags?.[0]?.tag?.color && 'text-shadow-tags'
           )}
+          data-tooltip-id="tooltip"
+          data-tooltip-content={t('vgh_duplicate_post', 'Duplicate post')}
+          aria-label={t('vgh_duplicate_post', 'Duplicate post')}
           onClick={duplicatePost}
         >
           <Duplicate />
@@ -1385,6 +1403,9 @@ const CalendarItem: FC<{
             'hidden group-hover:block hover:underline cursor-pointer text-red-500',
             post?.tags?.[0]?.tag?.color && 'text-shadow-tags'
           )}
+          data-tooltip-id="tooltip"
+          data-tooltip-content={t('vgh_delete_post_tip', 'Delete post')}
+          aria-label={t('vgh_delete_post_tip', 'Delete post')}
           onClick={deletePost}
         >
           <DeletePost />

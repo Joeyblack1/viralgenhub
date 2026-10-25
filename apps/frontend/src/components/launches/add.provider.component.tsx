@@ -4,6 +4,7 @@ import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import React, { FC, useCallback, useMemo } from 'react';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { Input } from '@gitroom/react/form/input';
+import { getCustomFieldPlaceholder } from '@gitroom/frontend/components/launches/custom-field-placeholders';
 import { FieldValues, FormProvider, useForm } from 'react-hook-form';
 import { Button } from '@gitroom/react/form/button';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
@@ -168,7 +169,7 @@ export const UrlModal: FC<{
           onSubmit={methods.handleSubmit(submit)}
         >
           <div className="pt-[10px]">
-            <Input label="URL" name="url" />
+            <Input label="URL" name="url" placeholder={getCustomFieldPlaceholder('mastodon-custom', 'url')} className="[&_input::placeholder]:text-newTextColor/50" />
           </div>
           <div>
             <Button type="submit">{t('connect', 'Connect')}</Button>
@@ -187,6 +188,7 @@ export const CustomVariables: FC<{
     type: 'text' | 'password';
     hint?: string;
     optional?: boolean;
+    placeholder?: string;
   }>;
   close?: () => void;
   identifier: string;
@@ -278,6 +280,8 @@ export const CustomVariables: FC<{
                   <Input
                     label=""
                     name={variable.key}
+                    placeholder={getCustomFieldPlaceholder(identifier, variable.key, variable.placeholder)}
+                    className="[&_input::placeholder]:text-newTextColor/50"
                     type={variable.type == 'text' ? 'text' : 'password'}
                   />
                 </div>
@@ -285,6 +289,8 @@ export const CustomVariables: FC<{
                 <Input
                   label={variable.label}
                   name={variable.key}
+                  placeholder={getCustomFieldPlaceholder(identifier, variable.key, variable.placeholder)}
+                  className="[&_input::placeholder]:text-newTextColor/50"
                   type={variable.type == 'text' ? 'text' : 'password'}
                 />
               )}

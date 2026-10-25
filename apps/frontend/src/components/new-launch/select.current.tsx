@@ -52,6 +52,7 @@ export function useHasScroll(ref: RefObject<HTMLElement | null>): boolean {
 }
 
 export const SelectCurrent: FC = () => {
+  const t = useT();
   const modals = useDecisionModal();
   const existingData = useExistingData();
   const {
@@ -107,6 +108,7 @@ export const SelectCurrent: FC = () => {
           {/* an existing post opens on its channels, without the global mode */}
           {!existingData.integration && (
             <div
+              data-tooltip-id="tooltip" data-tooltip-content={t('vgh_global_tip', 'Edit all channels at once')} aria-label={t('vgh_global_tip', 'Edit all channels at once')}
               onClick={() => {
                 setHide(true);
                 setCurrent('global');
@@ -141,6 +143,9 @@ export const SelectCurrent: FC = () => {
               {!existingData.integration && (
                 <>
                   <div
+                    data-tooltip-id="tooltip"
+                    data-tooltip-content={t('vgh_remove_channel_tip', 'Remove this channel from the post')}
+                    aria-label={t('vgh_remove_channel_tip', 'Remove this channel from the post')}
                     onClick={removeSocial(integration)}
                     className="absolute justify-center items-center flex mobile:hidden w-[8px] h-[8px] -top-[1px] -start-[3px] bg-red-500 rounded-full text-white text-[8px]"
                   >

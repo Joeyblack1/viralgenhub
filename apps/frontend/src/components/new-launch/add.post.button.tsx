@@ -15,6 +15,9 @@ export const AddPostButton: FC<{
   return (
     <div className="flex">
       <div
+        data-tooltip-id="tooltip"
+        data-tooltip-content={t('vgh_add_post_tip', 'Add a post or comment')}
+        aria-label={t('vgh_add_post_tip', 'Add a post or comment')}
         onClick={onClick}
         className="select-none cursor-pointer h-[34px] rounded-[6px] flex bg-[#D82D7E] gap-[8px] justify-center items-center pl-[16px] pr-[20px] text-[13px] font-[600] mt-[12px] mobile:w-[40px] mobile:h-[40px] mobile:p-0 mobile:mt-0 mobile:rounded-[8px]"
       >

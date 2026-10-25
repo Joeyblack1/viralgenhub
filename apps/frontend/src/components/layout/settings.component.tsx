@@ -308,6 +308,7 @@ export const SettingsPopup: FC<{
   );
 };
 export const SettingsComponent = () => {
+  const t = useT();
   const settings = useModals();
   const user = useUser();
   const openModal = useCallback(() => {
@@ -328,7 +329,7 @@ export const SettingsComponent = () => {
     });
   }, [user]);
   return (
-    <Link href="/settings" onClick={openModal}>
+    <Link href="/settings" onClick={openModal} data-tooltip-id="tooltip" data-tooltip-content={t('vgh_settings_tip', 'Settings')} aria-label={t('vgh_settings_tip', 'Settings')}>
       <svg
         width="40"
         height="40"

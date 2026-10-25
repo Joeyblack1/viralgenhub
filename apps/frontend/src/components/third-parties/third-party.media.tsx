@@ -186,6 +186,7 @@ export const ThirdPartyMedia: FC<{
           className={clsx(
             'cursor-pointer h-[30px] rounded-[6px] justify-center items-center flex bg-newColColor px-[8px]'
           )}
+          data-tooltip-id="tooltip" data-tooltip-content={t('vgh_third_party_media_tip', 'Create media with a connected service')} aria-label={t('vgh_third_party_media_tip', 'Create media with a connected service')}
           onClick={() => {
             modals.openModal({
               title: t('integrations', 'Integrations'),

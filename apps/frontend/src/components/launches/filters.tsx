@@ -297,6 +297,9 @@ export const Filters = () => {
         <div className="flex flex-grow flex-row items-center gap-[10px] mobile:order-3 mobile:basis-full mobile:min-w-0 mobile:gap-[8px]">
           <div className="border h-[42px] border-newTableBorder bg-newTableBorder gap-[1px] flex items-center rounded-[8px] overflow-hidden mobile:flex-1 mobile:min-w-0">
             <div
+              data-tooltip-id="tooltip"
+              data-tooltip-content={t('vgh_previous_period', 'Previous')}
+              aria-label={t('vgh_previous_period', 'Previous')}
               onClick={previous}
               className="cursor-pointer text-textColor rtl:rotate-180 px-[9px] mobile:px-0 mobile:w-[36px] bg-newBgColorInner h-full flex items-center justify-center hover:text-textItemFocused hover:bg-boxFocused"
             >
@@ -325,6 +328,9 @@ export const Filters = () => {
               </div>
             </div>
             <div
+              data-tooltip-id="tooltip"
+              data-tooltip-content={t('vgh_next_period', 'Next')}
+              aria-label={t('vgh_next_period', 'Next')}
               onClick={next}
               className="cursor-pointer text-textColor rtl:rotate-180 px-[9px] mobile:px-0 mobile:w-[36px] bg-newBgColorInner h-full flex items-center justify-center hover:text-textItemFocused hover:bg-boxFocused"
             >
@@ -366,6 +372,9 @@ export const Filters = () => {
             )}
           >
             <div
+              data-tooltip-id="tooltip"
+              data-tooltip-content={t('vgh_previous_page', 'Previous page')}
+              aria-label={t('vgh_previous_page', 'Previous page')}
               onClick={previousPage}
               className={clsx(
                 'text-textColor rtl:rotate-180 px-[9px] mobile:px-0 mobile:w-[36px] bg-newBgColorInner h-full flex items-center justify-center',
@@ -396,6 +405,9 @@ export const Filters = () => {
               </div>
             </div>
             <div
+              data-tooltip-id="tooltip"
+              data-tooltip-content={t('vgh_next_page', 'Next page')}
+              aria-label={t('vgh_next_page', 'Next page')}
               onClick={nextPage}
               className={clsx(
                 'text-textColor rtl:rotate-180 px-[9px] mobile:px-0 mobile:w-[36px] bg-newBgColorInner h-full flex items-center justify-center',
@@ -450,6 +462,9 @@ export const Filters = () => {
       </div>
       {calendar.integrations.length > 1 && (
         <div
+          data-tooltip-id="tooltip"
+          data-tooltip-content={t('vgh_filter_channels', 'Filter by channel')}
+          aria-label={t('vgh_filter_channels', 'Filter by channel')}
           onClick={() => setFiltersOpen(true)}
           className={clsx(
             'hidden mobile:flex mobile:order-2 relative w-[42px] h-[42px] rounded-[8px] border justify-center items-center cursor-pointer',
@@ -510,6 +525,9 @@ export const Filters = () => {
       </div>
       <div className="flex flex-row p-[4px] border border-newTableBorder rounded-[8px] text-[14px] font-[500] mobile:hidden">
         <div
+          data-tooltip-id="tooltip"
+          data-tooltip-content={t('vgh_calendar_view', 'Calendar view')}
+          aria-label={t('vgh_calendar_view', 'Calendar view')}
           onClick={setCalendarView}
           className={clsx(
             'pt-[6px] pb-[5px] cursor-pointer flex justify-center items-center w-[34px] text-center rounded-[6px]',
@@ -534,6 +552,9 @@ export const Filters = () => {
           </svg>
         </div>
         <div
+          data-tooltip-id="tooltip"
+          data-tooltip-content={t('vgh_list_view', 'List view')}
+          aria-label={t('vgh_list_view', 'List view')}
           onClick={setList}
           className={clsx(
             'pt-[6px] pb-[5px] flex justify-center items-center cursor-pointer w-[34px] text-center rounded-[6px]',
