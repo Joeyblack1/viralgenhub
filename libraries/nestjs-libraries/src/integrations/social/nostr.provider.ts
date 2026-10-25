@@ -6,8 +6,18 @@ import {
 } from '@gitroom/nestjs-libraries/integrations/social/social.integrations.interface';
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
 import dayjs from 'dayjs';
-import { SocialAbstract } from '@gitroom/nestjs-libraries/integrations/social.abstract';
-import { getPublicKey, Relay, finalizeEvent, SimplePool } from 'nostr-tools';
+import {
+  BadBody,
+  SocialAbstract,
+} from '@gitroom/nestjs-libraries/integrations/social.abstract';
+import {
+  getPublicKey,
+  Relay,
+  finalizeEvent,
+  SimplePool,
+  nip19,
+  VerifiedEvent,
+} from 'nostr-tools';
 
 import WebSocket from 'ws';
 import { AuthService } from '@gitroom/helpers/auth/auth.service';
@@ -33,7 +43,8 @@ export class NostrProvider extends SocialAbstract implements SocialProvider {
   isBetweenSteps = false;
   scopes = [] as string[];
   editor = 'normal' as const;
-  toolTip = 'Make sure you private a HEX key of your Nostr private key, you can get it from websites like iris.to'
+  toolTip =
+    'Paste your Nostr private key, as nsec1... or as hex, you can export it from apps like iris.to';
 
   maxLength() {
     return 100000;
@@ -71,9 +82,29 @@ export class NostrProvider extends SocialAbstract implements SocialProvider {
     };
   }
 
+  // The key as the user pasted it (stored that way): nsec1... (NIP-19) or
+  // 64 hex characters. Errors never carry the key, the bech32 decoder's own
+  // messages quote the whole string.
   private secretKey(password: string) {
+    const key = (password || '').trim();
+    if (key.startsWith('nsec1')) {
+      try {
+        const { type, data } = nip19.decode(key);
+        if (type === 'nsec') {
+          return data;
+        }
+      } catch (err) {
+        /**empty - reported below**/
+      }
+      throw new Error('Invalid Nostr private key');
+    }
+
+    if (!/^[0-9a-fA-F]{64}$/.test(key)) {
+      throw new Error('Invalid Nostr private key');
+    }
+
     return Uint8Array.from(
-      (password.match(/.{1,2}/g) || []).map((byte: any) => parseInt(byte, 16))
+      (key.match(/.{1,2}/g) || []).map((byte: any) => parseInt(byte, 16))
     );
   }
 
@@ -102,37 +133,37 @@ export class NostrProvider extends SocialAbstract implements SocialProvider {
     return {};
   }
 
-  private async publish(pubkey: string, event: any) {
-    let id = '';
-    for (const relay of list) {
-      try {
-        const relayInstance = await Relay.connect(relay);
-        const value = new Promise<any>((resolve) => {
-          relayInstance.subscribe([{ kinds: [1], authors: [pubkey] }], {
-            eoseTimeout: 6000,
-            onevent: (event) => {
-              resolve(event);
-            },
-            oneose: () => {
-              resolve({});
-            },
-            onclose: () => {
-              resolve({});
-            },
-          });
-        });
+  // Sends the signed event to every relay and returns its own id: the note
+  // is the event we signed, whichever relays stored it. relay.publish only
+  // resolves on the relay's OK, so a relay that is down, times out or rejects
+  // the event does not count, and the post fails when none accepted it.
+  private async publish(event: VerifiedEvent) {
+    const results = await Promise.allSettled(
+      list.map(async (url) => {
+        const relay = new Relay(url);
+        try {
+          await relay.connect({ timeout: 6000 });
+          await relay.publish(event);
+        } finally {
+          relay.close();
+        }
+      })
+    );
 
-        await relayInstance.publish(event);
-        const all = await value;
-        relayInstance.close();
-        // relayInstance.close();
-        id = id || all?.id;
-      } catch (err) {
-        /**empty**/
-      }
+    if (!results.some((result) => result.status === 'fulfilled')) {
+      throw new BadBody(
+        this.identifier,
+        JSON.stringify(
+          results.map((result) =>
+            result.status === 'rejected' ? String(result.reason) : 'ok'
+          )
+        ),
+        JSON.stringify({ id: event.id }),
+        'None of the Nostr relays accepted the post, please try again'
+      );
     }
 
-    return id;
+    return event.id;
   }
 
   async authenticate(params: {
@@ -157,7 +188,7 @@ export class NostrProvider extends SocialAbstract implements SocialProvider {
         username: user.name || 'nousername',
       };
     } catch (e) {
-      console.log(e);
+      // not logged: the error can quote the key that was pasted
       return 'Invalid credentials';
     }
   }
@@ -187,7 +218,7 @@ export class NostrProvider extends SocialAbstract implements SocialProvider {
       this.secretKey(password)
     );
 
-    const eventId = await this.publish(id, textEvent);
+    const eventId = await this.publish(textEvent);
 
     return [
       {
@@ -224,7 +255,7 @@ export class NostrProvider extends SocialAbstract implements SocialProvider {
       this.secretKey(password)
     );
 
-    const eventId = await this.publish(id, textEvent);
+    const eventId = await this.publish(textEvent);
 
     return [
       {
