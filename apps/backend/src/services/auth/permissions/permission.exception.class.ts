@@ -13,6 +13,7 @@ export enum Sections {
   IMPORT_FROM_CHANNELS = 'import_from_channels',
   ADMIN = 'admin',
   WEBHOOKS = 'webhooks',
+  AUTO_POST = 'auto_post',
 }
 
 export enum AuthorizationActions {

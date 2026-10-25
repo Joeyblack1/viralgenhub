@@ -155,6 +155,11 @@ export class PermissionsService {
         continue;
       }
 
+      if (section === Sections.AUTO_POST && options.autoPost) {
+        can(action, section);
+        continue;
+      }
+
       if (
         section === Sections.IMPORT_FROM_CHANNELS &&
         options.import_from_channels

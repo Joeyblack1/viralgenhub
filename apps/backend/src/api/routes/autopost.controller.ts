@@ -27,8 +27,11 @@ export class AutopostController {
     return this._autopostsService.getAutoposts(org.id);
   }
 
+  // Creating, editing, switching on or previewing an auto-post needs a plan
+  // with autoPost; reading and deleting stay open so a downgraded
+  // organisation can still see and remove the ones it has.
   @Post('/')
-  @CheckPolicies([AuthorizationActions.Create, Sections.WEBHOOKS])
+  @CheckPolicies([AuthorizationActions.Create, Sections.AUTO_POST])
   async createAutopost(
     @GetOrgFromRequest() org: Organization,
     @Body() body: AutopostDto
@@ -37,6 +40,7 @@ export class AutopostController {
   }
 
   @Put('/:id')
+  @CheckPolicies([AuthorizationActions.Update, Sections.AUTO_POST])
   async updateAutopost(
     @GetOrgFromRequest() org: Organization,
     @Body() body: AutopostDto,
@@ -54,6 +58,7 @@ export class AutopostController {
   }
 
   @Post('/:id/active')
+  @CheckPolicies([AuthorizationActions.Update, Sections.AUTO_POST])
   async changeActive(
     @GetOrgFromRequest() org: Organization,
     @Param('id') id: string,
@@ -63,6 +68,7 @@ export class AutopostController {
   }
 
   @Post('/send')
+  @CheckPolicies([AuthorizationActions.Read, Sections.AUTO_POST])
   async sendWebhook(@Query() query: OnlyURL) {
     return this._autopostsService.loadXML(query.url);
   }

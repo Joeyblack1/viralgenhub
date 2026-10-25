@@ -53,6 +53,11 @@ const getErrorMessage = (error: {
         default:
           return 'You have reached the maximum number of webhooks for your subscription. Please upgrade your subscription to add more webhooks.';
       }
+    case Sections.AUTO_POST:
+      switch (error.action) {
+        default:
+          return 'Auto-post from RSS feeds is not included in your subscription. Please upgrade your subscription to use it.';
+      }
     case Sections.VIDEOS_PER_MONTH:
       switch (error.action) {
         default:
