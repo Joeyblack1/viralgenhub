@@ -12,7 +12,9 @@ import {
   RefreshToken,
   SocialAbstract,
   ValidityMedia,
+  localUploadPath,
 } from '@gitroom/nestjs-libraries/integrations/social.abstract';
+import { createReadStream, statSync } from 'fs';
 import {
   BskyAgent,
   RichText,
@@ -86,33 +88,43 @@ async function startVideoUpload(
   });
 
   // The video is never buffered in memory: the size comes from a HEAD request
-  // and the bytes are streamed straight from the source into the upload.
-  setHeartbeatDetails('bluesky: video size');
-  const headResponse = await fetch(videoPath, {
-    method: 'HEAD',
-    // identity encoding so content-length matches the bytes the GET streams
-    headers: { 'accept-encoding': 'identity' },
-    // @ts-ignore - undici-only option; blocks SSRF to internal IPs
-    dispatcher: getSsrfSafeDispatcher(),
-  });
-  const videoSize = Number(headResponse.headers.get('content-length') || 0);
-  if (!headResponse.ok || !videoSize) {
-    throw new BadBody(
-      'bluesky',
-      '{}',
-      {} as any,
-      'Could not determine the video size for Bluesky upload'
-    );
-  }
+  // (statSync for our own uploads, see localUploadPath) and the bytes are
+  // streamed straight from the source into the upload.
+  const localPath = localUploadPath(videoPath);
+  let videoSize: number;
+  let videoBody: any;
+  if (localPath) {
+    videoSize = statSync(localPath).size;
+    videoBody = createReadStream(localPath);
+  } else {
+    setHeartbeatDetails('bluesky: video size');
+    const headResponse = await fetch(videoPath, {
+      method: 'HEAD',
+      // identity encoding so content-length matches the bytes the GET streams
+      headers: { 'accept-encoding': 'identity' },
+      // @ts-ignore - undici-only option; blocks SSRF to internal IPs
+      dispatcher: getSsrfSafeDispatcher(),
+    });
+    videoSize = Number(headResponse.headers.get('content-length') || 0);
+    if (!headResponse.ok || !videoSize) {
+      throw new BadBody(
+        'bluesky',
+        '{}',
+        {} as any,
+        'Could not determine the video size for Bluesky upload'
+      );
+    }
 
-  setHeartbeatDetails('bluesky: read video');
-  const videoResponse = await fetch(videoPath, {
-    headers: { 'accept-encoding': 'identity' },
-    // @ts-ignore - undici-only option; blocks SSRF to internal IPs
-    dispatcher: getSsrfSafeDispatcher(),
-  });
-  if (!videoResponse.ok || !videoResponse.body) {
-    throw new Error(`Failed to fetch video: ${videoResponse.statusText}`);
+    setHeartbeatDetails('bluesky: read video');
+    const videoResponse = await fetch(videoPath, {
+      headers: { 'accept-encoding': 'identity' },
+      // @ts-ignore - undici-only option; blocks SSRF to internal IPs
+      dispatcher: getSsrfSafeDispatcher(),
+    });
+    if (!videoResponse.ok || !videoResponse.body) {
+      throw new Error(`Failed to fetch video: ${videoResponse.statusText}`);
+    }
+    videoBody = videoResponse.body;
   }
 
   console.log('Uploading video', videoPath, videoSize);
@@ -131,7 +143,7 @@ async function startVideoUpload(
       'Content-Type': 'video/mp4',
       'Content-Length': videoSize.toString(),
     },
-    body: videoResponse.body,
+    body: videoBody,
     // Required by undici when streaming a request body.
     duplex: 'half',
   } as any);

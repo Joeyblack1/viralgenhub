@@ -1,6 +1,6 @@
 import { makeSecureId } from '@gitroom/nestjs-libraries/services/make.secure.id';
-import { BadBody, SocialAbstract } from '../social.abstract';
-import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
+import { BadBody, SocialAbstract, stripQuery } from '../social.abstract';
+import { lookup } from 'mime-types';
 import {
   AuthTokenDetails,
   MediaContent,
@@ -209,29 +209,12 @@ export class SkoolProvider extends SocialAbstract implements SocialProvider {
     const fileIds: string[] = [];
 
     for (const item of media) {
-      // Size and type come from a HEAD request; the PUT below streams the
-      // bytes so the file is never buffered in memory.
-      const headResponse = await fetch(item.path, {
-        method: 'HEAD',
-        // identity encoding so content-length matches the bytes the GET streams
-        headers: { 'accept-encoding': 'identity' },
-        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
-        dispatcher: getSsrfSafeDispatcher(),
-      });
+      // The size comes from mediaSize (a HEAD, or the file on disk for our
+      // own uploads) and the type from the file name; the PUT below streams
+      // the bytes so the file is never buffered in memory.
       const contentType =
-        headResponse.headers.get('content-type') || 'application/octet-stream';
-      const contentLength = Number(
-        headResponse.headers.get('content-length') || 0
-      );
-      if (!headResponse.ok || !contentLength) {
-        // A permanent condition - fail fast instead of letting Temporal retry
-        throw new BadBody(
-          this.identifier,
-          '{}',
-          '{}',
-          'Could not determine the media size for upload'
-        );
-      }
+        lookup(stripQuery(item.path)) || 'application/octet-stream';
+      const contentLength = await this.mediaSize(item.path, this.identifier);
       const fileName = item.path.split('/').pop() || 'file';
 
       const createFileResponse = await (
@@ -253,14 +236,7 @@ export class SkoolProvider extends SocialAbstract implements SocialProvider {
         }, 'create file record')
       ).json();
 
-      const fileResponse = await fetch(item.path, {
-        headers: { 'accept-encoding': 'identity' },
-        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
-        dispatcher: getSsrfSafeDispatcher(),
-      });
-      if (!fileResponse.ok || !fileResponse.body) {
-        throw new Error(`Failed to fetch media: ${fileResponse.statusText}`);
-      }
+      const file = await this.mediaStream(item.path, this.identifier);
       const uploadResponse = await fetch(createFileResponse.write_url, {
         method: 'PUT',
         headers: {
@@ -268,7 +244,7 @@ export class SkoolProvider extends SocialAbstract implements SocialProvider {
           'Content-Length': String(contentLength),
           'x-amz-acl': createFileResponse.acl,
         },
-        body: fileResponse.body,
+        body: file,
         // Required by undici when streaming a request body.
         duplex: 'half',
       } as any);

@@ -12,7 +12,6 @@ import {
   BadBody,
   SocialAbstract,
 } from '@gitroom/nestjs-libraries/integrations/social.abstract';
-import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 import { WhopDto } from '@gitroom/nestjs-libraries/dtos/posts/providers-settings/whop.dto';
 import { Integration } from '@prisma/client';
 import { Tool } from '@gitroom/nestjs-libraries/integrations/tool.decorator';
@@ -230,28 +229,11 @@ export class WhopProvider extends SocialAbstract implements SocialProvider {
     const attachments: { id: string }[] = [];
 
     for (const item of media) {
-      // The size comes from a HEAD request; the PUT below streams the bytes
-      // so the file is never buffered in memory (it used to stay resident
-      // through the whole ~9 minute status poll).
-      const headResponse = await fetch(item.path, {
-        method: 'HEAD',
-        // identity encoding so content-length matches the bytes the GET streams
-        headers: { 'accept-encoding': 'identity' },
-        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
-        dispatcher: getSsrfSafeDispatcher(),
-      });
-      const contentLength = Number(
-        headResponse.headers.get('content-length') || 0
-      );
-      if (!headResponse.ok || !contentLength) {
-        // A permanent condition - fail fast instead of letting Temporal retry
-        throw new BadBody(
-          this.identifier,
-          '{}',
-          '{}',
-          'Could not determine the media size for upload'
-        );
-      }
+      // The size comes from mediaSize (a HEAD, or the file on disk for our
+      // own uploads); the PUT below streams the bytes so the file is never
+      // buffered in memory (it used to stay resident through the whole ~9
+      // minute status poll).
+      const contentLength = await this.mediaSize(item.path, this.identifier);
       const fileName = item.path.split('/').pop() || 'file';
 
       const createFileResponse = await (
@@ -272,14 +254,7 @@ export class WhopProvider extends SocialAbstract implements SocialProvider {
       ).json();
 
       if (createFileResponse.upload_url) {
-        const fileResponse = await fetch(item.path, {
-          headers: { 'accept-encoding': 'identity' },
-          // @ts-ignore - undici-only option; blocks SSRF to internal IPs
-          dispatcher: getSsrfSafeDispatcher(),
-        });
-        if (!fileResponse.ok || !fileResponse.body) {
-          throw new Error(`Failed to fetch media: ${fileResponse.statusText}`);
-        }
+        const file = await this.mediaStream(item.path, this.identifier);
         const uploadResponse = await fetch(createFileResponse.upload_url, {
           method: 'PUT',
           headers: {
@@ -287,7 +262,7 @@ export class WhopProvider extends SocialAbstract implements SocialProvider {
             'Content-Length': String(contentLength),
             ...(createFileResponse.upload_headers || {}),
           },
-          body: fileResponse.body,
+          body: file,
           // Required by undici when streaming a request body.
           duplex: 'half',
         } as any);

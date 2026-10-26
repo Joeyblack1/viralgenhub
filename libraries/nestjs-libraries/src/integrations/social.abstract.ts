@@ -285,6 +285,7 @@ export abstract class SocialAbstract {
   // hand straight to sharp. Lives here rather than in a helper so it can
   // classify a stall like the ranged reads below do.
   protected async readOrFetch(path: string, retried = false): Promise<Buffer> {
+    path = localUploadPath(path) || path;
     if (path.indexOf('http') !== 0) {
       return readFileSync(path);
     }
@@ -324,8 +325,10 @@ export abstract class SocialAbstract {
   }
 
   // Resolves the total byte size of the media without loading it into memory:
-  // a HEAD request for remote URLs, statSync for local files.
+  // a HEAD request for remote URLs, statSync for local files. Our own uploads
+  // are read from disk (localUploadPath), never back through the CDN.
   protected async mediaSize(path: string, identifier = ''): Promise<number> {
+    path = localUploadPath(path) || path;
     if (path.indexOf('http') === 0) {
       // the media path is user-influenced, keep the SSRF-safe dispatcher that
       // this.fetch applies to every other outbound request. identity encoding
@@ -364,6 +367,7 @@ export abstract class SocialAbstract {
     identifier = '',
     retried = false
   ): Promise<Buffer> {
+    path = localUploadPath(path) || path;
     if (path.indexOf('http') === 0) {
       setHeartbeatDetails(
         `media chunk ${start}-${end} ${stripQuery(path)}`
@@ -435,6 +439,7 @@ export abstract class SocialAbstract {
     path: string,
     identifier = ''
   ): Promise<Readable> {
+    path = localUploadPath(path) || path;
     if (path.indexOf('http') !== 0) {
       return createReadStream(path);
     }

@@ -11,7 +11,9 @@ import {
   BadBody,
   RefreshToken,
   SocialAbstract,
+  localUploadPath,
 } from '@gitroom/nestjs-libraries/integrations/social.abstract';
+import { createReadStream, statSync } from 'fs';
 import { getSsrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 import { timer } from '@gitroom/helpers/utils/timer';
 import dayjs from 'dayjs';
@@ -182,21 +184,30 @@ export class MastodonProvider extends SocialAbstract implements SocialProvider {
     // and the whole request is rebuilt per attempt by runStreamedUpload since
     // a consumed stream can't be replayed.
     const media = await this.runStreamedUpload<{ id: string }>(async () => {
-      const fileResponse = await fetch(fileUrl, {
-        // identity encoding so content-length matches the streamed bytes
-        headers: { 'accept-encoding': 'identity' },
-        // @ts-ignore - undici-only option; blocks SSRF to internal IPs
-        dispatcher: getSsrfSafeDispatcher(),
-      });
-      if (!fileResponse.ok || !fileResponse.body) {
-        throw new Error(`Failed to fetch media: ${fileResponse.statusText}`);
+      // Our own uploads are read from disk (localUploadPath): the CDN in front
+      // of them can drop content-length, which this upload needs.
+      const localPath = localUploadPath(fileUrl);
+      let file: Readable;
+      let contentLength: number;
+      if (localPath) {
+        file = createReadStream(localPath);
+        contentLength = statSync(localPath).size;
+      } else {
+        const fileResponse = await fetch(fileUrl, {
+          // identity encoding so content-length matches the streamed bytes
+          headers: { 'accept-encoding': 'identity' },
+          // @ts-ignore - undici-only option; blocks SSRF to internal IPs
+          dispatcher: getSsrfSafeDispatcher(),
+        });
+        if (!fileResponse.ok || !fileResponse.body) {
+          throw new Error(`Failed to fetch media: ${fileResponse.statusText}`);
+        }
+        contentLength = Number(fileResponse.headers.get('content-length') || 0);
+        file = Readable.fromWeb(fileResponse.body as any);
       }
-      const contentLength = Number(
-        fileResponse.headers.get('content-length') || 0
-      );
 
       const form = new FormDataUpload();
-      form.append('file', Readable.fromWeb(fileResponse.body as any), {
+      form.append('file', file, {
         filename: fileUrl.split('/').pop()?.split('?')[0] || 'file',
         ...(contentLength ? { knownLength: contentLength } : {}),
       });
