@@ -145,7 +145,7 @@ export const EarlyAccessDialog: FC<
                 <button
                   key={p.identifier}
                   type="button"
-                  className="flex items-center gap-[8px] h-[36px] px-[12px] rounded-[8px] bg-newTableHeader text-[14px] hover:bg-btnSimple"
+                  className="flex items-center gap-[8px] h-[36px] px-[12px] rounded-[8px] bg-newTableHeader text-[14px] hover:bg-btnSimple focus-visible:ring-2 focus-visible:ring-btnPrimary"
                   onClick={() => {
                     modals.closeCurrent();
                     onConnect(p.identifier);

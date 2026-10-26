@@ -931,9 +931,9 @@ export const AddProviderComponent: FC<{
                       : 'flex-col p-[10px] h-[100px] justify-center mobile:text-[13px] mobile:leading-[1.2]',
                     'w-full text-[14px] rounded-[8px] bg-newTableHeader text-textColor relative items-center flex gap-[10px] cursor-pointer',
                     isLockedTile(item) && 'opacity-60',
-                    'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-btnPrimary',
-                    highlight === item.identifier &&
-                      'outline outline-2 outline-offset-2 outline-btnPrimary'
+                    // global.scss removes every outline, so focus and the highlight use a ring
+                    'focus-visible:ring-2 focus-visible:ring-btnPrimary',
+                    highlight === item.identifier && 'ring-2 ring-btnPrimary'
                   )}
                 >
                   <div>
