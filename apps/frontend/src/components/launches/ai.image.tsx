@@ -24,7 +24,7 @@ const list = [
   'Fantasy Realism',
 ];
 
-const AiImageModal: FC<{
+export const AiImageModal: FC<{
   close: () => void;
   setLoading: (loading: boolean) => void;
   onChange: (params: { id: string; path: string }) => void;
