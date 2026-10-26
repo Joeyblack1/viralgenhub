@@ -1,6 +1,6 @@
 {
   "name": "viralgenhub-extension",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "ViralGenHub browser extension: connects cookie-based channels (Skool)",
   "scripts": {
     "build": "rm -rf dist && vite build && node scripts/write-manifest.mjs && cd dist && zip -r ../extension.zip . -x '.*'",

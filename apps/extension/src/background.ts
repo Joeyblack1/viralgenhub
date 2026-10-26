@@ -34,7 +34,7 @@ async function extractCookies(provider: CookieProvider): Promise<GetCookiesRespo
     return {
       success: false,
       provider: provider.identifier,
-      error: `Missing required cookies: ${missingRequired.join(', ')}. User may need to log in to ${provider.name}.`,
+      error: `Could not read your ${provider.name} sign-in (${missingRequired.join(', ')}). Sign in to ${provider.name} in this browser, and check the ViralGenHub extension is allowed on ${provider.name} (chrome://extensions > ViralGenHub > Details > Site access).`,
       missingCookies: missingRequired,
     };
   }

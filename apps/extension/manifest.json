@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "ViralGenHub",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Connects your Skool account to ViralGenHub so you can schedule Skool posts from the app. Only works with viralgenhub.com.",
   "icons": {
     "16": "icon-16.png",
@@ -15,7 +15,7 @@
     "storage"
   ],
   "host_permissions": [
-    "https://www.skool.com/*",
+    "https://*.skool.com/*",
     "https://app.viralgenhub.com/*"
   ],
   "background": {
