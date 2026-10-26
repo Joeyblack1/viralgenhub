@@ -2,6 +2,7 @@
 
 import React, { FC, useCallback, useState } from 'react';
 import clsx from 'clsx';
+import useSWR from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { useToaster } from '@gitroom/react/toaster/toaster';
@@ -67,6 +68,71 @@ export const EarlyAccessBadges: FC<{
         </div>
       )}
     </>
+  );
+};
+
+// This workspace's own requests (GET /integrations/early-access), for the
+// newsletter choice on the status view.
+const useMyEarlyAccess = () => {
+  const fetch = useFetch();
+  return useSWR<Array<{ provider: string; newsletter: boolean }>>(
+    '/integrations/early-access',
+    async (url: string) => (await fetch(url)).json()
+  );
+};
+
+// The newsletter opt-in for a workspace that has already asked. It can only
+// turn the newsletter on, through the same request endpoint (which keeps the
+// existing request and only lets a later "yes" stick).
+const EarlyAccessNewsletter: FC<{ provider: string }> = ({ provider }) => {
+  const t = useT();
+  const fetch = useFetch();
+  const toaster = useToaster();
+  const { data, mutate } = useMyEarlyAccess();
+  const [busy, setBusy] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const subscribed =
+    saved ||
+    !!(Array.isArray(data) &&
+      data.find((r) => r.provider === provider)?.newsletter);
+
+  const subscribe = useCallback(async () => {
+    setBusy(true);
+    try {
+      const res = await fetch('/integrations/early-access', {
+        method: 'POST',
+        body: JSON.stringify({ provider, newsletter: true }),
+      });
+      if (!res.ok) {
+        toaster.show(
+          t('vgh_early_access_failed', 'Could not save your request'),
+          'warning'
+        );
+        return;
+      }
+      setSaved(true);
+      mutate();
+    } finally {
+      setBusy(false);
+    }
+  }, [provider]);
+
+  return (
+    <label className="flex items-center gap-[8px] text-[14px] cursor-pointer">
+      <input
+        type="checkbox"
+        checked={subscribed}
+        disabled={subscribed || busy}
+        onChange={(e) => {
+          if (e.target.checked) {
+            subscribe();
+          }
+        }}
+      />
+      <span>
+        {t('vgh_newsletter_optin', 'Also send me the ViralGenHub newsletter')}
+      </span>
+    </label>
   );
 };
 
@@ -189,6 +255,7 @@ export const EarlyAccessDialog: FC<
                 { name: item.name }
               )}
         </p>
+        <EarlyAccessNewsletter provider={item.identifier} />
         <Button type="button" onClick={() => modals.closeCurrent()}>
           {t('vgh_close', 'Close')}
         </Button>
@@ -247,8 +314,8 @@ export const EarlyAccessDialog: FC<
         {item.comingSoon
           ? t('vgh_waitlist_email_once', "We'll email you once when it's live.")
           : t(
-              'vgh_tester_email_use',
-              'We use this request only to set up your tester access.'
+              'vgh_tester_email_once',
+              "We'll email you once when you're approved."
             )}
       </p>
     </div>

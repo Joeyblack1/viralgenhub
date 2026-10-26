@@ -12,6 +12,7 @@ import {
 import { ImportDebugPostModal } from '@gitroom/frontend/components/launches/import-debug-post.modal';
 import { XSpendCard } from '@gitroom/frontend/components/admin/x-spend.card';
 import { SettingsCheckCard } from '@gitroom/frontend/components/admin/settings-check.card';
+import { useEarlyAccessList } from '@gitroom/frontend/components/admin/admin-early-access.component';
 
 const cardClass =
   'border border-newTableBorder rounded-[8px] p-[16px] bg-newBgColorInner flex flex-col gap-[4px] text-start';
@@ -44,6 +45,34 @@ const ActionCard: FC<{
     <div className="text-[13px] opacity-70">{text}</div>
   </button>
 );
+
+// Says how many tester requests wait for Approve, so a new one is visible
+// from /admin without opening the page.
+const EarlyAccessLinkCard: FC = () => {
+  const { data } = useEarlyAccessList();
+  const testers =
+    data?.providers.reduce(
+      (n, group) =>
+        n +
+        group.requests.filter(
+          (r) => r.kind === 'tester' && r.status === 'requested'
+        ).length,
+      0
+    ) || 0;
+  return (
+    <LinkCard
+      href="/admin/early-access"
+      title={testers ? `Early access (${testers} to approve)` : 'Early access'}
+      text={
+        testers
+          ? `${testers} tester ${
+              testers === 1 ? 'request is' : 'requests are'
+            } waiting for Approve.`
+          : 'Early-access requests waiting for a decision.'
+      }
+    />
+  );
+};
 
 const Section: FC<{ title: string; children: ReactNode }> = ({
   title,
@@ -116,11 +145,7 @@ export const AdminIndexComponent: FC = () => {
             title="Stats"
             text="Posts, channels and errors for a date range."
           />
-          <LinkCard
-            href="/admin/early-access"
-            title="Early access"
-            text="Early-access requests waiting for a decision."
-          />
+          <EarlyAccessLinkCard />
         </div>
       </Section>
 

@@ -366,6 +366,20 @@ const ExtensionNotFound: FC = () => {
           'The ViralGenHub browser extension is not installed. You need to install it before connecting this channel.'
         )}
       </p>
+      <p className="text-[13px] text-textColor/70">
+        {t(
+          'vgh_extension_in_review',
+          "If the Chrome Web Store says the item isn't available, our extension is still in Google's review. Check back soon."
+        )}{' '}
+        <a
+          href="https://viralgenhub.com/help/connect"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:font-bold"
+        >
+          {t('vgh_connect_help_all', 'Help: connecting accounts')}
+        </a>
+      </p>
       <div className="flex gap-[10px]">
         <Button
           type="button"

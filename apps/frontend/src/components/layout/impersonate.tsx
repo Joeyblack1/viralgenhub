@@ -883,7 +883,7 @@ const SwitchUser = () => {
     if (!name) {
       return [];
     }
-    return await (await fetch(`/user/impersonate?name=${name}`)).json();
+    return await (await fetch(`/user/impersonate?name=${encodeURIComponent(name)}`)).json();
   }, [name]);
 
   const { data } = useSWR(`/switch-search-${name}`, load, {
@@ -1052,7 +1052,7 @@ export const ImpersonatePicker = () => {
     if (!name) {
       return [];
     }
-    const value = await (await fetch(`/user/impersonate?name=${name}`)).json();
+    const value = await (await fetch(`/user/impersonate?name=${encodeURIComponent(name)}`)).json();
     return value;
   }, [name]);
   const t = useT();

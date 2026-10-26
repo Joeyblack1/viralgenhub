@@ -28,7 +28,9 @@ interface EarlyAccessResponse {
   }>;
 }
 
-const useEarlyAccessList = () => {
+// Shared by this page and the /admin index card: one SWR key, so Approve's
+// mutate() refreshes the heading counts and the card together.
+export const useEarlyAccessList = () => {
   const fetch = useFetch();
   return useSWR<EarlyAccessResponse>('/admin/early-access', async (url: string) => {
     const res = await fetch(url);

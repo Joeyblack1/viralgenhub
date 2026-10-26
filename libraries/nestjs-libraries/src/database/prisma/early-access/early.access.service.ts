@@ -4,6 +4,15 @@ import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integ
 import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
 import { EarlyAccessRequestDto } from '@gitroom/nestjs-libraries/dtos/integrations/early.access.dto';
 
+// Workspace and platform names go into email HTML; workspace names are typed
+// by users.
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
 @Injectable()
 export class EarlyAccessService {
   constructor(
@@ -23,12 +32,25 @@ export class EarlyAccessService {
     return undefined;
   }
 
-  request(orgId: string, userId: string, body: EarlyAccessRequestDto) {
+  async request(
+    orgId: string,
+    userId: string,
+    body: EarlyAccessRequestDto,
+    workspaceName = ''
+  ) {
     const kind = this.kindFor(body.provider);
     if (!kind) {
       throw new BadRequestException('This platform is not in early access');
     }
-    return this._earlyAccessRepository.upsertRequest({
+    // Only a first tester request tells the admin; asking again (or ticking
+    // the newsletter later) goes through the same upsert and stays quiet.
+    const isNewTester =
+      kind === 'tester' &&
+      !(await this._earlyAccessRepository.findForOrganization(
+        orgId,
+        body.provider
+      ));
+    const row = await this._earlyAccessRepository.upsertRequest({
       organizationId: orgId,
       userId,
       provider: body.provider,
@@ -36,6 +58,41 @@ export class EarlyAccessService {
       note: body.note?.trim() || undefined,
       newsletter: !!body.newsletter,
     });
+    if (isNewTester) {
+      await this.notifyAdmin(body.provider, kind, workspaceName);
+    }
+    return row;
+  }
+
+  private platformName(provider: string) {
+    return (
+      this._integrationManager.getSocialIntegration(provider)?.name || provider
+    );
+  }
+
+  // One email to EARLY_ACCESS_NOTIFY_EMAIL per new tester request (waitlist
+  // rows can be many; their count shows on the admin page). Never throws into
+  // the request: a failed send is logged and the request still succeeds.
+  private async notifyAdmin(provider: string, kind: string, workspace: string) {
+    const to = process.env.EARLY_ACCESS_NOTIFY_EMAIL;
+    if (!to) {
+      return;
+    }
+    const name = this.platformName(provider);
+    const link = `${process.env.FRONTEND_URL}/admin/early-access`;
+    try {
+      await this._emailService.sendEmailSync(
+        to,
+        `New ${name} ${kind} request on ViralGenHub`,
+        `<p>Platform: ${escapeHtml(name)}</p><p>Kind: ${escapeHtml(
+          kind
+        )}</p><p>Workspace: ${escapeHtml(
+          workspace || '(unnamed)'
+        )}</p><p><a href="${link}">Review it in admin</a>: ${link}</p>`
+      );
+    } catch (err) {
+      console.log('early-access admin notify failed', provider, err);
+    }
   }
 
   listMine(orgId: string) {
@@ -77,7 +134,11 @@ export class EarlyAccessService {
         waiting: 0,
         requests: [],
       };
-      group.waiting += 1;
+      // Waiting means nobody has acted on it yet: approved testers and
+      // notified waitlist rows no longer count.
+      if (row.status === 'requested') {
+        group.waiting += 1;
+      }
       group.requests.push(row);
       providers.set(row.provider, group);
     }
@@ -92,16 +153,33 @@ export class EarlyAccessService {
     if (row.kind !== 'tester') {
       throw new BadRequestException('Only tester requests can be approved');
     }
-    return this._earlyAccessRepository.setStatus(id, 'approved');
+    // Email the requester only when this press actually approved the row, so
+    // the approval email goes out once however many times Approve is pressed.
+    if (await this._earlyAccessRepository.approveIfRequested(id)) {
+      const name = this.platformName(row.provider);
+      const link = `${process.env.FRONTEND_URL}/launches?early=${encodeURIComponent(
+        row.provider
+      )}`;
+      try {
+        await this._emailService.sendEmailSync(
+          row.user.email,
+          `You're approved to test ${name} on ViralGenHub`,
+          `<p>You're approved to test ${escapeHtml(
+            name
+          )} on ViralGenHub.</p><p>Connect it now: <a href="${link}">${link}</a></p>`
+        );
+      } catch (err) {
+        console.log('early-access approval email failed', id, err);
+      }
+    }
+    return { id, status: 'approved' };
   }
 
   // Emails everyone on the waitlist for a platform that has gone live, then
   // marks them notified. A failed send leaves that row as requested so a
   // second press retries only those.
   async notifyWaitlist(provider: string) {
-    const name =
-      this._integrationManager.getSocialIntegration(provider)?.name ||
-      provider;
+    const name = this.platformName(provider);
     const rows = await this._earlyAccessRepository.listWaitlistToNotify(
       provider
     );

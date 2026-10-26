@@ -37,6 +37,13 @@ export class EarlyAccessRepository {
     });
   }
 
+  findForOrganization(organizationId: string, provider: string) {
+    return this._earlyAccess.model.earlyAccess.findUnique({
+      where: { organizationId_provider: { organizationId, provider } },
+      select: { id: true },
+    });
+  }
+
   listForOrganization(organizationId: string) {
     return this._earlyAccess.model.earlyAccess.findMany({
       where: { organizationId },
@@ -72,16 +79,25 @@ export class EarlyAccessRepository {
   findById(id: string) {
     return this._earlyAccess.model.earlyAccess.findUnique({
       where: { id },
-      select: { id: true, kind: true, status: true, provider: true },
+      select: {
+        id: true,
+        kind: true,
+        status: true,
+        provider: true,
+        user: { select: { email: true } },
+      },
     });
   }
 
-  setStatus(id: string, status: string) {
-    return this._earlyAccess.model.earlyAccess.update({
-      where: { id },
-      data: { status },
-      select: { id: true, status: true },
+  // Moves a tester request to approved only if it is still waiting, so two
+  // presses (or two admins) approve, and email, once. Returns how many rows
+  // changed: 1 the first time, 0 after that.
+  async approveIfRequested(id: string) {
+    const { count } = await this._earlyAccess.model.earlyAccess.updateMany({
+      where: { id, status: 'requested' },
+      data: { status: 'approved' },
     });
+    return count;
   }
 
   listWaitlistToNotify(provider: string) {

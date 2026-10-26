@@ -91,7 +91,7 @@ export class IntegrationsController {
     @GetUserFromRequest() user: User,
     @Body() body: EarlyAccessRequestDto
   ) {
-    return this._earlyAccessService.request(org.id, user.id, body);
+    return this._earlyAccessService.request(org.id, user.id, body, org.name);
   }
 
   @Put('/customers/:id')
