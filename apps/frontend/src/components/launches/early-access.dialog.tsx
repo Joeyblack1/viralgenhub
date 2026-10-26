@@ -70,10 +70,19 @@ export const EarlyAccessBadges: FC<{
   );
 };
 
-export const EarlyAccessDialog: FC<{
-  item: EarlyAccessTile;
-  onRequested: (provider: string) => void;
-}> = ({ item, onRequested }) => {
+// Live platforms offered after a request, and how to start connecting one
+// (the Add Channel dialog's own connect flow).
+export interface EarlyAccessSuggest {
+  suggest?: Array<{ identifier: string; name: string }>;
+  onConnect?: (identifier: string) => void;
+}
+
+export const EarlyAccessDialog: FC<
+  {
+    item: EarlyAccessTile;
+    onRequested: (provider: string) => void;
+  } & EarlyAccessSuggest
+> = ({ item, onRequested, suggest, onConnect }) => {
   const t = useT();
   const fetch = useFetch();
   const modals = useModals();
@@ -126,6 +135,37 @@ export const EarlyAccessDialog: FC<{
                 "You're on the list. We add testers every week."
               )}
         </p>
+        {!!suggest?.length && !!onConnect && (
+          <div className="flex flex-col gap-[8px]">
+            <p className="text-[14px]">
+              {t('vgh_connect_today', 'Connect one of these today:')}
+            </p>
+            <div className="flex flex-wrap gap-[8px]">
+              {suggest.map((p) => (
+                <button
+                  key={p.identifier}
+                  type="button"
+                  className="flex items-center gap-[8px] h-[36px] px-[12px] rounded-[8px] bg-newTableHeader text-[14px] hover:bg-btnSimple"
+                  onClick={() => {
+                    modals.closeCurrent();
+                    onConnect(p.identifier);
+                  }}
+                >
+                  <img
+                    src={
+                      p.identifier === 'youtube'
+                        ? '/icons/platforms/youtube.svg'
+                        : `/icons/platforms/${p.identifier}.png`
+                    }
+                    alt=""
+                    className="w-[20px] h-[20px] rounded-full"
+                  />
+                  {p.name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
         <Button type="button" onClick={() => modals.closeCurrent()}>
           {t('vgh_close', 'Close')}
         </Button>
@@ -203,6 +243,14 @@ export const EarlyAccessDialog: FC<{
           ? t('vgh_join_waitlist', 'Join the waitlist')
           : t('vgh_request_early_access', 'Request early access')}
       </Button>
+      <p className="text-[12px] text-textColor/60 -mt-[8px]">
+        {item.comingSoon
+          ? t('vgh_waitlist_email_once', "We'll email you once when it's live.")
+          : t(
+              'vgh_tester_email_use',
+              'We use this request only to set up your tester access.'
+            )}
+      </p>
     </div>
   );
 };
@@ -211,7 +259,7 @@ export const useOpenEarlyAccess = (onRequested: (provider: string) => void) => {
   const modals = useModals();
   const t = useT();
   return useCallback(
-    (item: EarlyAccessTile) => {
+    (item: EarlyAccessTile, extra: EarlyAccessSuggest = {}) => {
       modals.openModal({
         title: item.comingSoon
           ? t('vgh_waitlist_title', 'Join the {{name}} waitlist', {
@@ -221,7 +269,9 @@ export const useOpenEarlyAccess = (onRequested: (provider: string) => void) => {
               name: item.name,
             }),
         withCloseButton: true,
-        children: <EarlyAccessDialog item={item} onRequested={onRequested} />,
+        children: (
+          <EarlyAccessDialog item={item} onRequested={onRequested} {...extra} />
+        ),
       });
     },
     [modals, onRequested]
