@@ -11,6 +11,7 @@ import {
 } from '@gitroom/frontend/components/layout/impersonate';
 import { ImportDebugPostModal } from '@gitroom/frontend/components/launches/import-debug-post.modal';
 import { XSpendCard } from '@gitroom/frontend/components/admin/x-spend.card';
+import { SettingsCheckCard } from '@gitroom/frontend/components/admin/settings-check.card';
 
 const cardClass =
   'border border-newTableBorder rounded-[8px] p-[16px] bg-newBgColorInner flex flex-col gap-[4px] text-start';
@@ -89,6 +90,12 @@ export const AdminIndexComponent: FC = () => {
       <Section title="Costs">
         <div className="grid grid-cols-3 gap-[12px] mobile:grid-cols-1 max-w-[1000px]">
           <XSpendCard />
+        </div>
+      </Section>
+
+      <Section title="Settings">
+        <div className="max-w-[1000px]">
+          <SettingsCheckCard />
         </div>
       </Section>
 

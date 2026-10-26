@@ -15,6 +15,11 @@ jest.mock(
   () => ({ EarlyAccessService: class {} })
 );
 
+jest.mock(
+  '@gitroom/nestjs-libraries/database/prisma/admin-settings/admin-settings.service',
+  () => ({ AdminSettingsService: class {} })
+);
+
 import { AdminController } from './admin.controller';
 
 describe('AdminController early access', () => {
@@ -27,7 +32,8 @@ describe('AdminController early access', () => {
     {} as any,
     {} as any,
     {} as any,
-    early
+    early,
+    {} as any
   );
 
   it('refuses non-super-admins on every route', async () => {

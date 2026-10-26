@@ -22,6 +22,7 @@ import { Select } from '@gitroom/react/form/select';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { AddEditModal } from '@gitroom/frontend/components/new-launch/add.edit.modal';
 import { useToaster } from '@gitroom/react/toaster/toaster';
+import { AiStudio } from '@gitroom/frontend/components/launches/generator/ai.studio';
 
 const FirstStep: FC = (props) => {
   const { integrations, reloadCalendarView } = useCalendar();
@@ -339,7 +340,7 @@ export const GeneratorComponent = () => {
       return;
     }
     modal.openModal({
-      title: t('generate_posts', 'Generate Posts'),
+      title: t('vgh_ai_studio', 'AI Studio'),
       withCloseButton: false,
       classNames: {
         modal: 'bg-transparent text-textColor',
@@ -347,7 +348,7 @@ export const GeneratorComponent = () => {
       size: 'xl',
       children: (
         <CalendarWeekProvider {...all}>
-          <GeneratorPopup />
+          <AiStudio writePosts={<GeneratorPopup />} />
         </CalendarWeekProvider>
       ),
     });
@@ -355,7 +356,7 @@ export const GeneratorComponent = () => {
   return (
     <div
       className="h-[44px] w-[44px] group-[.sidebar]:w-full bg-ai justify-center items-center flex rounded-[8px] cursor-pointer"
-      data-tooltip-id="tooltip" data-tooltip-content={t('vgh_ai_generator_tip', 'Write posts with AI from an idea or a link')} aria-label={t('vgh_ai_generator_tip', 'Write posts with AI from an idea or a link')}
+      data-tooltip-id="tooltip" data-tooltip-content={t('vgh_ai_studio_tip', 'AI Studio: write posts, create images, ask the agent')} aria-label={t('vgh_ai_studio_tip', 'AI Studio: write posts, create images, ask the agent')}
       onClick={generate}
     >
       <svg

@@ -13,6 +13,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { ErrorsService } from '@gitroom/nestjs-libraries/database/prisma/errors/errors.service';
 import { AdminStatsService } from '@gitroom/nestjs-libraries/database/prisma/admin-stats/admin-stats.service';
 import { EarlyAccessService } from '@gitroom/nestjs-libraries/database/prisma/early-access/early.access.service';
+import { AdminSettingsService } from '@gitroom/nestjs-libraries/database/prisma/admin-settings/admin-settings.service';
 import dayjs from 'dayjs';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { AdminSetUserDisabledDto } from '@gitroom/nestjs-libraries/dtos/users/admin.set.user.disabled.dto';
@@ -24,7 +25,8 @@ export class AdminController {
     private _errorsService: ErrorsService,
     private _adminStatsService: AdminStatsService,
     private _usersService: UsersService,
-    private _earlyAccessService: EarlyAccessService
+    private _earlyAccessService: EarlyAccessService,
+    private _adminSettingsService: AdminSettingsService
   ) {}
 
   private assertSuperAdmin(user: User) {
@@ -120,6 +122,13 @@ export class AdminController {
   ) {
     this.assertSuperAdmin(user);
     return this._earlyAccessService.notifyWaitlist(provider);
+  }
+
+  // Which security and provider settings are in place; flags only, never values.
+  @Get('/settings-check')
+  async getSettingsCheck(@GetUserFromRequest() user: User) {
+    this.assertSuperAdmin(user);
+    return this._adminSettingsService.check();
   }
 
   @Get('/x-spend')
