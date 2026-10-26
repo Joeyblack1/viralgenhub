@@ -30,7 +30,7 @@ const useFaqList = () => {
       title: t('faq_can_i_trust_viralgenhub', 'Is ViralGenHub open source?'),
       description: t(
         'faq_viralgenhub_open_source',
-        `Yes. ViralGenHub is open source under the AGPL-3.0 licence and is built on Postiz. You can read the source code of the version you are using at <a href="${SOURCE_URL}" target="_blank" style="text-decoration: underline;">github.com/Joeyblack1/viralgenhub</a>.`
+        `Yes. ViralGenHub is open source under the AGPL-3.0 licence and is built on Postiz. You can read the source code of the version you are using at <a href="${SOURCE_URL}" target="_blank" style="text-decoration: underline;">github.com/ViralGenHub/viralgenhub</a>.`
       ),
     },
     {

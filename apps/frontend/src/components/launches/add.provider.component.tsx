@@ -506,7 +506,7 @@ export const AddProviderComponent: FC<{
     }
     const action = decideEarlyIntent(takeEarlyIntent(browserStore()), social);
     if (action.kind === 'request' || action.kind === 'status') {
-      openEarlyAccess(action.item);
+      openEarly(action.item);
     } else if (action.kind === 'connect') {
       setHighlight(action.item.identifier);
       toaster.show(
@@ -816,6 +816,35 @@ export const AddProviderComponent: FC<{
     [onboarding]
   );
 
+  // After a waitlist / tester request, offer a few platforms that can be
+  // connected right now; picking one runs the same connect flow as its tile.
+  const openEarly = (item: (typeof social)[number]) => {
+    const live = social.filter(
+      (p) =>
+        !p.preview &&
+        !isLockedTile(p) &&
+        (!p.isChromeExtension || !!extensionId)
+    );
+    openEarlyAccess(item, {
+      suggest: live.slice(0, 4).map((p) => ({
+        identifier: p.identifier,
+        name: p.name,
+      })),
+      onConnect: (identifier: string) => {
+        const p = live.find((l) => l.identifier === identifier);
+        if (p) {
+          getSocialLink(
+            false,
+            p.identifier,
+            p.isExternal,
+            p.isWeb3,
+            p.isChromeExtension,
+            p.customFields
+          )();
+        }
+      },
+    });
+  };
 
   return (
     <div className="w-full flex flex-col gap-[20px] rounded-[4px] relative]">
@@ -856,7 +885,7 @@ export const AddProviderComponent: FC<{
             })
             .map((item) => {
               const open = isLockedTile(item)
-                ? () => openEarlyAccess(item)
+                ? () => openEarly(item)
                 : getSocialLink(
                     props.invite,
                     item.identifier,

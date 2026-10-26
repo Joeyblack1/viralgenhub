@@ -2,8 +2,8 @@
 // able to get the source of the version they use. NEXT_PUBLIC_VERSION is the
 // git commit the image was built from (CI build arg), so link that exact tree.
 export const SOURCE_URL = process.env.NEXT_PUBLIC_VERSION
-  ? `https://github.com/Joeyblack1/viralgenhub/tree/${process.env.NEXT_PUBLIC_VERSION}`
-  : 'https://github.com/Joeyblack1/viralgenhub';
+  ? `https://github.com/ViralGenHub/viralgenhub/tree/${process.env.NEXT_PUBLIC_VERSION}`
+  : 'https://github.com/ViralGenHub/viralgenhub';
 
 export const SourceFooter = () => (
   <div className="text-[12px] text-center opacity-70 py-[8px]">
