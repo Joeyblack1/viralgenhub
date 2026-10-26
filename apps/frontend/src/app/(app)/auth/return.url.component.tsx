@@ -12,9 +12,14 @@ const ReturnUrlComponent: FC = () => {
   const url = params.get('returnUrl');
   const early = params.get(EARLY_PARAM);
   useEffect(() => {
-    if (url?.indexOf?.('http')! > -1) {
-      localStorage.setItem('returnUrl', url!);
-    }
+    // Only same-site URLs, so a crafted login link can't send people elsewhere after sign-in
+    if (!url) return;
+    try {
+      const parsed = new URL(url, window.location.origin);
+      if (parsed.origin === window.location.origin) {
+        localStorage.setItem('returnUrl', parsed.href);
+      }
+    } catch {}
   }, [url]);
   // A signed-out visitor from a website "Join the waitlist" link arrives here
   // as /auth?early=<platform>; keep it until they reach the calendar.
@@ -30,7 +35,14 @@ export const useReturnUrl = () => {
     getAndClear: useCallback(() => {
       const data = localStorage.getItem('returnUrl');
       localStorage.removeItem('returnUrl');
-      return data;
+      // A value saved by an older build may point off-site; drop it
+      try {
+        return data && new URL(data).origin === window.location.origin
+          ? data
+          : null;
+      } catch {
+        return null;
+      }
     }, []),
   };
 };
