@@ -13,6 +13,30 @@ import { useIntegrationList } from '@gitroom/frontend/components/launches/helper
 const onboardingDismissedKey = (orgId: string) =>
   `onboarding_dismissed_${orgId}`;
 
+// Opened right after sign-up (?onboarding=true, set by the backend), or on the
+// first visit to a workspace that has no channels yet and has not skipped the
+// onboarding before. The second case waits for the channel list to really come
+// back (not the empty fallback, not a failed load).
+export const shouldShowOnboarding = (p: {
+  onboardingParam: string | null;
+  orgId?: string;
+  isLoading: boolean;
+  error: unknown;
+  channels?: number;
+}) => {
+  if (p.onboardingParam) {
+    return true;
+  }
+  let dismissed = true;
+  try {
+    dismissed =
+      !p.orgId || !!localStorage.getItem(onboardingDismissedKey(p.orgId));
+  } catch {
+    // blocked site data: treat as dismissed instead of throwing
+  }
+  return !p.isLoading && !p.error && p.channels === 0 && !dismissed;
+};
+
 export const Onboarding: FC = () => {
   const query = useSearchParams();
   const modal = useModals();
@@ -32,18 +56,15 @@ export const Onboarding: FC = () => {
   }, [modal, router, user?.orgId]);
 
   useEffect(() => {
-    // Opened right after sign-up (?onboarding=true, set by the backend), or on
-    // the first visit to a workspace that has no channels yet and has not
-    // skipped the onboarding before. The second case waits for the channel
-    // list to really come back (not the empty fallback, not a failed load).
-    const onboarding = query.get('onboarding');
-    const firstRun =
-      !!user?.orgId &&
-      !isLoading &&
-      !error &&
-      integrations?.length === 0 &&
-      !localStorage.getItem(onboardingDismissedKey(user.orgId));
-    if (!onboarding && !firstRun) {
+    if (
+      !shouldShowOnboarding({
+        onboardingParam: query.get('onboarding'),
+        orgId: user?.orgId,
+        isLoading,
+        error,
+        channels: integrations?.length,
+      })
+    ) {
       if (modalOpen.current) {
         modalOpen.current = false;
         modal.closeAll();
