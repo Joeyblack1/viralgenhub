@@ -34,9 +34,7 @@ export const EarlyAccessBadges: FC<{
     <>
       <div
         className={clsx(
-          isMobile
-            ? 'ms-[8px] inline-block'
-            : 'absolute top-[8px] start-[8px]',
+          isMobile ? 'ms-[8px] inline-block' : 'absolute top-[8px] start-[8px]',
           'text-[10px] rounded-[4px] px-[6px] py-[1px] bg-btnSimple'
         )}
         data-tooltip-id="tooltip"
@@ -84,6 +82,9 @@ export const EarlyAccessDialog: FC<{
   const [newsletter, setNewsletter] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  // Already asked (e.g. arriving again from a "Join the waitlist" link): say
+  // where the request stands instead of showing the form again.
+  const alreadyAsked = !!item.myRequest;
 
   const submit = useCallback(async () => {
     setBusy(true);
@@ -132,6 +133,29 @@ export const EarlyAccessDialog: FC<{
     );
   }
 
+  if (alreadyAsked) {
+    return (
+      <div className="flex flex-col gap-[16px] pt-[8px]">
+        <p className="text-[14px] text-textColor/80">
+          {item.comingSoon
+            ? t(
+                'vgh_waitlist_already',
+                "You're already on the {{name}} waitlist. We'll email you the day it goes live.",
+                { name: item.name }
+              )
+            : t(
+                'vgh_tester_already',
+                'Your request to test {{name}} is in. We approve new testers every week.',
+                { name: item.name }
+              )}
+        </p>
+        <Button type="button" onClick={() => modals.closeCurrent()}>
+          {t('vgh_close', 'Close')}
+        </Button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col gap-[16px] pt-[8px]">
       <p className="text-[14px] text-textColor/80">
@@ -171,10 +195,7 @@ export const EarlyAccessDialog: FC<{
           onChange={(e) => setNewsletter(e.target.checked)}
         />
         <span>
-          {t(
-            'vgh_newsletter_optin',
-            'Also send me the ViralGenHub newsletter'
-          )}
+          {t('vgh_newsletter_optin', 'Also send me the ViralGenHub newsletter')}
         </span>
       </label>
       <Button type="button" loading={busy} onClick={submit}>

@@ -256,6 +256,7 @@ const OnboardingStep1: FC<{ onNext: () => void; onSkip: () => void }> = ({
             social={data.social || []}
             article={data.article || []}
             onboarding={true}
+            autoOpenEarly={true}
           />
         )}
       </div>

@@ -18,6 +18,7 @@ module.exports = {
     '<rootDir>/libraries/nestjs-libraries/src/**/*.spec.ts',
     '<rootDir>/libraries/helpers/src/auth/token.encryption.spec.ts',
     '<rootDir>/libraries/helpers/src/auth/purpose.tokens.spec.ts',
+    '<rootDir>/libraries/helpers/src/utils/early.access.intent.spec.ts',
     '<rootDir>/apps/backend/src/api/routes/users.controller.*.spec.ts',
     '<rootDir>/apps/backend/src/api/routes/admin.controller.*.spec.ts',
     '<rootDir>/apps/backend/src/public-api/routes/v1/*.spec.ts',
