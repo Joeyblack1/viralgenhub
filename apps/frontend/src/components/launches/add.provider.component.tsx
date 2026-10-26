@@ -29,7 +29,9 @@ import {
 } from '@gitroom/frontend/components/launches/early-access.dialog';
 import {
   browserStore,
+  clearEarlyIntent,
   decideEarlyIntent,
+  peekEarlyIntent,
   takeEarlyIntent,
 } from '@gitroom/helpers/utils/early.access.intent';
 const resolver = classValidatorResolver(ApiKeyDto);
@@ -65,6 +67,16 @@ export const useAddProvider = (
   const fetch = useFetch();
   return useCallback(async () => {
     const data = await loadConnectableProviders(fetch);
+    // A waitlist link for a platform this server does not list: drop it and
+    // do not open anything.
+    if (
+      autoOpenEarly &&
+      decideEarlyIntent(peekEarlyIntent(browserStore()), data.social).kind ===
+        'none'
+    ) {
+      clearEarlyIntent(browserStore());
+      return;
+    }
     modal.openModal({
       title: 'Add Channel',
       withCloseButton: true,
