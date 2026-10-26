@@ -48,3 +48,17 @@ export const connectHelpUrl = (identifier: string): string | undefined =>
   connectHelpIdentifiers.includes(identifier)
     ? `https://viralgenhub.com/help/connect/${identifier}`
     : undefined;
+
+// ViralGenHub: the exact official page where each bring-your-own-key
+// credential is created. WordPress (the key page is on the customer's own
+// site, <site>/wp-admin/profile.php) and Listmonk (self-hosted) have no fixed
+// URL, so they return undefined and the help text explains instead.
+const connectKeyPages: Record<string, string> = {
+  devto: 'https://dev.to/settings/extensions',
+  hashnode: 'https://hashnode.com/settings/developer',
+  bluesky: 'https://bsky.app/settings/app-passwords',
+  heygen: 'https://platform.heygen.com/api-keys',
+};
+
+export const connectKeyPageUrl = (identifier: string): string | undefined =>
+  connectKeyPages[identifier];

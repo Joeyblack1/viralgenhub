@@ -361,7 +361,11 @@ export const useBillingFeatures = (tier: string) => {
     if (!previous) {
       list.push({
         key: 'billing_all_platforms_except_x',
-        defaultValue: 'Every available platform, TikTok included (X (Twitter) is on paid plans)',
+        defaultValue: 'Every live platform, TikTok included, plus early access to preview platforms (X (Twitter) is on paid plans)',
+      });
+      list.push({
+        key: 'vgh_feature_tiktok_composer',
+        defaultValue: 'TikTok composer that follows TikTok’s posting rules',
       });
       list.push({
         key: 'billing_calendar_scheduling_previews',
@@ -378,6 +382,23 @@ export const useBillingFeatures = (tier: string) => {
       list.push({
         key: 'billing_sets_signatures',
         defaultValue: 'Sets (saved templates) and Signatures',
+      });
+      list.push({
+        key: 'vgh_feature_repeat_tags',
+        defaultValue: 'Repeat posts and Tags',
+      });
+      list.push({
+        key: 'vgh_feature_plugs',
+        defaultValue:
+          'Plugs automations (Bluesky, X (Twitter), Threads, LinkedIn Pages)',
+      });
+      list.push({
+        key: 'vgh_feature_shortlinks',
+        defaultValue: 'Shortlinks with click stats, and analytics on supported platforms',
+      });
+      list.push({
+        key: 'vgh_feature_customers',
+        defaultValue: 'Customers, with preview and approval links',
       });
     }
 
@@ -430,7 +451,7 @@ export const useBillingFeatures = (tier: string) => {
     if (currentPricing?.ai && !previous?.ai) {
       list.push({
         key: 'billing_ai_assistant',
-        defaultValue: 'AI assistant that drafts and schedules posts for you',
+        defaultValue: 'AI agent (Claude) that drafts and schedules posts for you',
       });
       list.push({
         key: 'billing_ai_post_generator',
