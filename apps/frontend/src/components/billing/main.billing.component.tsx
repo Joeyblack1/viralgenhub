@@ -20,6 +20,7 @@ import {
   planTagline,
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { FAQComponent } from '@gitroom/frontend/components/billing/faq.component';
+import { BillingSell } from '@gitroom/frontend/components/billing/sell.billing';
 import {
   useBillingFeatures,
   previousSoldTier,
@@ -283,9 +284,15 @@ const PlanCard: FC<{
         'relative flex flex-col gap-[20px] rounded-[12px] border p-[24px] mobile:p-[20px]',
         current
           ? 'border-transparent bg-gradient-to-b from-seventh to-btnPrimary text-white shadow-lg shadow-purple-500/25'
-          : 'border-newTableBorder bg-newBgColorInner shadow-previewShadow'
+          : 'border-newTableBorder bg-newBgColorInner shadow-previewShadow',
+        !current && name === 'STANDARD' && '!border-btnPrimary'
       )}
     >
+      {name === 'STANDARD' && (
+        <div className="absolute -top-[12px] start-1/2 -translate-x-1/2 h-[24px] px-[12px] rounded-full bg-btnPrimary text-white text-[12px] font-[600] uppercase flex items-center whitespace-nowrap">
+          {t('vgh_most_popular', 'Most popular')}
+        </div>
+      )}
       {[
         'top-[10px] start-[10px]',
         'top-[10px] end-[10px]',
@@ -1254,6 +1261,7 @@ export const MainBillingComponent: FC<{
         </div>
       )}
       {!!subscription?.id && <BillingHistory />}
+      <BillingSell />
       <FAQComponent />
       <div className="flex justify-center mt-[20px]">
         <LogoutComponent />
