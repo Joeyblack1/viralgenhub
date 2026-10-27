@@ -24,6 +24,7 @@ const activationEmail = (url: string) => `
 <p><a href="${url}" style="display:inline-block;background:#6d28d9;color:#ffffff;padding:12px 20px;border-radius:8px;text-decoration:none;font-weight:600">Activate my account</a></p>
 <p style="font-size:13px;color:#6b7280">If the button does not work, copy this link into your browser:<br><span style="word-break:break-all">${url}</span></p>
 <p style="font-size:13px;color:#6b7280">If you did not sign up, you can ignore this email and no account will be activated.</p>
+<p style="font-size:13px;color:#6b7280">For product news and tips, follow us on <a href="https://t.me/viralgenhub" style="color:#6d28d9">Telegram</a>, or see <a href="https://viralgenhub.com/follow" style="color:#6d28d9">all our channels</a>.</p>
 `;
 
 // ViralGenHub: same self-explanatory style as the activation email.
