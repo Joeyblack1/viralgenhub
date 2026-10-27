@@ -41,6 +41,7 @@ import { OrganizationSelector } from '@gitroom/frontend/components/layout/organi
 import { StreakComponent } from '@gitroom/frontend/components/layout/streak.component';
 import { PreConditionComponent } from '@gitroom/frontend/components/layout/pre-condition.component';
 import { AttachToFeedbackIcon } from '@gitroom/frontend/components/new-layout/sentry.feedback.component';
+import { HelpMenuComponent } from '@gitroom/frontend/components/layout/help.menu.component';
 import { FirstBillingComponent } from '@gitroom/frontend/components/billing/first.billing.component';
 import { TrialTracker } from '@gitroom/frontend/components/layout/gtm.component';
 import { setSentryUser } from '@gitroom/react/sentry/initialize.sentry.client';
@@ -188,6 +189,7 @@ export const LayoutComponent = ({ children }: { children: ReactNode }) => {
                           <div className="contents mobile:hidden">
                             <AttachToFeedbackIcon />
                           </div>
+                          <HelpMenuComponent />
                           <NotificationComponent />
                         </div>
                       </div>
