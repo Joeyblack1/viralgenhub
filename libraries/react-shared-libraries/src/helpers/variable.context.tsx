@@ -28,6 +28,9 @@ interface VariableContextInterface {
   isSecured: boolean;
   disableImageCompression: boolean;
   disableXAnalytics: boolean;
+  // TIKTOK_AUDITED=true once TikTok audited our Direct Post client; only the
+  // app layout passes it (undefined elsewhere = no TikTok banner)
+  tiktokAudited?: boolean;
   language: string;
   dub: boolean;
   transloadit: string[];
