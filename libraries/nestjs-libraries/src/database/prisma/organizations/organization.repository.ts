@@ -610,13 +610,16 @@ export class OrganizationRepository {
     });
   }
 
-  deleteOrganization(orgId: string) {
+  // purgeAfter is passed only by account deletion: the workspace content is
+  // then hard-deleted by the daily account purge once that date has passed
+  deleteOrganization(orgId: string, purgeAfter?: Date) {
     return this._organization.model.organization.update({
       where: {
         id: orgId,
       },
       data: {
         deletedAt: new Date(),
+        ...(purgeAfter ? { purgeAfter } : {}),
       },
     });
   }

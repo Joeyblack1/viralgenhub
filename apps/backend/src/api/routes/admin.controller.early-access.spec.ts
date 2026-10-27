@@ -33,6 +33,7 @@ describe('AdminController early access', () => {
     {} as any,
     {} as any,
     early,
+    {} as any,
     {} as any
   );
 

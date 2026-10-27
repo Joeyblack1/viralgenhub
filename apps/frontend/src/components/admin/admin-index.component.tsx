@@ -12,6 +12,7 @@ import {
 import { ImportDebugPostModal } from '@gitroom/frontend/components/launches/import-debug-post.modal';
 import { XSpendCard } from '@gitroom/frontend/components/admin/x-spend.card';
 import { SettingsCheckCard } from '@gitroom/frontend/components/admin/settings-check.card';
+import { AccountPurgeCard } from '@gitroom/frontend/components/admin/account-purge.card';
 import { useEarlyAccessList } from '@gitroom/frontend/components/admin/admin-early-access.component';
 
 const cardClass =
@@ -119,6 +120,12 @@ export const AdminIndexComponent: FC = () => {
       <Section title="Costs">
         <div className="grid grid-cols-3 gap-[12px] mobile:grid-cols-1 max-w-[1000px]">
           <XSpendCard />
+        </div>
+      </Section>
+
+      <Section title="Privacy">
+        <div className="grid grid-cols-3 gap-[12px] mobile:grid-cols-1 max-w-[1000px]">
+          <AccountPurgeCard />
         </div>
       </Section>
 

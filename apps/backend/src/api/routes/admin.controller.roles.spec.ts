@@ -27,6 +27,11 @@ jest.mock(
   () => ({ AdminSettingsService: class {} })
 );
 
+jest.mock(
+  '@gitroom/nestjs-libraries/database/prisma/account-purge/account-purge.service',
+  () => ({ AccountPurgeService: class {} })
+);
+
 import { AdminController } from './admin.controller';
 
 const spyAll = () =>
@@ -39,9 +44,16 @@ const spyAll = () =>
   );
 
 describe('AdminController: workspace Owner is not a platform admin', () => {
-  const services = [spyAll(), spyAll(), spyAll(), spyAll(), spyAll()];
+  const services = [
+    spyAll(),
+    spyAll(),
+    spyAll(),
+    spyAll(),
+    spyAll(),
+    spyAll(),
+  ];
   const controller = new AdminController(
-    ...(services as [any, any, any, any, any])
+    ...(services as [any, any, any, any, any, any])
   );
   // what the auth middleware puts on the request for someone who created
   // their own workspace (UserOrganization.role = SUPERADMIN)
@@ -72,6 +84,7 @@ describe('AdminController: workspace Owner is not a platform admin', () => {
     ['GET /admin/settings-check', () => controller.getSettingsCheck(owner)],
     ['GET /admin/x-spend', () => controller.getXSpend(owner)],
     ['GET /admin/stats', () => controller.getStats(owner)],
+    ['GET /admin/account-purge', () => controller.getAccountPurge(owner)],
   ];
 
   it.each(calls)('%s refuses a workspace Owner', async (_name, call) => {

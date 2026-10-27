@@ -28,7 +28,8 @@ describe('AdminController settings check', () => {
     {} as any,
     {} as any,
     {} as any,
-    settings
+    settings,
+    {} as any
   );
 
   it('refuses non-super-admins', async () => {

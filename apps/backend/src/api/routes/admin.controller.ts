@@ -17,6 +17,7 @@ import { AdminSettingsService } from '@gitroom/nestjs-libraries/database/prisma/
 import dayjs from 'dayjs';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { AdminSetUserDisabledDto } from '@gitroom/nestjs-libraries/dtos/users/admin.set.user.disabled.dto';
+import { AccountPurgeService } from '@gitroom/nestjs-libraries/database/prisma/account-purge/account-purge.service';
 
 @ApiTags('Admin')
 @Controller('/admin')
@@ -26,7 +27,8 @@ export class AdminController {
     private _adminStatsService: AdminStatsService,
     private _usersService: UsersService,
     private _earlyAccessService: EarlyAccessService,
-    private _adminSettingsService: AdminSettingsService
+    private _adminSettingsService: AdminSettingsService,
+    private _accountPurgeService: AccountPurgeService
   ) {}
 
   private assertSuperAdmin(user: User) {
@@ -135,6 +137,14 @@ export class AdminController {
   async getXSpend(@GetUserFromRequest() user: User) {
     this.assertSuperAdmin(user);
     return this._adminStatsService.getXSpend();
+  }
+
+  // Deleted accounts' workspaces waiting for, due for, and done with the
+  // 30-day hard deletion (#393); counts only
+  @Get('/account-purge')
+  async getAccountPurge(@GetUserFromRequest() user: User) {
+    this.assertSuperAdmin(user);
+    return this._accountPurgeService.getStats();
   }
 
   @Get('/stats')

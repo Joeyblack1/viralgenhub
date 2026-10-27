@@ -6,6 +6,7 @@ import { EmailNotificationsDto } from '@gitroom/nestjs-libraries/dtos/users/emai
 import { OrganizationRepository } from '@gitroom/nestjs-libraries/database/prisma/organizations/organization.repository';
 import { IntegrationRepository } from '@gitroom/nestjs-libraries/database/prisma/integrations/integration.repository';
 import { NotificationService } from '@gitroom/nestjs-libraries/database/prisma/notifications/notification.service';
+import { accountPurgeDate } from '@gitroom/nestjs-libraries/database/prisma/account-purge/account-purge.config';
 
 @Injectable()
 export class UsersService {
@@ -124,6 +125,9 @@ export class UsersService {
   async deleteAccount(userId: string) {
     const deletedOrgs = await this.getOrgsToDeleteForAccount(userId);
     const orgs = await this._organizationRepository.getOrgsByUserId(userId);
+    // the owned workspaces' posts, media, comments and channels are
+    // hard-deleted by the daily account purge after this date (#393)
+    const purgeAfter = accountPurgeDate(new Date());
 
     for (const org of orgs) {
       if (deletedOrgs.some((deletedOrg) => deletedOrg.id === org.id)) {
@@ -138,7 +142,10 @@ export class UsersService {
         }
 
         await this._integrationRepository.deleteIntegrationsForAccount(org.id);
-        await this._organizationRepository.deleteOrganization(org.id);
+        await this._organizationRepository.deleteOrganization(
+          org.id,
+          purgeAfter
+        );
       } else {
         await this._organizationRepository.deleteTeamMember(org.id, userId);
       }
@@ -149,7 +156,7 @@ export class UsersService {
     this._logger.log(
       `Account ${userId} deleted, organizations removed: ${deletedOrgs
         .map((org) => org.id)
-        .join(', ')}`
+        .join(', ')}; content purge after ${purgeAfter.toISOString()}`
     );
 
     return { deletedOrgs };

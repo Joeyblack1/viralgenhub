@@ -18,6 +18,11 @@ model Organization {
   createdAt           DateTime             @default(now())
   updatedAt           DateTime             @updatedAt
   deletedAt           DateTime?
+  // Account deletion (#393): the owner's workspace content is hard-deleted
+  // once purgeAfter has passed (30 days); purgedAt records when it was done.
+  // Only set by account deletion, never by anything else.
+  purgeAfter          DateTime?
+  purgedAt            DateTime?
   allowTrial          Boolean              @default(false)
   isTrailing          Boolean              @default(false)
   shortlink           ShortLinkPreference  @default(ASK)
@@ -51,6 +56,7 @@ model Organization {
   @@index([streakSince])
   @@index([paymentId])
   @@index([deletedAt])
+  @@index([purgeAfter])
 }
 
 model Tags {
