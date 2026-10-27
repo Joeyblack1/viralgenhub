@@ -1,12 +1,6 @@
 'use client';
 
-import {
-  FC,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import { FC, useEffect, useMemo, useRef, useState } from 'react';
 import {
   PostComment,
   withProvider,
@@ -59,7 +53,9 @@ const TikTokSettings: FC<{
   const isBusiness = integration?.identifier === 'tiktok-business';
 
   const isTitle = useMemo(() => {
-    return value?.[0]?.image?.some((p) => (p?.path?.indexOf?.('mp4') ?? -1) === -1);
+    return value?.[0]?.image?.some(
+      (p) => (p?.path?.indexOf?.('mp4') ?? -1) === -1
+    );
   }, [value]);
 
   const hasMedia = (value?.[0]?.image?.length ?? 0) > 0;
@@ -127,6 +123,21 @@ const TikTokSettings: FC<{
   const brand_content_toggle = watch('brand_content_toggle');
   const content_posting_method = watch('content_posting_method');
   const isUploadMode = content_posting_method === 'UPLOAD';
+  // Until TikTok audits ViralGenHub, Direct Post can only be private from a
+  // private account; Upload (an inbox draft) is not restricted. New posts then
+  // start on Upload; a saved choice is never changed. Privacy keeps no default.
+  const unaudited = creator?.audited === false;
+  useEffect(() => {
+    if (content_posting_method) return;
+    if (integrationId && creatorLoading) return;
+    setValue('content_posting_method', unaudited ? 'UPLOAD' : 'DIRECT_POST');
+  }, [
+    content_posting_method,
+    integrationId,
+    creatorLoading,
+    unaudited,
+    setValue,
+  ]);
 
   const privacy_level = watch('privacy_level');
 
@@ -195,22 +206,39 @@ const TikTokSettings: FC<{
   const privacyLevel = allPrivacyLevels.filter((p) =>
     creator?.privacyLevelOptions?.includes(p.value)
   );
-  const contentPostingMethod = [
-    {
-      value: 'DIRECT_POST',
-      label: t(
-        'post_content_directly_to_tiktok',
-        'Post content directly to TikTok'
-      ),
-    },
-    {
-      value: 'UPLOAD',
-      label: t(
-        'upload_content_to_tiktok_without_posting',
-        'Upload content to TikTok without posting it'
-      ),
-    },
-  ];
+  const contentPostingMethod = unaudited
+    ? [
+        {
+          value: 'UPLOAD',
+          label: t(
+            'tiktok_method_inbox_unaudited',
+            'Send to my TikTok inbox as a draft (recommended until our TikTok audit is done; you publish it, publicly if you like, in the TikTok app)'
+          ),
+        },
+        {
+          value: 'DIRECT_POST',
+          label: t(
+            'tiktok_method_private_unaudited',
+            'Post now as private (Only me; needs your TikTok account set to private)'
+          ),
+        },
+      ]
+    : [
+        {
+          value: 'DIRECT_POST',
+          label: t(
+            'post_content_directly_to_tiktok',
+            'Post content directly to TikTok'
+          ),
+        },
+        {
+          value: 'UPLOAD',
+          label: t(
+            'upload_content_to_tiktok_without_posting',
+            'Upload content to TikTok without posting it'
+          ),
+        },
+      ];
   const yesNo = [
     {
       value: 'yes',
@@ -285,9 +313,7 @@ const TikTokSettings: FC<{
             <option
               key={item.value}
               value={item.value}
-              disabled={
-                item.value === 'SELF_ONLY' && !!brand_content_toggle
-              }
+              disabled={item.value === 'SELF_ONLY' && !!brand_content_toggle}
             >
               {item.label}
             </option>
@@ -313,7 +339,7 @@ const TikTokSettings: FC<{
           <div className="text-[13px] mt-[6px] text-balance">
             {t(
               'tiktok_branded_not_private',
-              "Branded content visibility cannot be set to private."
+              'Branded content visibility cannot be set to private.'
             )}
           </div>
         )}
@@ -327,9 +353,7 @@ const TikTokSettings: FC<{
       </div>
       <Select
         label={t('label_content_posting_method', 'Content posting method')}
-        {...register('content_posting_method', {
-          value: 'DIRECT_POST',
-        })}
+        {...register('content_posting_method')}
       >
         <option value="">{t('select', 'Select')}</option>
         {contentPostingMethod.map((item) => (
@@ -338,7 +362,19 @@ const TikTokSettings: FC<{
           </option>
         ))}
       </Select>
-      {isUploadMode && <div className="-mt-[23px] mb-[23px] text-red-600">After posting you will find a notification inside your Inbox about your post (not content studio)</div>}
+      {isUploadMode && (
+        <div className="-mt-[23px] mb-[23px] text-red-600 text-balance">
+          {t(
+            'tiktok_upload_inbox_notice',
+            'After posting you will find a notification inside your Inbox about your post (not content studio)'
+          )}
+          <br />
+          {t(
+            'tiktok_upload_pending_limit',
+            'TikTok allows at most 5 drafts waiting in your inbox in any 24 hours.'
+          )}
+        </div>
+      )}
       <div className={clsx('flex flex-col', directPostOnly)}>
         <Select
           label={
@@ -362,7 +398,7 @@ const TikTokSettings: FC<{
           {isBusiness
             ? t(
                 'tiktok_random_music_only_for_photos',
-                'This feature is available only for photos, it adds a random trending track from TikTok\'s commercial music library.'
+                "This feature is available only for photos, it adds a random trending track from TikTok's commercial music library."
               )
             : t(
                 'this_feature_available_only_for_photos',
@@ -504,7 +540,12 @@ const TikTokSettings: FC<{
             )}
           </div>
         )}
-        <div className={clsx(!disclose && 'invisible h-0 overflow-hidden', 'mt-[20px]')}>
+        <div
+          className={clsx(
+            !disclose && 'invisible h-0 overflow-hidden',
+            'mt-[20px]'
+          )}
+        >
           <Checkbox
             variant="hollow"
             label={t('label_your_brand', 'Your brand')}
@@ -547,7 +588,10 @@ const TikTokSettings: FC<{
       </div>
       {!isUploadMode && (
         <div className="my-[15px] text-[14px] text-balance">
-          {t('by_posting_you_agree_to_tiktoks', "By posting, you agree to TikTok's")}{' '}
+          {t(
+            'by_posting_you_agree_to_tiktoks',
+            "By posting, you agree to TikTok's"
+          )}{' '}
           {brand_content_toggle && (
             <>
               <a
