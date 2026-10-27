@@ -1,5 +1,6 @@
 import {
   IsArray,
+  IsBoolean,
   IsDefined,
   IsIn,
   IsOptional,
@@ -77,6 +78,13 @@ export class YoutubeSettingsDto {
   @IsIn(['yes', 'no'])
   @IsOptional()
   selfDeclaredMadeForKids: 'no' | 'yes';
+
+  // YouTube's "Altered or synthetic content" disclosure: realistic content made
+  // or changed with AI (an AI presenter, a cloned or synthetic voice). Sent as
+  // status.containsSyntheticMedia on upload; leaving it out sends false.
+  @IsBoolean()
+  @IsOptional()
+  containsSyntheticMedia?: boolean;
 
   @IsOptional()
   @ValidateNested()

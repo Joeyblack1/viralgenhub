@@ -12,6 +12,8 @@ import { MediumTags } from '@gitroom/frontend/components/new-launch/providers/me
 import { MediaComponent } from '@gitroom/frontend/components/media/media.component';
 import { Select } from '@gitroom/react/form/select';
 import { YoutubePreview } from '@gitroom/frontend/components/new-launch/providers/youtube/youtube.preview';
+import { Checkbox } from '@gitroom/react/form/checkbox';
+import { useT } from '@gitroom/react/translation/get.transation.service.client';
 const type = [
   {
     label: 'Public',
@@ -39,6 +41,7 @@ const madeForKids = [
 ];
 const YoutubeSettings: FC = () => {
   const { register, control } = useSettings();
+  const t = useT();
   return (
     <div className="flex flex-col">
       <Input label="Title" {...register('title')} maxLength={100} />
@@ -66,6 +69,21 @@ const YoutubeSettings: FC = () => {
           </option>
         ))}
       </Select>
+      <div className="mb-[20px] flex flex-col gap-[6px]">
+        <Checkbox
+          label={t(
+            'label_youtube_synthetic_media',
+            'Altered or synthetic content (AI)'
+          )}
+          {...register('containsSyntheticMedia')}
+        />
+        <div className="text-[12px] text-textItemBlur">
+          {t(
+            'youtube_synthetic_media_hint',
+            'Tick this if the video looks realistic and was made or changed with AI, for example an AI presenter or an AI voice. YouTube asks creators to disclose this.'
+          )}
+        </div>
+      </div>
       <MediumTags label="Tags" {...register('tags')} />
       <div className="mt-[20px]">
         <MediaComponent
