@@ -174,3 +174,16 @@ describe('IntegrationRepository token encryption', () => {
     expect(plug?.integration.token).toBe('t');
   });
 });
+
+describe('IntegrationRepository deleteChannel', () => {
+  it('soft-deletes the channel and wipes its tokens', async () => {
+    const { repo, integration } = build();
+    await repo.deleteChannel('org', 'i1');
+    const call = integration.update.mock.calls[0][0];
+    expect(call.where).toEqual({ id: 'i1', organizationId: 'org' });
+    expect(call.data.deletedAt).toBeInstanceOf(Date);
+    expect(call.data.token).toBe('');
+    expect(call.data.refreshToken).toBeNull();
+    expect(call.data.tokenExpiration).toBeNull();
+  });
+});

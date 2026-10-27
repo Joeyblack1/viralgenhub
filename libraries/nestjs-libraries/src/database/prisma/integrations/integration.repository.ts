@@ -31,6 +31,13 @@ export const integrationResponseSelect = {
   customerId: true,
 } as const;
 
+// What a removed channel keeps of its platform tokens: nothing.
+export const WIPED_TOKENS: {
+  token: string;
+  refreshToken: null;
+  tokenExpiration: null;
+} = { token: '', refreshToken: null, tokenExpiration: null };
+
 @Injectable()
 export class IntegrationRepository {
   private storage = UploadFactory.createStorage();
@@ -225,6 +232,7 @@ export class IntegrationRepository {
         data: {
           internalId: `deleted_${params.internalId}_${makeId(10)}`,
           deletedAt: new Date(),
+          ...WIPED_TOKENS,
         },
       });
     }
@@ -822,6 +830,9 @@ export class IntegrationRepository {
     });
   }
 
+  // Removing a channel also destroys its platform tokens (the privacy policy
+  // promises tokens are kept only while a channel is connected). The row stays
+  // soft-deleted for post history; reconnecting stores fresh tokens.
   deleteChannel(org: string, id: string) {
     return this._integration.model.integration.update({
       select: {
@@ -833,6 +844,7 @@ export class IntegrationRepository {
       },
       data: {
         deletedAt: new Date(),
+        ...WIPED_TOKENS,
       },
     });
   }
