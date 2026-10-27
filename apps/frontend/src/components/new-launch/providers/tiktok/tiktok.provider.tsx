@@ -46,6 +46,9 @@ const TikTokSettings: FC<{
     duetDisabled?: boolean;
     stitchDisabled?: boolean;
     maxVideoPostDurationSec?: number;
+    // false while TikTok has not audited our API client: the backend then
+    // lists only "Only me" and every post goes out private
+    audited?: boolean;
   };
   const [creator, setCreator] = useState<CreatorInfo | undefined>();
   const [creatorLoading, setCreatorLoading] = useState(true);
@@ -290,6 +293,14 @@ const TikTokSettings: FC<{
             </option>
           ))}
         </Select>
+        {!isUploadMode && creator?.audited === false && (
+          <div className="bg-tableBorder p-[10px] mt-[6px] rounded-[10px] text-[13px] text-balance">
+            {t(
+              'tiktok_unaudited_note',
+              'Until TikTok completes its audit of ViralGenHub, TikTok posts are published as private (Only me), and TikTok only accepts them while your TikTok account is set to private. You can make them public in the TikTok app.'
+            )}
+          </div>
+        )}
         {!isUploadMode && !privacy_level && !isBlocked && (
           <div className="text-[13px] mt-[6px] text-balance">
             {t(
