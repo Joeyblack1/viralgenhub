@@ -1,6 +1,17 @@
 import {
-  IsBoolean, ValidateIf, IsIn, IsString, MaxLength, IsOptional, IsDefined, IsNumber, Min, Max, ValidateNested,
-  registerDecorator, ValidationArguments,
+  IsBoolean,
+  ValidateIf,
+  IsIn,
+  IsString,
+  MaxLength,
+  IsOptional,
+  IsDefined,
+  IsNumber,
+  Min,
+  Max,
+  ValidateNested,
+  registerDecorator,
+  ValidationArguments,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { JSONSchema } from 'class-validator-jsonschema';
@@ -16,11 +27,13 @@ function DisclosureNeedsChoice() {
       validator: {
         validate(_: unknown, args: ValidationArguments) {
           const o = args.object as TikTokDto;
-          if (!o.disclose) return true;
+          // TikTok discards the disclosure on UPLOAD (the creator sets it in
+          // the TikTok app), so it cannot block an inbox draft.
+          if (!o.disclose || o.content_posting_method === 'UPLOAD') return true;
           return !!(o.brand_organic_toggle || o.brand_content_toggle);
         },
         defaultMessage() {
-          return "You need to indicate if your content promotes yourself, a third party, or both.";
+          return 'You need to indicate if your content promotes yourself, a third party, or both.';
         },
       },
     });
@@ -39,7 +52,7 @@ function BrandedNotPrivate() {
           return !(o.brand_content_toggle && value === 'SELF_ONLY');
         },
         defaultMessage() {
-          return "Branded content visibility cannot be set to private.";
+          return 'Branded content visibility cannot be set to private.';
         },
       },
     });
@@ -232,9 +245,11 @@ export class TikTokDto {
     description:
       'Required. Use "DIRECT_POST" to actually publish the post to TikTok. ' +
       '"UPLOAD" does NOT publish: it only sends the media to the user\'s TikTok app inbox, ' +
-      'where they must manually finish and publish it within 24 hours or it is discarded, ' +
+      'where they open the notification and finish and publish it themselves (choosing who can see it there), ' +
       'and it makes TikTok ignore every other setting here. ' +
-      'Only use "UPLOAD" when the user explicitly asks to review or edit the post inside the TikTok app before publishing.',
+      'Use "UPLOAD" when the user asks to review or edit the post inside the TikTok app before publishing. ' +
+      'While ViralGenHub\'s TikTok API client is not yet audited by TikTok, "DIRECT_POST" can only publish as private (Only me) ' +
+      'and only from a private TikTok account; "UPLOAD" is not restricted, so suggest it to users who want a public post.',
   })
   content_posting_method: 'DIRECT_POST' | 'UPLOAD';
 }

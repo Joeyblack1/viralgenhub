@@ -100,6 +100,36 @@ describe('TiktokProvider while unaudited', () => {
     ).toThrow(/Branded content cannot be posted to TikTok yet/);
   });
 
+  it('unaudited UPLOAD (inbox draft): no privacy sent, nothing forced or refused', () => {
+    delete process.env.TIKTOK_AUDITED;
+    const p = new TiktokProvider() as any;
+    const post = {
+      id: 'p',
+      message: 'Launch video',
+      media: [{ path: 'https://app.test/uploads/v.mp4' }],
+      settings: {
+        content_posting_method: 'UPLOAD',
+        privacy_level: 'PUBLIC_TO_EVERYONE',
+        disclose: true,
+        brand_content_toggle: true,
+        brand_organic_toggle: false,
+      },
+    };
+    expect(p.buildTikokPostInfoBody(post)).toEqual({
+      post_info: { title: 'Launch video' },
+    });
+    expect(p.postingMethod(p.contentPostingMethod(post), false)).toBe(
+      '/inbox/video/init/'
+    );
+    // a missing privacy choice does not block a draft either
+    expect(() =>
+      p.buildTikokPostInfoBody({
+        ...post,
+        settings: { content_posting_method: 'UPLOAD' },
+      })
+    ).not.toThrow();
+  });
+
   it('maps unaudited_client_can_only_post_to_private_accounts to the cause and fix', () => {
     const res = new TiktokProvider().handleErrors(
       JSON.stringify({

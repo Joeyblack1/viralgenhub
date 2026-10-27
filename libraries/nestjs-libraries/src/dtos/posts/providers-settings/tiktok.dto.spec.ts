@@ -41,6 +41,23 @@ describe('TikTokDto, TikTok Content Sharing Guidelines', () => {
     );
     expect(await errs({ disclose: false })).toEqual([]);
   });
+  it('UPLOAD (inbox draft) is not blocked by disclosure or branded/privacy rules', async () => {
+    expect(
+      await errs({
+        content_posting_method: 'UPLOAD',
+        privacy_level: '',
+        disclose: true,
+      })
+    ).toEqual([]);
+    expect(
+      await errs({
+        content_posting_method: 'UPLOAD',
+        privacy_level: 'SELF_ONLY',
+        disclose: true,
+        brand_content_toggle: true,
+      })
+    ).toEqual([]);
+  });
   it('branded content cannot be private', async () => {
     expect(
       await errs({
