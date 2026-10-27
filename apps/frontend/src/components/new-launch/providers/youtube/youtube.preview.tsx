@@ -70,9 +70,11 @@ export const YoutubePreview: FC<{
               className="rounded-full z-[2] w-[40px] h-[40px]"
             />
           </div>
+          {/* ViralGenHub (#268): upstream showed invented counts here
+              ("16.7M subscribers", "205K" likes). We do not have the channel's
+              real numbers in the composer, so the preview shows none. */}
           <div className="flex flex-col">
             <div className="text-[14px] font-[500]">{integration?.name}</div>
-            <div className="text-[10px] font-[400]">16.7M subscribers</div>
           </div>
           <div>
             <div className="h-[32px] text-[12px] text-newBgColor font-[500] px-[14px] flex justify-center items-center bg-youtubeButton rounded-[16px]">
@@ -83,7 +85,7 @@ export const YoutubePreview: FC<{
         <div className="gap-[4px] flex items-center text-youtubeSvg">
           <div className="bg-youtubeBgAction text-[13px] px-[9px] h-[32px] rounded-[16px] flex items-center">
             <svg
-              className="mr-[9px]"
+              className="mr-[12px]"
               xmlns="http://www.w3.org/2000/svg"
               width="16"
               height="15"
@@ -95,7 +97,6 @@ export const YoutubePreview: FC<{
                 fill="currentColor"
               />
             </svg>
-            <div className="mr-[14px]">205K</div>
             <div className="h-[20px] w-[1px] bg-[#A0A0A0] mr-[12px]" />
             <svg
               xmlns="http://www.w3.org/2000/svg"
