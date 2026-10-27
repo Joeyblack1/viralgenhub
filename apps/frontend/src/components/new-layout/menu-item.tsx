@@ -27,7 +27,7 @@ export const MenuItem: FC<{
         {icon}
         {locked && (
           <span
-            className="absolute -bottom-[3px] -end-[7px] w-[13px] h-[13px] rounded-full bg-newBgColorInner flex items-center justify-center"
+            className="absolute -bottom-[3px] -end-[8px] flex items-center justify-center"
             data-testid="menu-lock"
           >
             <LockIcon size={9} />
