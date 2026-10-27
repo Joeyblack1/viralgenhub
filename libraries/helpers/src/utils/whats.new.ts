@@ -16,6 +16,14 @@ export interface WhatsNewEntry {
 
 export const WHATS_NEW: WhatsNewEntry[] = [
   {
+    id: '2026-10-28',
+    date: '28 Oct 2026',
+    items: [
+      'Retry one channel: when a post fails on one platform, hover it in the calendar and choose Retry. Only that channel is sent again.',
+      'Deleting your account now also deletes your workspaces’ posts, media, comments and channels for good, 30 days later.',
+    ],
+  },
+  {
     id: '2026-10-27',
     date: '27 Oct 2026',
     items: [
