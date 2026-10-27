@@ -23,6 +23,8 @@ export const WHATS_NEW: WhatsNewEntry[] = [
       'Clearer team roles: each workspace has an Owner, Admins and Members.',
       'Features from paid plans are shown with a lock and the plan that includes them, so you can see what each plan adds.',
       'Help menu in the header: FAQ, connecting your accounts, support e-mail and our Telegram channel.',
+      'TikTok: new posts go to your TikTok inbox as a draft that you publish, publicly if you like, in the TikTok app. Direct posts stay private (Only me) until TikTok\u2019s audit is done.',
+      'Bluesky: when Bluesky won\u2019t take a video (for example, the account\u2019s email is not confirmed yet), the post now says why and how to fix it.',
     ],
   },
   {
