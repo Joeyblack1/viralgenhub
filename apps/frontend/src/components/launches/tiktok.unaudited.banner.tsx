@@ -10,6 +10,8 @@ import { useIntegrationList } from '@gitroom/frontend/components/launches/helper
 // Direct Post can only publish privately from a private account, so the
 // calendar tells workspaces with a TikTok channel to use the inbox draft.
 // Closed per person, in this browser (same pattern as Getting started).
+// Public help page on the marketing site (site/build_site.py in viralgenhub-ops).
+const TIKTOK_HELP_URL = 'https://viralgenhub.com/help/connect/tiktok';
 const dismissedKey = (userId: string) => `tiktok_unaudited_banner_${userId}`;
 
 export const TikTokUnauditedBanner: FC = () => {
@@ -52,7 +54,15 @@ export const TikTokUnauditedBanner: FC = () => {
         {t(
           'tiktok_unaudited_banner',
           "TikTok: until TikTok finishes reviewing ViralGenHub, choose 'Send to my TikTok inbox as a draft' and publish from the TikTok app. Direct posts can only be private for now."
-        )}
+        )}{' '}
+        <a
+          href={TIKTOK_HELP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:font-bold whitespace-nowrap"
+        >
+          {t('tiktok_unaudited_banner_learn_more', 'Learn more')}
+        </a>
       </div>
       <button
         type="button"
