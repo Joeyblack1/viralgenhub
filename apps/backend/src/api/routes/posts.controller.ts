@@ -300,6 +300,15 @@ export class PostsController {
     return this._postsService.deletePost(org.id, group);
   }
 
+  // Retry ONE failed channel of a post group now; siblings are never touched
+  @Post('/:id/retry')
+  retryPost(
+    @GetOrgFromRequest() org: Organization,
+    @Param('id') id: string
+  ) {
+    return this._postsService.retryFailedPost(org.id, id);
+  }
+
   @Put('/:id/date')
   changeDate(
     @GetOrgFromRequest() org: Organization,

@@ -295,6 +295,67 @@ const usePostActions = (onMutate?: () => void) => {
     [toaster, t, fetch, mutate]
   );
 
+  // "Retry this channel only": re-queues ONE failed channel of a post group.
+  // Opening the group and pressing Update would re-send every channel.
+  const retryPost = useCallback(
+    (post: any) => async () => {
+      const name =
+        post.integration?.name || post.integration?.providerIdentifier || '';
+      const unconfirmed = /confirm|several attempts|timed? ?out/i.test(
+        post.error || ''
+      );
+      if (
+        !(await deleteDialog(
+          [
+            t(
+              'vgh_retry_channel_text',
+              'Publish this post to {{name}} again now? Only this channel is retried: the other channels in this post are not touched.',
+              { name }
+            ),
+            unconfirmed
+              ? t(
+                  'vgh_retry_channel_unconfirmed',
+                  'We could not confirm whether the first attempt went out. Check {{name}} first so the post does not appear twice.',
+                  { name }
+                )
+              : '',
+          ]
+            .filter(Boolean)
+            .join(' '),
+          t('vgh_retry_channel_yes', 'Yes, retry now'),
+          t('vgh_retry_channel_title', 'Retry this channel only'),
+          t('no_cancel', 'No, cancel!'),
+          false
+        ))
+      ) {
+        return;
+      }
+
+      const res = await fetch(`/posts/${post.id}/retry`, {
+        method: 'POST',
+      });
+      const body = await res.json().catch(() => ({} as any));
+      if (!res.ok) {
+        toaster.show(
+          (typeof body?.message === 'string' && body.message) ||
+            t('vgh_retry_failed', 'Could not retry this post'),
+          'warning'
+        );
+        mutate();
+        return;
+      }
+
+      toaster.show(
+        body?.queued === false
+          ? t('vgh_retry_already_queued', 'This post is already queued')
+          : t('vgh_retry_queued', 'Retrying {{name}} now', { name }),
+        'success'
+      );
+      mutate();
+    },
+    [fetch, toaster, t, mutate]
+  );
+
   const openStatistics = useCallback(
     (id: string) => () => {
       modal.openModal({
@@ -390,7 +451,15 @@ const usePostActions = (onMutate?: () => void) => {
     [fetch, toaster, t]
   );
 
-  return { editPost, deletePost, copyDebugJson, openStatistics, openMissingRelease, openPost };
+  return {
+    editPost,
+    deletePost,
+    retryPost,
+    copyDebugJson,
+    openStatistics,
+    openMissingRelease,
+    openPost,
+  };
 };
 
 // One day view slot. Memoized, so the now line's minute tick doesn't re-render the slots
@@ -684,7 +753,15 @@ export const ListView = () => {
       : t('no_posts', 'No posts');
 
   // Use shared post actions hook
-  const { editPost, deletePost, copyDebugJson, openStatistics, openMissingRelease, openPost } = usePostActions();
+  const {
+    editPost,
+    deletePost,
+    retryPost,
+    copyDebugJson,
+    openStatistics,
+    openMissingRelease,
+    openPost,
+  } = usePostActions();
 
   // Group posts by date
   const groupedPosts = useMemo(() => {
@@ -740,6 +817,7 @@ export const ListView = () => {
                   post={post}
                   integrations={integrations}
                   deletePost={deletePost(post)}
+                  retryPost={retryPost(post)}
                   showTime={true}
                 />
               ))}
@@ -790,7 +868,15 @@ export const CalendarColumn: FC<{
   const fetch = useFetch();
 
   // Use shared post actions hook
-  const { editPost, deletePost, copyDebugJson, openStatistics, openMissingRelease, openPost } = usePostActions();
+  const {
+    editPost,
+    deletePost,
+    retryPost,
+    copyDebugJson,
+    openStatistics,
+    openMissingRelease,
+    openPost,
+  } = usePostActions();
   const postList = useMemo(() => {
     return posts.filter((post) => {
       const pList = dayjs.utc(post.publishDate).local();
@@ -1081,6 +1167,7 @@ export const CalendarColumn: FC<{
                   post={post}
                   integrations={integrations}
                   deletePost={deletePost(post)}
+                  retryPost={retryPost(post)}
                 />
               </div>
             </div>
@@ -1198,6 +1285,7 @@ const CalendarItem: FC<{
   duplicatePost: () => void;
   copyDebugJson?: () => void;
   deletePost: () => void;
+  retryPost?: () => void;
   statistics: () => void;
   missingRelease?: () => void;
   openPost: () => void;
@@ -1224,6 +1312,7 @@ const CalendarItem: FC<{
     state,
     display,
     deletePost,
+    retryPost,
     showTime,
     missingRelease,
     openPost,
@@ -1237,6 +1326,9 @@ const CalendarItem: FC<{
   const preview = useCallback(() => {
     window.open(`/p/` + post.id + '?share=true', '_blank');
   }, [post]);
+  // a failed post the platform never accepted can be retried on its own
+  const canRetry =
+    state === 'ERROR' && !!retryPost && !post.releaseURL && !post.releaseId;
   const [{ opacity }, dragRef] = useDrag(
     () => ({
       type: 'post',
@@ -1273,7 +1365,22 @@ const CalendarItem: FC<{
           )}
           data-tooltip-id="tooltip"
           data-tooltip-class-name="!max-w-[400px] break-words"
-          data-tooltip-content={post.error || 'An error occurred while publishing this post'}
+          data-tooltip-content={
+            (post.error || t('vgh_post_error_default', 'An error occurred while publishing this post')) +
+            (canRetry
+              ? ' ' + t('vgh_retry_badge_hint', '(Click to retry this channel only.)')
+              : '')
+          }
+          {...(canRetry
+            ? {
+                role: 'button',
+                'aria-label': t('vgh_retry_channel_title', 'Retry this channel only'),
+                onClick: (e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  retryPost!();
+                },
+              }
+            : {})}
         >
           !
         </div>
@@ -1374,6 +1481,23 @@ const CalendarItem: FC<{
         ) : (
           <></>
         )}{' '}
+        {canRetry && (
+          <div
+            className={clsx(
+              'hidden group-hover:block hover:underline cursor-pointer',
+              post?.tags?.[0]?.tag?.color && 'text-shadow-tags'
+            )}
+            data-tooltip-id="tooltip"
+            data-tooltip-content={t(
+              'vgh_retry_channel_tip',
+              'Retry this channel only'
+            )}
+            aria-label={t('vgh_retry_channel_tip', 'Retry this channel only')}
+            onClick={retryPost}
+          >
+            <RetryPost />
+          </div>
+        )}
         <div
           className={clsx(
             'hidden group-hover:block hover:underline cursor-pointer',
@@ -1603,6 +1727,22 @@ export const Statistics = () => {
     </svg>
   );
 };
+
+const RetryPost = () => (
+  <svg
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    xmlns="http://www.w3.org/2000/svg"
+    aria-hidden="true"
+  >
+    <path
+      d="M17.65 6.35A7.96 7.96 0 0 0 12 4a8 8 0 1 0 7.73 10h-2.08A6 6 0 1 1 12 6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35Z"
+      fill="currentColor"
+    />
+  </svg>
+);
 
 export const DeletePost = () => {
   const t = useT();

@@ -472,6 +472,48 @@ export class PostsRepository {
     });
   }
 
+  // Re-queue ONE channel's failed post ("Retry this channel only"): the root
+  // post of that channel and nothing else of its group, only while it is
+  // still ERROR, not deleted, and nothing the platform accepted
+  // (releaseId/releaseURL). The update is conditional, so two clicks cannot
+  // both re-queue it: the second one matches no row.
+  requeueFailedPost(orgId: string, id: string, publishDate: Date) {
+    return this._post.model.post.updateMany({
+      where: {
+        id,
+        organizationId: orgId,
+        state: 'ERROR',
+        deletedAt: null,
+        parentPostId: null,
+        releaseId: null,
+        releaseURL: null,
+      },
+      data: {
+        state: 'QUEUE',
+        publishDate,
+        error: null,
+      },
+    });
+  }
+
+  // Items of one channel's thread (same group, same channel) the platform
+  // already accepted: a retry would publish them a second time
+  countLiveThreadItems(orgId: string, group: string, integrationId: string) {
+    return this._post.model.post.count({
+      where: {
+        organizationId: orgId,
+        group,
+        integrationId,
+        deletedAt: null,
+        OR: [
+          { state: 'PUBLISHED' },
+          { releaseId: { not: null } },
+          { releaseURL: { not: null } },
+        ],
+      },
+    });
+  }
+
   updateReleaseId(
     id: string,
     orgId: string,

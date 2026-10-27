@@ -1556,6 +1556,111 @@ export class PostsService {
     return { id, state };
   }
 
+  // "Retry this channel only": re-queue ONE failed channel of a post group,
+  // publishing now with the same content, media and settings. Opening the
+  // group in the editor and pressing Update re-sends every channel, so this
+  // never touches a sibling post. Refuses anything that is (partly) live on
+  // the platform, deleted or not failed; a second click while the first retry
+  // is queued is answered without starting anything again.
+  async retryFailedPost(orgId: string, id: string) {
+    const post = await this._postRepository.getPostById(id, orgId);
+    if (!post || post.deletedAt) {
+      throw new NotFoundException('Post not found');
+    }
+
+    const platform = post.integration?.providerIdentifier || 'the channel';
+
+    if (post.parentPostId) {
+      throw new BadRequestException(
+        'Retry the first item of the thread, not a reply.'
+      );
+    }
+
+    // already re-queued (double click, or another tab): nothing to do
+    if (post.state === 'QUEUE') {
+      return { id: post.id, state: 'QUEUE' as State, queued: false };
+    }
+
+    if (post.state === 'PUBLISHED') {
+      throw new BadRequestException(
+        `This post was already published to ${platform}, so it cannot be retried.`
+      );
+    }
+
+    if (post.state !== 'ERROR') {
+      throw new BadRequestException('Only a failed post can be retried.');
+    }
+
+    if (
+      post.releaseId ||
+      post.releaseURL ||
+      (await this._postRepository.countLiveThreadItems(
+        orgId,
+        post.group,
+        post.integrationId
+      ))
+    ) {
+      throw new BadRequestException(
+        `Part of this post is already live on ${platform}. A retry would publish it twice; duplicate the post instead and remove what is already live.`
+      );
+    }
+
+    if (!post.integration || post.integration.deletedAt) {
+      throw new BadRequestException(
+        'This channel was removed. Connect it again, then duplicate the post.'
+      );
+    }
+
+    if (post.integration.disabled) {
+      throw new BadRequestException(
+        `The ${platform} channel is disabled. Enable it, then retry.`
+      );
+    }
+
+    if (post.integration.refreshNeeded) {
+      throw new BadRequestException(
+        `The ${platform} channel needs to be reconnected. Reconnect it, then retry.`
+      );
+    }
+
+    // counted in the month it now publishes in, like a reschedule (changeDate)
+    await this.checkPlanPostsLimits(orgId, [
+      {
+        type: 'now',
+        posts: [
+          {
+            settings: { __type: post.integration.providerIdentifier },
+            value: [{ id: post.id }],
+          },
+        ],
+      } as unknown as CreatePostDto,
+    ]);
+
+    const { count } = await this._postRepository.requeueFailedPost(
+      orgId,
+      post.id,
+      new Date()
+    );
+
+    if (!count) {
+      // lost a race with another click or a change in between
+      const now = await this._postRepository.getPostById(post.id, orgId);
+      if (now && !now.deletedAt && now.state === 'QUEUE') {
+        return { id: post.id, state: 'QUEUE' as State, queued: false };
+      }
+      throw new BadRequestException('This post can no longer be retried.');
+    }
+
+    await this.startWorkflow(
+      post.integration.providerIdentifier.split('-')[0].toLowerCase(),
+      post.id,
+      orgId,
+      'QUEUE'
+    );
+
+    return { id: post.id, state: 'QUEUE' as State, queued: true };
+  }
+
   async changeDate(
     orgId: string,
     id: string,
