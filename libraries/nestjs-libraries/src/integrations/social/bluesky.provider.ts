@@ -73,18 +73,156 @@ async function reduceImageBySize(url: string, maxSizeKB = 976) {
   }
 }
 
+// What the video service (video.bsky.app) answers. Recorded 27 Oct 2026:
+//  - errors come back as a flat job-shaped body with an EMPTY jobId, e.g.
+//    400 {"did":"","error":"missing jobId","jobId":"","state":""}
+//  - getUploadLimits for an account without a confirmed email:
+//    401 {"canUpload":false,"error":"unconfirmed_email","message":"Confirm your email address to upload videos"}
+//  - the same video bytes uploaded again: 409 with error "already_exists",
+//    state JOB_STATE_COMPLETED and the earlier jobId (and possibly its blob).
+// The lexicon wraps uploadVideo's output as {jobStatus}, while the service
+// and Bluesky's own client read the fields at the top level: accept both.
+export type BlueskyVideoJob = { jobId: string; blob?: any };
+
+const BLUESKY_UNCONFIRMED_EMAIL =
+  'Bluesky only accepts videos from accounts with a confirmed email address. Confirm the email in the Bluesky app (Settings > Account > Email), then post again. Nothing was published.';
+
+export function blueskyVideoRefusal(
+  httpStatus: number,
+  error = '',
+  message = '',
+  raw = '{}',
+  fromLimits = false
+): Error {
+  if (error === 'unconfirmed_email' || /confirm your email/i.test(message)) {
+    return new BadBody('bluesky', raw, {} as any, BLUESKY_UNCONFIRMED_EMAIL);
+  }
+  // Bluesky caps video uploads per account per day; retrying inside the same
+  // workflow cannot help, so this fails with the cause instead of looping.
+  if (fromLimits || /limit|quota|exceed/i.test(`${error} ${message}`)) {
+    return new BadBody(
+      'bluesky',
+      raw,
+      {} as any,
+      `Bluesky's daily video upload limit for this account has been reached${
+        message ? ` ("${message}")` : ''
+      }. Try again tomorrow. Nothing was published.`
+    );
+  }
+  // 5xx, 429 or no answer: transient, let the activity retry.
+  if (!httpStatus || httpStatus >= 500 || httpStatus === 429) {
+    return new Error(
+      `Bluesky video service unavailable (HTTP ${httpStatus || 'none'}${
+        error ? `, ${error}` : ''
+      })`
+    );
+  }
+  return new BadBody(
+    'bluesky',
+    raw,
+    {} as any,
+    `Bluesky's video service refused the upload (${
+      message || error || `HTTP ${httpStatus}`
+    }). Nothing was published.`
+  );
+}
+
+// Reads an uploadVideo answer. Returns the job to poll (or its blob when the
+// service already has the video); throws a clear error when there is neither,
+// instead of carrying an empty jobId into the status checks ("missing jobId").
+export function parseVideoUploadResponse(
+  httpStatus: number,
+  text: string
+): BlueskyVideoJob {
+  let body: any;
+  try {
+    body = JSON.parse(text);
+  } catch {
+    body = undefined;
+  }
+  const raw = (text || '').slice(0, 1000);
+  if (!body || typeof body !== 'object') {
+    throw blueskyVideoRefusal(httpStatus, '', '', raw);
+  }
+  const job =
+    body.jobStatus && typeof body.jobStatus === 'object' ? body.jobStatus : body;
+  const jobId: string = job.jobId || body.jobId || '';
+  const blob = job.blob || body.blob || undefined;
+  const error: string = job.error || body.error || '';
+  const message: string = job.message || body.message || '';
+
+  if (blob) {
+    return { jobId, blob };
+  }
+  if (jobId) {
+    if (job.state === 'JOB_STATE_FAILED' && error !== 'already_exists') {
+      throw new BadBody(
+        'bluesky',
+        raw,
+        {} as any,
+        `Bluesky could not process the video${
+          message || error ? ` (${message || error})` : ''
+        }. Nothing was published.`
+      );
+    }
+    // already_exists included: the earlier job holds the processed blob.
+    return { jobId };
+  }
+  throw blueskyVideoRefusal(httpStatus, error, message, raw);
+}
+
+// Bluesky's own client asks first whether the account may upload a video
+// (getUploadLimits) - it names the cause (unconfirmed email, daily limit)
+// before any bytes are sent. Only a definite "no" stops the upload; if the
+// check itself cannot be made, the upload goes ahead and answers for itself.
+async function checkVideoUploadLimits(agent: AtpAgent) {
+  let httpStatus = 0;
+  let body: any;
+  try {
+    const { data: limitsAuth } =
+      await agent.com.atproto.server.getServiceAuth({
+        aud: 'did:web:video.bsky.app',
+        lxm: 'app.bsky.video.getUploadLimits',
+      });
+    const res = await fetch(
+      'https://video.bsky.app/xrpc/app.bsky.video.getUploadLimits',
+      { headers: { Authorization: `Bearer ${limitsAuth.token}` } }
+    );
+    httpStatus = res.status;
+    body = await res.json().catch(() => undefined);
+  } catch (err) {
+    console.log(
+      'Bluesky getUploadLimits unavailable, uploading anyway:',
+      (err as any)?.message || err
+    );
+    return;
+  }
+  if (body && body.canUpload === false) {
+    throw blueskyVideoRefusal(
+      httpStatus,
+      body.error,
+      body.message,
+      JSON.stringify(body),
+      true
+    );
+  }
+}
+
 // Streams the video bytes to the Bluesky video service and returns the job
-// status - it does NOT wait for the processing. The blob only exists once the
-// job completes; a BlobRef can't survive JSON serialization through the
-// workflow history, so callers re-read it from getVideoJobStatus when needed.
+// - it does NOT wait for the processing. The blob only exists once the job
+// completes (or straight away when the service already had the video);
+// callers re-read it from getVideoJobStatus when needed.
 async function startVideoUpload(
   agent: AtpAgent,
   videoPath: string
-): Promise<AppBskyVideoDefs.JobStatus> {
+): Promise<BlueskyVideoJob> {
+  setHeartbeatDetails('bluesky: upload limits');
+  await checkVideoUploadLimits(agent);
+
   const { data: serviceAuth } = await agent.com.atproto.server.getServiceAuth({
     aud: `did:web:${agent.dispatchUrl.host}`,
     lxm: 'com.atproto.repo.uploadBlob',
-    exp: Date.now() / 1000 + 60 * 30, // 30 minutes
+    exp: Math.floor(Date.now() / 1000) + 60 * 30, // 30 minutes, integer
   });
 
   // The video is never buffered in memory: the size comes from a HEAD request
@@ -148,19 +286,14 @@ async function startVideoUpload(
     duplex: 'half',
   } as any);
 
-  const jobStatus = (await uploadResponse.json()) as AppBskyVideoDefs.JobStatus;
-  console.log('JobId:', jobStatus.jobId);
+  const text = await uploadResponse.text().catch(() => '');
+  console.log(
+    'Bluesky uploadVideo HTTP',
+    uploadResponse.status,
+    text.slice(0, 300)
+  );
 
-  if (jobStatus.state === 'JOB_STATE_FAILED') {
-    throw new BadBody(
-      'bluesky',
-      JSON.stringify({}),
-      {} as any,
-      'Could not upload video, job failed'
-    );
-  }
-
-  return jobStatus;
+  return parseVideoUploadResponse(uploadResponse.status, text);
 }
 
 // Single read of the processing job - the endpoint is public (no login), so
@@ -199,7 +332,10 @@ async function uploadVideo(
     const status = await getVideoJobStatus(jobStatus.jobId);
     console.log('Status:', status.state, status.progress || '');
     if (status.blob) {
+      // a blob wins over the state: an already_exists job reports an error
+      // but hands back the earlier processed video
       blob = status.blob;
+      break;
     }
 
     if (status.state === 'JOB_STATE_FAILED') {
@@ -227,6 +363,10 @@ async function uploadVideo(
 // content, never a BlobRef (it does not survive JSON serialization).
 type BlueskyPendingData = {
   jobId: string; // empty for image-only posts (no asynchronous processing)
+  // The processed video's blob as plain JSON, when the video service already
+  // had it (409 already_exists with a blob and no job to poll). Plain JSON,
+  // never a BlobRef instance, so it survives the workflow history.
+  videoBlob?: any;
   message: string;
   media: { path: string; alt?: string }[];
   // Arm -> confirm -> publish handshake (same as the Facebook story flow):
@@ -472,10 +612,14 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
     // the workflow history). Nothing here is irreversible - an unused video
     // job leaves no post behind.
     let jobId = '';
+    let videoBlob: any;
     if (videoMedia.length > 0) {
       const agent = await this.getAgent(integration);
-      const jobStatus = await startVideoUpload(agent, videoMedia[0].path);
-      jobId = jobStatus.jobId;
+      // throws a clear error (unconfirmed email, daily limit, refusal) when
+      // Bluesky gives neither a job nor a blob - never an empty jobId
+      const job = await startVideoUpload(agent, videoMedia[0].path);
+      jobId = job.jobId;
+      videoBlob = job.blob;
     }
 
     return [
@@ -486,6 +630,7 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
         status: 'pending',
         pendingData: {
           jobId,
+          ...(videoBlob ? { videoBlob } : {}),
           message: firstPost.message,
           media: (firstPost.media || []).map((m) => ({
             path: m.path,
@@ -522,8 +667,9 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
           }
         : { status: 'ready', pendingData };
 
-    // Image-only posts have no asynchronous processing step.
-    if (!pendingData.jobId) {
+    // Image-only posts have no asynchronous processing step, and a video the
+    // service already had comes with its blob.
+    if (!pendingData.jobId || pendingData.videoBlob) {
       return witness();
     }
 
@@ -541,17 +687,23 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
       return { status: 'pending', pendingData };
     }
 
+    // a blob wins over the state: an already_exists job reports an error but
+    // hands back the earlier processed video
+    if (status.blob) {
+      return witness();
+    }
+
     if (status.state === 'JOB_STATE_FAILED') {
       throw new BadBody(
         'bluesky',
         JSON.stringify(status),
         {} as any,
-        'Could not upload video, job failed'
+        `Could not upload video, job failed${
+          status.message || status.error
+            ? ` (${status.message || status.error})`
+            : ''
+        }`
       );
-    }
-
-    if (status.blob) {
-      return witness();
     }
 
     return { status: 'pending', pendingData };
@@ -583,12 +735,17 @@ export class BlueskyProvider extends SocialAbstract implements SocialProvider {
     try {
       agent = await this.getAgent(integration);
 
-      if (pendingData.jobId) {
+      if (pendingData.videoBlob) {
+        embed = {
+          $type: 'app.bsky.embed.video',
+          video: pendingData.videoBlob,
+        };
+      } else if (pendingData.jobId) {
         // Re-read the blob from the job (a BlobRef never travels through the
         // workflow history).
         const status = await getVideoJobStatus(pendingData.jobId);
 
-        if (status.state === 'JOB_STATE_FAILED') {
+        if (status.state === 'JOB_STATE_FAILED' && !status.blob) {
           throw new BadBody(
             'bluesky',
             JSON.stringify(status),
