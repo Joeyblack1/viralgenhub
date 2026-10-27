@@ -183,6 +183,10 @@ export class UsersService {
     return this._usersRepository.getEmailNotifications(userId);
   }
 
+  setWhatsNewSeen(userId: string, id: string) {
+    return this._usersRepository.setWhatsNewSeen(userId, id);
+  }
+
   updateEmailNotifications(userId: string, body: EmailNotificationsDto) {
     return this._usersRepository.updateEmailNotifications(userId, body);
   }

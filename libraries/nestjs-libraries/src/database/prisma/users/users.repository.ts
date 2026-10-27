@@ -216,6 +216,7 @@ export class UsersRepository {
         sendSuccessEmails: true,
         sendFailureEmails: true,
         sendStreakEmails: true,
+        whatsNewSeen: true,
       },
     });
   }
@@ -427,6 +428,17 @@ export class UsersRepository {
         sendSuccessEmails: true,
         sendFailureEmails: true,
         sendStreakEmails: true,
+      },
+    });
+  }
+
+  async setWhatsNewSeen(userId: string, id: string) {
+    await this._user.model.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        whatsNewSeen: id,
       },
     });
   }

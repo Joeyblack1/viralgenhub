@@ -30,6 +30,8 @@ import { ApiTags } from '@nestjs/swagger';
 import { UsersService } from '@gitroom/nestjs-libraries/database/prisma/users/users.service';
 import { UserDetailDto } from '@gitroom/nestjs-libraries/dtos/users/user.details.dto';
 import { EmailNotificationsDto } from '@gitroom/nestjs-libraries/dtos/users/email-notifications.dto';
+import { WhatsNewSeenDto } from '@gitroom/nestjs-libraries/dtos/users/whats-new-seen.dto';
+import { isKnownWhatsNewId } from '@gitroom/helpers/utils/whats.new';
 import { HttpForbiddenException } from '@gitroom/nestjs-libraries/services/exception.filter';
 import { RealIP } from 'nestjs-real-ip';
 import { UserAgent } from '@gitroom/nestjs-libraries/user/user.agent';
@@ -319,6 +321,28 @@ export class UsersController {
     @Body() body: EmailNotificationsDto
   ) {
     return this._userService.updateEmailNotifications(user.id, body);
+  }
+
+  // ViralGenHub: the Help menu's "What's new" list was opened; remember the
+  // newest entry this person has seen so the dot only shows for newer ones.
+  // A platform admin viewing as someone else must not mark it for them.
+  @Post('/whats-new/seen')
+  async setWhatsNewSeen(
+    @GetUserFromRequest() user: User,
+    @Body() body: WhatsNewSeenDto,
+    @Req() req: Request
+  ) {
+    if (!isKnownWhatsNewId(body?.id)) {
+      throw new HttpException('Unknown entry', 400);
+    }
+    if (req.cookies?.impersonate || req.headers?.impersonate) {
+      return { whatsNewSeen: user.whatsNewSeen ?? null, saved: false };
+    }
+    if (user.whatsNewSeen && user.whatsNewSeen >= body.id) {
+      return { whatsNewSeen: user.whatsNewSeen, saved: false };
+    }
+    await this._userService.setWhatsNewSeen(user.id, body.id);
+    return { whatsNewSeen: body.id, saved: true };
   }
 
   @Post('/api-key/rotate')

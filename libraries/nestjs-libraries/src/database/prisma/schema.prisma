@@ -109,6 +109,9 @@ model User {
   tokenVersion          Int                  @default(0)
   // set by a super admin; a disabled user cannot log in or use a session
   disabled              Boolean              @default(false)
+  // ViralGenHub: id of the newest "What's new" entry this person has seen
+  // (libraries/helpers/src/utils/whats.new.ts); null = never opened the list
+  whatsNewSeen          String?
   comments              Comments[]
   items                 ItemUser[]
   groupBuyer            MessagesGroup[]      @relation("groupBuyer")
