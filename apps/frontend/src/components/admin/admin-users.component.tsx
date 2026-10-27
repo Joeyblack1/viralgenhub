@@ -9,6 +9,11 @@ import { useToaster } from '@gitroom/react/toaster/toaster';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
 import { Button } from '@gitroom/react/form/button';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import {
+  platformAdminLabel,
+  workspaceRoleLabel,
+} from '@gitroom/helpers/utils/workspace.roles';
+import { planDisplayName } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 
 // Shape of GET /admin/users (users.repository.ts listUsers): one row per
 // user with the live workspaces they belong to.
@@ -159,6 +164,12 @@ export const AdminUsersComponent: FC = () => {
           {data ? `${data.total} total` : ''}
         </div>
       </div>
+      <div className="text-[13px] opacity-70" data-testid="roles-legend">
+        {t(
+          'vgh_admin_roles_legend',
+          'Platform admin = ViralGenHub staff: the only accounts that can open this page, see other workspaces or impersonate. Owner, Admin and Member are roles inside one workspace; whoever creates a workspace is its Owner, and that gives no access outside it.'
+        )}
+      </div>
 
       <div className="flex flex-wrap gap-[12px] items-end bg-newBgColorInner border border-newTableBorder rounded-[8px] p-[12px]">
         <div className="flex flex-col gap-[6px]">
@@ -241,8 +252,11 @@ export const AdminUsersComponent: FC = () => {
                     <div>{row.email}</div>
                     <div className="opacity-60 text-[12px] flex gap-[6px] flex-wrap">
                       {row.isSuperAdmin && (
-                        <span className="text-purple-400">
-                          {t('admin_users_super_admin', 'super admin')}
+                        <span
+                          className="text-purple-400"
+                          data-testid="platform-admin-badge"
+                        >
+                          {platformAdminLabel(t)}
                         </span>
                       )}
                       {!row.activated && (
@@ -270,7 +284,15 @@ export const AdminUsersComponent: FC = () => {
                     <div className="opacity-60 text-[12px]">
                       {row.workspaces
                         .slice(0, 3)
-                        .map((w) => `${w.name} (${w.plan})`)
+                        .map(
+                          (w) =>
+                            `${w.name} (${[
+                              workspaceRoleLabel(w.role, t),
+                              planDisplayName(w.plan),
+                            ]
+                              .filter(Boolean)
+                              .join(' \u00b7 ')})`
+                        )
                         .join(', ')}
                       {row.workspaces.length > 3 && ', …'}
                     </div>
@@ -304,8 +326,8 @@ export const AdminUsersComponent: FC = () => {
                             )
                           : row.isSuperAdmin && !row.disabled
                           ? t(
-                              'admin_users_cannot_super_admin',
-                              'A super admin cannot be disabled'
+                              'vgh_admin_users_cannot_platform_admin',
+                              'A platform admin cannot be disabled'
                             )
                           : undefined
                       }

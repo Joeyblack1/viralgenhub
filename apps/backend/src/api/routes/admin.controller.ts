@@ -95,7 +95,7 @@ export class AdminController {
       throw new HttpException('User not found', 404);
     }
     if (target.isSuperAdmin && body.disabled) {
-      throw new HttpException('A super admin cannot be disabled', 400);
+      throw new HttpException('A platform admin cannot be disabled', 400);
     }
     return this._usersService.setDisabled(id, body.disabled);
   }

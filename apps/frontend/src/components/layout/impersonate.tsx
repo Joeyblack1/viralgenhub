@@ -4,7 +4,11 @@ import useSWR, { useSWRConfig } from 'swr';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { Select } from '@gitroom/react/form/select';
-import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
+import {
+  planDisplayName,
+  pricing,
+} from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
+import { workspaceRoleLabel } from '@gitroom/helpers/utils/workspace.roles';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
 import { setCookie } from '@gitroom/frontend/components/layout/layout.context';
@@ -766,8 +770,8 @@ const AddTeamMemberModal: FC<{ close: () => void }> = ({ close }) => {
           />
           <Select label="Role" name="role">
             <option value="">{t('select_role', 'Select Role')}</option>
-            <option value="USER">{t('user', 'User')}</option>
-            <option value="ADMIN">{t('admin', 'Admin')}</option>
+            <option value="USER">{workspaceRoleLabel('USER', t)}</option>
+            <option value="ADMIN">{workspaceRoleLabel('ADMIN', t)}</option>
           </Select>
           <Button type="submit" loading={saving} className="rounded-[4px]">
             {t('add_team_member', 'Add Team Member')}
@@ -916,9 +920,11 @@ const SwitchUser = () => {
           .filter((org: any) => org?.user?.id === curr?.user?.id)
           .map(
             (org: any) =>
-              `${org?.organization?.name} (${org?.role} / ${
+              `${org?.organization?.name} (${
+                workspaceRoleLabel(org?.role) || org?.role
+              } / ${planDisplayName(
                 org?.organization?.subscription?.subscriptionTier || 'FREE'
-              })`
+              )})`
           )
           .join(', '),
       }));
@@ -1085,8 +1091,10 @@ export const ImpersonatePicker = () => {
         name: curr?.user?.name,
         email: curr?.user?.email,
         orgName: curr?.organization?.name,
-        role: curr?.role,
-        tier: curr?.organization?.subscription?.subscriptionTier || 'FREE',
+        role: workspaceRoleLabel(curr?.role) || curr?.role,
+        tier: planDisplayName(
+          curr?.organization?.subscription?.subscriptionTier || 'FREE'
+        ),
       }),
       []
     );

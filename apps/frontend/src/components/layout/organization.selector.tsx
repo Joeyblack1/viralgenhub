@@ -12,6 +12,7 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import useSWR from 'swr';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import clsx from 'clsx';
+import { workspaceRoleLabel } from '@gitroom/helpers/utils/workspace.roles';
 
 type Org = {
   name: string;
@@ -19,14 +20,9 @@ type Org = {
   users?: { role: 'SUPERADMIN' | 'ADMIN' | 'USER' }[];
 };
 
-const roleLabel = (role?: string) =>
-  role === 'SUPERADMIN'
-    ? 'Super-Admin'
-    : role === 'ADMIN'
-    ? 'Admin'
-    : role
-    ? 'User'
-    : '';
+// Workspace role in words: Owner / Admin / Member (never "Super-Admin": that
+// is the workspace creator's role, not the platform admin flag).
+const roleLabel = (role?: string) => workspaceRoleLabel(role);
 
 const WorkspaceIcon: FC<{ className?: string }> = ({ className }) => (
   <svg

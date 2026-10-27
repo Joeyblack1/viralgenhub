@@ -17,14 +17,20 @@ import { useToaster } from '@gitroom/react/toaster/toaster';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import copy from 'copy-to-clipboard';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import {
+  WORKSPACE_ROLE_LABELS,
+  workspaceRoleLabel,
+} from '@gitroom/helpers/utils/workspace.roles';
 
+// ViralGenHub: shown as Member / Admin (the stored values stay USER / ADMIN).
+// Owner (SUPERADMIN) is the workspace creator and cannot be invited.
 const roles = [
   {
-    name: 'User',
+    name: WORKSPACE_ROLE_LABELS.USER,
     value: 'USER',
   },
   {
-    name: 'Admin',
+    name: WORKSPACE_ROLE_LABELS.ADMIN,
     value: 'ADMIN',
   },
 ];
@@ -93,7 +99,7 @@ export const AddMember = () => {
             <option value="">{t('select_role', 'Select Role')}</option>
             {roles.map((role) => (
               <option key={role.value} value={role.value}>
-                {role.name}
+                {t(role.name.key, role.name.label)}
               </option>
             ))}
           </Select>
@@ -180,6 +186,12 @@ export const TeamsComponent = () => {
           'Invite your assistant or team member to manage your account'
         )}
       </div>
+      <div className="text-customColor18 mt-[4px] text-[13px]">
+        {t(
+          'vgh_roles_explained',
+          'Roles apply to this workspace only. The Owner created it; Owners and Admins manage billing, settings and the team; Members plan and publish posts.'
+        )}
+      </div>
       <div className="my-[16px] mt-[16px] bg-sixth border-fifth border rounded-[4px] p-[24px] flex flex-col gap-[24px]">
         <div className="flex flex-col gap-[16px]">
           {(data || []).map((p) => (
@@ -188,11 +200,7 @@ export const TeamsComponent = () => {
                 {capitalize(p.user.email.split('@')[0]).split('.')[0]}
               </div>
               <div className="flex-1">
-                {p.role === 'USER'
-                  ? t('user', 'User')
-                  : p.role === 'ADMIN'
-                  ? t('admin', 'Admin')
-                  : t('super_admin', 'Super Admin')}
+                {workspaceRoleLabel(p.role, t)}
               </div>
               {+myLevel > +getLevel(p.role) ? (
                 <div className="flex-1 flex justify-end">

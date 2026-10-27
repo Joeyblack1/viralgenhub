@@ -11,6 +11,16 @@ import dayjs from 'dayjs';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { Organization, ShortLinkPreference, User } from '@prisma/client';
 import { AutopostService } from '@gitroom/nestjs-libraries/database/prisma/autopost/autopost.service';
+import { workspaceRoleLabel } from '@gitroom/helpers/utils/workspace.roles';
+
+const escapeHtml = (value: string) =>
+  String(value ?? '').replace(
+    /[&<>"']/g,
+    (c) =>
+      ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[
+        c
+      ] as string)
+  );
 
 @Injectable()
 export class OrganizationService {
@@ -116,10 +126,19 @@ export class OrganizationService {
       const inviter = user.name
         ? `${user.name} (${user.email})`
         : user.email;
+      // ViralGenHub: say which workspace role they get (Admin / Member), and
+      // escape the names: both are typed by users and this e-mail goes to an
+      // outside address.
+      const role = workspaceRoleLabel(body.role);
+      const asRole = role
+        ? `<br />You will join as ${/^[AEIOU]/.test(role) ? 'an' : 'a'} ${role}.`
+        : '';
       await this._notificationsService.sendEmail(
         body.email,
         `${user.name || user.email} invited you to join "${org.name}"`,
-        `${inviter} has invited you to join the "${org.name}" team.<br /><a href="${url}">Accept the invitation</a> to get started.<br />The link will expire in 2 days.`
+        `${escapeHtml(inviter)} has invited you to join the "${escapeHtml(
+          org.name
+        )}" team.${asRole}<br /><a href="${url}">Accept the invitation</a> to get started.<br />The link will expire in 2 days.`
       );
     }
     return { url };
