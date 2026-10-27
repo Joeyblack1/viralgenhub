@@ -38,7 +38,7 @@ export const WHATS_NEW: WhatsNewEntry[] = [
     id: '2026-10-22',
     date: '22 Oct 2026',
     items: [
-      'TikTok approved ViralGenHub for direct posting. TikTok channels can be connected and posted to by anyone.',
+      'TikTok approved ViralGenHub: anyone can connect a TikTok channel. Posts are private (Only me) until TikTok\u2019s Direct Post audit is done.',
       'Bluesky, Discord, Slack and Telegram switched on.',
     ],
   },
