@@ -26,6 +26,13 @@ import { Integration } from '@prisma/client';
 import { Rules } from '@gitroom/nestjs-libraries/chat/rules.description.decorator';
 
 const CREATOR_INFO_TTL_MS = 15_000;
+
+// Until TikTok audits our API client, Direct Post only works for PRIVATE
+// TikTok accounts and only with SELF_ONLY ("Only me") viewership (Content
+// Sharing Guidelines, "unaudited clients"; Direct Post error
+// unaudited_client_can_only_post_to_private_accounts). Set TIKTOK_AUDITED=true
+// once TikTok confirms the audit; anything else means unaudited.
+export const tiktokAudited = () => process.env.TIKTOK_AUDITED === 'true';
 const creatorInfoCache = new Map<string, { at: number; info: any }>();
 
 @Rules(
@@ -235,7 +242,8 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
     ) {
       return {
         type: 'bad-body' as const,
-        value: 'App not approved for public posting, contact support',
+        value:
+          'TikTok refused the post: until TikTok completes its audit of ViralGenHub, it only accepts posts from private TikTok accounts, published as Only me. Set your account to private in the TikTok app (Profile > Menu > Settings and privacy > Privacy > Private account), then post again. Nothing was published.',
       };
     }
 
@@ -250,7 +258,9 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
     if (body.indexOf('privacy_level_option_mismatch') > -1) {
       return {
         type: 'bad-body' as const,
-        value: 'Privacy level mismatch, please check privacy settings',
+        value: tiktokAudited()
+          ? 'TikTok does not allow the chosen "Who can see this video" option for this account any more. Open the post, choose who can see it again and save. Nothing was published.'
+          : 'TikTok refused the privacy option. Until TikTok completes its audit of ViralGenHub, posts can only be Only me and your TikTok account must be private. Check both, then post again. Nothing was published.',
       };
     }
 
@@ -440,12 +450,34 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
     if (cached && cached.at > Date.now() - CREATOR_INFO_TTL_MS) {
       return cached.info;
     }
-    const info = await this.fetchCreatorInfo(accessToken);
+    const info = this.withAuditLimits(await this.fetchCreatorInfo(accessToken));
     creatorInfoCache.set(accessToken, { at: Date.now(), info });
     if (creatorInfoCache.size > 500) {
       creatorInfoCache.delete(creatorInfoCache.keys().next().value!);
     }
     return info;
+  }
+
+  // Unaudited: the composer may only offer "Only me", and only when TikTok
+  // itself lists it for this creator (the options must follow
+  // privacy_level_options). `audited` lets the composer show the note.
+  private withAuditLimits<T extends { canPost: boolean; privacyLevelOptions?: string[] }>(
+    info: T
+  ): T & { audited: boolean } {
+    if (tiktokAudited()) {
+      return { ...info, audited: true };
+    }
+    return {
+      ...info,
+      audited: false,
+      ...(info.privacyLevelOptions
+        ? {
+            privacyLevelOptions: info.privacyLevelOptions.filter(
+              (p) => p === 'SELF_ONLY'
+            ),
+          }
+        : {}),
+    };
   }
 
   private async fetchCreatorInfo(accessToken: string) {
@@ -638,7 +670,10 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
     }
   }
 
-  private requirePrivacy(level?: string): string {
+  private requirePrivacy(
+    level?: string,
+    brandedContent?: boolean
+  ): string {
     if (!level) {
       throw new BadBody(
         'tiktok',
@@ -647,7 +682,26 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
         'Choose who can see this video before publishing to TikTok.'
       );
     }
-    return level;
+    if (tiktokAudited() || level === 'SELF_ONLY') {
+      return level;
+    }
+    // Unaudited client: TikTok blocks anything but SELF_ONLY. Branded content
+    // cannot be private (Content Sharing Guidelines), so it cannot go out yet.
+    if (brandedContent) {
+      throw new BadBody(
+        'tiktok',
+        'branded content while unaudited',
+        JSON.stringify({ privacy_level: level }),
+        'Branded content cannot be posted to TikTok yet: until TikTok completes its audit of ViralGenHub, TikTok posts can only be private (Only me), and branded content cannot be private. Nothing was published.'
+      );
+    }
+    // Posts saved before the switch (or sent through the API) keep their
+    // wider choice in the database; TikTok would refuse it, so it is sent
+    // as Only me - the note in the composer says so.
+    this.logger.log(
+      `TikTok unaudited: sending privacy_level SELF_ONLY instead of ${level}`
+    );
+    return 'SELF_ONLY';
   }
 
   private buildTikokPostInfoBody(firstPost: PostDetails<TikTokDto>) {
@@ -666,7 +720,10 @@ export class TiktokProvider extends SocialAbstract implements SocialProvider {
           ...(isPhoto ? { description: firstPost.message } : {}),
           // No default: TikTok requires the creator to choose. The composer and
           // DTO block publishing without one; this guards the API/MCP path.
-          privacy_level: this.requirePrivacy(firstPost.settings.privacy_level),
+          privacy_level: this.requirePrivacy(
+            firstPost.settings.privacy_level,
+            this.assetBoolean(firstPost.settings.brand_content_toggle)
+          ),
           ...(isPhoto
             ? {}
             : { disable_duet: !this.assetBoolean(firstPost.settings.duet) }),
