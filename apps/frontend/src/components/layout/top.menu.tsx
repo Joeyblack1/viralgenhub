@@ -14,6 +14,7 @@ interface MenuItemInterface {
   path: string;
   role?: string[];
   hide?: boolean;
+  locked?: boolean;
   requireBilling?: boolean;
   onClick?: () => void;
 }
@@ -72,8 +73,9 @@ export const useMenuItem = () => {
         </svg>
       ),
       path: '/agents',
-      // ViralGenHub: the AI agent is sold on the Business plan only.
-      hide: !user?.tier?.ai,
+      // ViralGenHub: the AI agent is sold on the Business plan only. Shown on
+      // every plan (locked without AI: the page explains which plan has it).
+      locked: !user?.tier?.ai,
     },
     {
       name: t('analytics', 'Analytics'),
@@ -403,6 +405,7 @@ export const TopMenu: FC = () => {
                   icon={item.icon}
                   key={item.name}
                   onClick={item.onClick}
+                  locked={item.locked}
                 />
               ))
         }
@@ -431,6 +434,7 @@ export const TopMenu: FC = () => {
               icon={item.icon}
               key={item.name}
               onClick={item.onClick}
+              locked={item.locked}
             />
           ))}
       </div>

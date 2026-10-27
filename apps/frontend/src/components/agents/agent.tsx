@@ -22,6 +22,8 @@ import { Integration } from '@prisma/client';
 import Link from 'next/link';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import { useT } from '@gitroom/react/translation/get.transation.service.client';
+import { useUser } from '@gitroom/frontend/components/layout/user.context';
+import { LockedFeaturePanel } from '@gitroom/frontend/components/billing/plan.lock';
 
 export const MediaPortal: FC<{
   media: { path: string; id: string }[];
@@ -208,6 +210,25 @@ export const AgentList: FC<{ onChange: (arr: any[]) => void }> = ({
 export const PropertiesContext = createContext({ properties: [] });
 export const Agent: FC<{ children: ReactNode }> = ({ children }) => {
   const [properties, setProperties] = useState([]);
+  const user = useUser();
+  const t = useT();
+
+  // ViralGenHub: on plans without AI the page explains which plan includes
+  // the agent, instead of a chat that every request would refuse.
+  if (user?.id && !user?.tier?.ai) {
+    return (
+      <div className="bg-newBgColorInner flex flex-1">
+        <LockedFeaturePanel
+          feature="ai"
+          title={t('vgh_agent_title', 'AI agent')}
+          description={t(
+            'vgh_lock_agent_text',
+            'Chat with an AI agent that drafts posts, plans your calendar and schedules them for your channels.'
+          )}
+        />
+      </div>
+    );
+  }
 
   return (
     <PropertiesContext.Provider value={{ properties }}>

@@ -3,13 +3,16 @@ import { FC, ReactNode } from 'react';
 import { usePathname } from 'next/navigation';
 import clsx from 'clsx';
 import Link from 'next/link';
+import { LockIcon } from '@gitroom/frontend/components/billing/plan.lock';
 
-export const MenuItem: FC<{ label: string; icon: ReactNode; path: string; onClick?: () => void }> = ({
-  label,
-  icon,
-  path,
-  onClick,
-}) => {
+export const MenuItem: FC<{
+  label: string;
+  icon: ReactNode;
+  path: string;
+  onClick?: () => void;
+  // ViralGenHub: a feature of a higher plan, shown with a small lock
+  locked?: boolean;
+}> = ({ label, icon, path, onClick, locked }) => {
   const currentPath = usePathname();
   const isActive = currentPath.indexOf(path) === 0;
 
@@ -20,7 +23,17 @@ export const MenuItem: FC<{ label: string; icon: ReactNode; path: string; onClic
 
   const inner = (
     <>
-      <div className="custom:scale-90 transition-transform">{icon}</div>
+      <div className="relative custom:scale-90 transition-transform">
+        {icon}
+        {locked && (
+          <span
+            className="absolute -bottom-[3px] -end-[7px] w-[13px] h-[13px] rounded-full bg-newBgColorInner flex items-center justify-center"
+            data-testid="menu-lock"
+          >
+            <LockIcon size={9} />
+          </span>
+        )}
+      </div>
       <div className="custom:text-[9px] minCustom:text-[10px] leading-[1.1] text-center">
         {label}
       </div>

@@ -53,6 +53,12 @@ import {
 import { useLaunchStore } from '@gitroom/frontend/components/new-launch/store';
 import { useShallow } from 'zustand/react/shallow';
 import { LoadingComponent } from '@gitroom/frontend/components/layout/loading';
+import {
+  LockBadge,
+  useLockedLine,
+  useOpenLockedFeature,
+} from '@gitroom/frontend/components/billing/plan.lock';
+import { lockedPlansText } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/plan.locks';
 import { useDebounce } from 'use-debounce';
 const Polonto = dynamic(
   () => import('@gitroom/frontend/components/launches/polonto')
@@ -867,7 +873,23 @@ export const MultiMediaComponent: FC<{
     [currentMedia]
   );
 
+  const openLocked = useOpenLockedFeature();
+  const lockedLine = useLockedLine();
+  const designLocked = !user?.tier?.ai && !dummy;
   const designMedia = useCallback(() => {
+    // ViralGenHub: on plans without it, say which plan has it instead of a
+    // click that does nothing
+    if (!user?.tier?.ai && !dummy) {
+      openLocked(
+        'ai',
+        t('design_media', 'Design Media'),
+        t(
+          'vgh_lock_design_media_text',
+          'Design images in the built-in editor, from templates or from scratch.'
+        )
+      );
+      return;
+    }
     if (!!user?.tier?.ai && !dummy) {
       modals.openModal({
         askClose: false,
@@ -878,7 +900,7 @@ export const MultiMediaComponent: FC<{
         ),
       });
     }
-  }, [changeMedia, t]);
+  }, [changeMedia, t, user?.tier?.ai, dummy, openLocked]);
 
   return (
     <>
@@ -989,11 +1011,16 @@ export const MultiMediaComponent: FC<{
                 </div>
                 <div
                   data-tooltip-id="tooltip"
-                  data-tooltip-content={t('vgh_design_media_tip', 'Design an image or video in the editor')}
+                  data-tooltip-content={
+                    designLocked
+                      ? `${t('vgh_design_media_tip', 'Design an image or video in the editor')} \u00b7 ${lockedLine('ai')}`
+                      : t('vgh_design_media_tip', 'Design an image or video in the editor')
+                  }
                   aria-label={t('vgh_design_media_tip', 'Design an image or video in the editor')}
                   onClick={designMedia}
-                  className="cursor-pointer h-[30px] rounded-[6px] justify-center items-center flex bg-newColColor px-[8px] mobile:hidden"
+                  className="relative cursor-pointer h-[30px] rounded-[6px] justify-center items-center flex bg-newColColor px-[8px] mobile:hidden"
                 >
+                  {designLocked && <LockBadge />}
                   <div className="flex gap-[5px] items-center">
                     <div>
                       <DesignMediaIcon />
@@ -1008,13 +1035,20 @@ export const MultiMediaComponent: FC<{
                   <ThirdPartyMedia allData={allData} onChange={changeMedia} />
                 )}
 
-                {!!user?.tier?.ai && (
+                {!!user?.tier?.ai ? (
                   <>
                     <AiImage value={text} onChange={changeMedia} />
                     {!insertInContent && (
                       <AiVideo value={text} onChange={changeMedia} />
                     )}
                   </>
+                ) : (
+                  // ViralGenHub: visible but locked on plans without AI
+                  // images (AI video is in no plan, so it stays hidden)
+                  !dummy &&
+                  !!lockedPlansText('image_generator') && (
+                    <AiImage value={text} onChange={changeMedia} locked />
+                  )
                 )}
               </div>
             )}

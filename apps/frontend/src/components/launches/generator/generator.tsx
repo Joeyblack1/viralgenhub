@@ -1,9 +1,12 @@
 'use client';
+import {
+  LockBadge,
+  useLockedLine,
+  useOpenLockedFeature,
+} from '@gitroom/frontend/components/billing/plan.lock';
 
 import React, { FC, useCallback, useMemo, useState } from 'react';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
-import { useRouter } from 'next/navigation';
-import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
 import { useModals } from '@gitroom/frontend/components/layout/new-modal';
 import { FormProvider, SubmitHandler, useForm } from 'react-hook-form';
 import { classValidatorResolver } from '@hookform/resolvers/class-validator';
@@ -323,20 +326,23 @@ export const GeneratorPopup = () => {
 export const GeneratorComponent = () => {
   const t = useT();
   const user = useUser();
-  const router = useRouter();
   const modal = useModals();
   const all = useCalendar();
+  const openLocked = useOpenLockedFeature();
+  const lockedLine = useLockedLine();
+  const locked = !user?.tier?.ai;
   const generate = useCallback(async () => {
+    // ViralGenHub: visible on every plan; without AI a click says which plan
+    // includes it (the AI endpoints still refuse other plans)
     if (!user?.tier?.ai) {
-      if (
-        await deleteDialog(
-          t('upgrade_required', 'You need to upgrade to use this feature'),
-          t('move_to_billing', 'Move to billing'),
-          t('payment_required', 'Payment Required')
+      openLocked(
+        'ai',
+        t('vgh_ai_studio', 'AI Studio'),
+        t(
+          'vgh_lock_ai_studio_text',
+          'Write posts from a topic, create images and ask the AI agent to plan your week.'
         )
-      ) {
-        router.push('/billing');
-      }
+      );
       return;
     }
     modal.openModal({
@@ -352,13 +358,20 @@ export const GeneratorComponent = () => {
         </CalendarWeekProvider>
       ),
     });
-  }, [user, all]);
+  }, [user, all, openLocked, t]);
+  const tip = locked
+    ? `${t('vgh_ai_studio_tip', 'AI Studio: write posts, create images, ask the agent')} \u00b7 ${lockedLine('ai')}`
+    : t('vgh_ai_studio_tip', 'AI Studio: write posts, create images, ask the agent');
   return (
     <div
-      className="h-[44px] w-[44px] group-[.sidebar]:w-full bg-ai justify-center items-center flex rounded-[8px] cursor-pointer"
-      data-tooltip-id="tooltip" data-tooltip-content={t('vgh_ai_studio_tip', 'AI Studio: write posts, create images, ask the agent')} aria-label={t('vgh_ai_studio_tip', 'AI Studio: write posts, create images, ask the agent')}
+      className="relative h-[44px] w-[44px] group-[.sidebar]:w-full bg-ai justify-center items-center flex rounded-[8px] cursor-pointer"
+      data-tooltip-id="tooltip"
+      data-tooltip-content={tip}
+      aria-label={tip}
+      data-testid="ai-studio-button"
       onClick={generate}
     >
+      {locked && <LockBadge />}
       <svg
         xmlns="http://www.w3.org/2000/svg"
         width="20"

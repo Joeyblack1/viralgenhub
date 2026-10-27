@@ -713,9 +713,10 @@ export const LaunchesComponent = () => {
               <AddProviderButton update={() => update(true)} />
               <div className="flex gap-[8px] group-[.sidebar]:flex-col mobile:hidden">
                 {sortedIntegrations?.length > 0 && <NewPost />}
-                {sortedIntegrations?.length > 0 &&
-                  user?.tier?.ai &&
-                  billingEnabled && <GeneratorComponent />}
+                {/* ViralGenHub: shown on every plan; locked without AI */}
+                {sortedIntegrations?.length > 0 && billingEnabled && (
+                  <GeneratorComponent />
+                )}
               </div>
             </div>
             <div className="gap-[32px] flex flex-col select-none flex-1">
@@ -793,7 +794,7 @@ export const LaunchesComponent = () => {
             {sortedIntegrations?.length > 0 ? (
               <>
                 <NewPost />
-                {user?.tier?.ai && billingEnabled && <GeneratorComponent />}
+                {billingEnabled && <GeneratorComponent />}
               </>
             ) : (
               <div className="flex-1">

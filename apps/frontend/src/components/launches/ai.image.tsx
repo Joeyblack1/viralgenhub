@@ -1,3 +1,8 @@
+import {
+  LockBadge,
+  useLockedLine,
+  useOpenLockedFeature,
+} from '@gitroom/frontend/components/billing/plan.lock';
 import { Button } from '@gitroom/react/form/button';
 import { FC, useCallback, useState } from 'react';
 import clsx from 'clsx';
@@ -143,13 +148,29 @@ ${style}
 export const AiImage: FC<{
   value: string;
   onChange: (params: { id: string; path: string }) => void;
+  // ViralGenHub: shown on plans without AI images, with a lock; a click
+  // explains which plan includes it (the server refuses it either way)
+  locked?: boolean;
 }> = (props) => {
   const t = useT();
-  const { onChange } = props;
+  const { onChange, locked } = props;
   const [loading, setLoading] = useState(false);
   const modals = useModals();
+  const openLocked = useOpenLockedFeature();
+  const lockedLine = useLockedLine()('image_generator');
 
   const openImageModal = useCallback(() => {
+    if (locked) {
+      openLocked(
+        'image_generator',
+        t('generate_ai_image', 'Generate AI Image'),
+        t(
+          'vgh_lock_ai_image_text',
+          'Describe a picture and AI creates it for your post.'
+        )
+      );
+      return;
+    }
     if (loading) {
       return;
     }
@@ -163,14 +184,19 @@ export const AiImage: FC<{
         />
       ),
     });
-  }, [loading, onChange]);
+  }, [loading, onChange, locked, openLocked, t]);
+
+  const tip = locked
+    ? `${t('vgh_ai_image_tip', 'Generate an image with AI')} \u00b7 ${lockedLine}`
+    : t('vgh_ai_image_tip', 'Generate an image with AI');
 
   return (
     <div className="relative">
+      {locked && <LockBadge />}
       <div
         data-tooltip-id="tooltip"
-        data-tooltip-content={t('vgh_ai_image_tip', 'Generate an image with AI')}
-        aria-label={t('vgh_ai_image_tip', 'Generate an image with AI')}
+        data-tooltip-content={tip}
+        aria-label={tip}
         onClick={openImageModal}
         className={clsx(
           'cursor-pointer h-[30px] mobile:h-[40px] mobile:min-w-[40px] rounded-[6px] mobile:rounded-[8px] justify-center items-center flex bg-newColColor mobile:bg-newSettings px-[8px]'
