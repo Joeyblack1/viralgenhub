@@ -1,0 +1,212 @@
+# ViralGenHub, self-hosted. Install steps: self-host/INSTALL.md
+#
+# Uses the ViralGenHub image (our AGPL fork of Postiz), not upstream Postiz:
+#   ghcr.io/viralgenhub/viralgenhub:<tag>   linux/amd64 only
+# Settings and secrets come from .env next to this file (copy .env.example).
+# Needs about 3 GB of free RAM: Postgres, Redis, Elasticsearch and Temporal run beside the app.
+
+name: viralgenhub
+
+services:
+  viralgenhub:
+    image: ghcr.io/viralgenhub/viralgenhub:${VGH_TAG:-vgh-1.0.0}
+    restart: unless-stopped
+    ports:
+      - "${VGH_BIND:-127.0.0.1}:${VGH_PORT:-4007}:5000"
+    environment:
+      MAIN_URL: ${VGH_URL:?set VGH_URL in .env}
+      FRONTEND_URL: ${VGH_URL}
+      NEXT_PUBLIC_BACKEND_URL: ${VGH_URL}/api
+      BACKEND_INTERNAL_URL: http://localhost:3000
+      # true only while you use plain http (e.g. http://localhost:4007); remove it behind https
+      NOT_SECURED: ${NOT_SECURED:-}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET in .env}
+      DATABASE_URL: postgresql://vgh:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}@postgres:5432/viralgenhub
+      REDIS_URL: redis://redis:6379
+      TEMPORAL_ADDRESS: temporal:7233
+      IS_GENERAL: 'true'
+      DISABLE_REGISTRATION: ${DISABLE_REGISTRATION:-false}
+      STORAGE_PROVIDER: local
+      UPLOAD_DIRECTORY: /uploads
+      NEXT_PUBLIC_UPLOAD_DIRECTORY: /uploads
+      NX_ADD_PLUGINS: 'false'
+      API_LIMIT: ${API_LIMIT:-30}
+      # Encrypts platform tokens at rest. Set it before you connect any account and never lose it.
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:-}
+      # Email (optional). Without it, sign-ups are active straight away and there are no emails.
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER:-}
+      EMAIL_FROM_ADDRESS: ${EMAIL_FROM_ADDRESS:-}
+      EMAIL_FROM_NAME: ${EMAIL_FROM_NAME:-ViralGenHub}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      EMAIL_HOST: ${EMAIL_HOST:-}
+      EMAIL_PORT: ${EMAIL_PORT:-}
+      EMAIL_SECURE: ${EMAIL_SECURE:-}
+      EMAIL_USER: ${EMAIL_USER:-}
+      EMAIL_PASS: ${EMAIL_PASS:-}
+      # Platforms: each needs your own developer app; fill only the ones you use (INSTALL.md lists the callback URL).
+      TIKTOK_CLIENT_ID: ${TIKTOK_CLIENT_ID:-}
+      TIKTOK_CLIENT_SECRET: ${TIKTOK_CLIENT_SECRET:-}
+      X_API_KEY: ${X_API_KEY:-}
+      X_API_SECRET: ${X_API_SECRET:-}
+      X_MONTHLY_BUDGET_USD: ${X_MONTHLY_BUDGET_USD:-50}
+      X_PAUSE_AT_USD: ${X_PAUSE_AT_USD:-48}
+      LINKEDIN_CLIENT_ID: ${LINKEDIN_CLIENT_ID:-}
+      LINKEDIN_CLIENT_SECRET: ${LINKEDIN_CLIENT_SECRET:-}
+      LINKEDIN_PAGE_CLIENT_ID: ${LINKEDIN_PAGE_CLIENT_ID:-}
+      LINKEDIN_PAGE_CLIENT_SECRET: ${LINKEDIN_PAGE_CLIENT_SECRET:-}
+      FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
+      FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
+      THREADS_APP_ID: ${THREADS_APP_ID:-}
+      THREADS_APP_SECRET: ${THREADS_APP_SECRET:-}
+      YOUTUBE_CLIENT_ID: ${YOUTUBE_CLIENT_ID:-}
+      YOUTUBE_CLIENT_SECRET: ${YOUTUBE_CLIENT_SECRET:-}
+      PINTEREST_CLIENT_ID: ${PINTEREST_CLIENT_ID:-}
+      PINTEREST_CLIENT_SECRET: ${PINTEREST_CLIENT_SECRET:-}
+      TUMBLR_CLIENT_ID: ${TUMBLR_CLIENT_ID:-}
+      TUMBLR_CLIENT_SECRET: ${TUMBLR_CLIENT_SECRET:-}
+      TWITCH_CLIENT_ID: ${TWITCH_CLIENT_ID:-}
+      TWITCH_CLIENT_SECRET: ${TWITCH_CLIENT_SECRET:-}
+      KICK_CLIENT_ID: ${KICK_CLIENT_ID:-}
+      KICK_SECRET: ${KICK_SECRET:-}
+      DRIBBBLE_CLIENT_ID: ${DRIBBBLE_CLIENT_ID:-}
+      DRIBBBLE_CLIENT_SECRET: ${DRIBBBLE_CLIENT_SECRET:-}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID:-}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET:-}
+      DISCORD_BOT_TOKEN_ID: ${DISCORD_BOT_TOKEN_ID:-}
+      SLACK_ID: ${SLACK_ID:-}
+      SLACK_SECRET: ${SLACK_SECRET:-}
+      TELEGRAM_TOKEN: ${TELEGRAM_TOKEN:-}
+      TELEGRAM_BOT_NAME: ${TELEGRAM_BOT_NAME:-}
+      MASTODON_URL: ${MASTODON_URL:-https://mastodon.social}
+      MASTODON_CLIENT_ID: ${MASTODON_CLIENT_ID:-}
+      MASTODON_CLIENT_SECRET: ${MASTODON_CLIENT_SECRET:-}
+      REDDIT_CLIENT_ID: ${REDDIT_CLIENT_ID:-}
+      REDDIT_CLIENT_SECRET: ${REDDIT_CLIENT_SECRET:-}
+      # Hide platforms you don't want offered (comma-separated provider ids)
+      HIDDEN_PROVIDERS: ${HIDDEN_PROVIDERS:-}
+      # AI features (optional). Text: AI_PROVIDER openai | anthropic | openrouter; images always use OPENAI_API_KEY.
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      AI_PROVIDER: ${AI_PROVIDER:-openai}
+      AI_API_KEY: ${AI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      # No STRIPE_* keys: billing is off and every workspace has every feature.
+    volumes:
+      - config:/config/
+      - uploads:/uploads/
+    healthcheck:
+      test: ["CMD", "node", "-e", "Promise.all(['http://localhost:5000/','http://localhost:5000/api/'].map(u=>fetch(u,{redirect:'manual'}))).then(r=>process.exit(r.every(x=>x.status<500)?0:1)).catch(()=>process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 180s
+    networks: [app, temporal]
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+      temporal: {condition: service_healthy}
+
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vgh
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: viralgenhub
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks: [app]
+    healthcheck:
+      test: pg_isready -U vgh -d viralgenhub
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  redis:
+    image: redis:7.2
+    restart: unless-stopped
+    volumes:
+      - redis-data:/data
+    networks: [app]
+    healthcheck:
+      test: redis-cli ping
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  temporal-elasticsearch:
+    image: elasticsearch:7.17.27
+    restart: unless-stopped
+    environment:
+      - discovery.type=single-node
+      - ES_JAVA_OPTS=-Xms256m -Xmx256m
+      - xpack.security.enabled=false
+      - cluster.routing.allocation.disk.threshold_enabled=true
+      - cluster.routing.allocation.disk.watermark.low=512mb
+      - cluster.routing.allocation.disk.watermark.high=256mb
+      - cluster.routing.allocation.disk.watermark.flood_stage=128mb
+    volumes:
+      - es-data:/usr/share/elasticsearch/data
+    networks: [temporal]
+
+  temporal-postgresql:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: temporal
+      POSTGRES_PASSWORD: ${TEMPORAL_DB_PASSWORD:?set TEMPORAL_DB_PASSWORD in .env}
+    volumes:
+      - temporal-db-data:/var/lib/postgresql/data
+    networks: [temporal]
+
+  temporal:
+    image: temporalio/auto-setup:1.28.1
+    restart: unless-stopped
+    depends_on:
+      - temporal-postgresql
+      - temporal-elasticsearch
+    environment:
+      - DB=postgres12
+      - DB_PORT=5432
+      - POSTGRES_USER=temporal
+      - POSTGRES_PWD=${TEMPORAL_DB_PASSWORD}
+      - POSTGRES_SEEDS=temporal-postgresql
+      - DYNAMIC_CONFIG_FILE_PATH=config/dynamicconfig/development-sql.yaml
+      - ENABLE_ES=true
+      - ES_SEEDS=temporal-elasticsearch
+      - ES_VERSION=v7
+      - TEMPORAL_NAMESPACE=default
+      - BIND_ON_IP=0.0.0.0
+      - TEMPORAL_BROADCAST_ADDRESS=127.0.0.1
+    healthcheck:
+      test: ["CMD-SHELL", "temporal operator cluster health --address 127.0.0.1:7233 | grep -q SERVING"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+    configs:
+      - source: temporal_dynamic
+        target: /etc/temporal/config/dynamicconfig/development-sql.yaml
+    networks: [temporal]
+
+configs:
+  temporal_dynamic:
+    content: |
+      limit.maxIDLength:
+        - value: 255
+          constraints: {}
+      system.forceSearchAttributesCacheRefreshOnRead:
+        - value: true
+          constraints: {}
+
+networks:
+  app:
+  temporal:
+
+volumes:
+  config:
+  uploads:
+  postgres-data:
+  redis-data:
+  es-data:
+  temporal-db-data:
