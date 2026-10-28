@@ -21,6 +21,14 @@ const pageClientId = () =>
 const pageClientSecret = () =>
   process.env.LINKEDIN_PAGE_CLIENT_SECRET || process.env.LINKEDIN_CLIENT_SECRET!;
 
+// REST headers of the Community Management API
+// https://learn.microsoft.com/en-us/linkedin/marketing/community-management/organizations/organization-access-control-by-role
+const restHeaders = (accessToken: string) => ({
+  Authorization: `Bearer ${accessToken}`,
+  'X-Restli-Protocol-Version': '2.0.0',
+  'LinkedIn-Version': '202601',
+});
+
 @Rules(
   'LinkedIn can have maximum one attachment when selecting video, when choosing a carousel on LinkedIn minimum amount of attachment must be two, and only pictures, if uploading a video, LinkedIn can have only one attachment'
 )
@@ -33,11 +41,11 @@ export class LinkedinPageProvider
   override isBetweenSteps = true;
   override refreshWait = true;
   override maxConcurrentJob = 2; // LinkedIn Page has professional posting limits
+  // The Community Management API must be the only product on its LinkedIn app,
+  // so "Sign In with LinkedIn using OpenID Connect" is not available: no
+  // openid / profile / w_member_social / r_basicprofile, and no /v2/userinfo.
+  // The member is identified by the roleAssignee of organizationAcls instead.
   override scopes = [
-    'openid',
-    'profile',
-    'w_member_social',
-    'r_basicprofile',
     'rw_organization_admin',
     'w_organization_social',
     'r_organization_social',
@@ -67,34 +75,16 @@ export class LinkedinPageProvider
       })
     ).json();
 
-    const { vanityName } = await (
-      await fetch('https://api.linkedin.com/v2/me', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-    ).json();
-
-    const {
-      name,
-      sub: id,
-      picture,
-    } = await (
-      await fetch('https://api.linkedin.com/v2/userinfo', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-    ).json();
-
+    // No member profile exists on a Community-Management-only app. Only the
+    // tokens matter here: the page's own identity is rebuilt by reConnect().
     return {
-      id,
+      id: '',
       accessToken,
       refreshToken,
       expiresIn: expires_in,
-      name,
-      picture,
-      username: vanityName,
+      name: '',
+      picture: '',
+      username: '',
     };
   }
 
@@ -143,34 +133,48 @@ export class LinkedinPageProvider
     };
   }
 
-  async companies(accessToken: string) {
-    const { elements, ...all } = await (
+  // Pages the member administers, from the Organization Access Control API
+  // (needs only rw_organization_admin / r_organization_admin).
+  private async administeredPages(accessToken: string) {
+    const { elements } = await (
       await fetch(
-        'https://api.linkedin.com/v2/organizationalEntityAcls?q=roleAssignee&state=APPROVED&projection=(elements*(role,organizationalTarget~(localizedName,vanityName,logoV2(original~:playableStreams))))',
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'X-Restli-Protocol-Version': '2.0.0',
-            'LinkedIn-Version': '202601',
-          },
-        }
+        'https://api.linkedin.com/rest/organizationAcls?q=roleAssignee&state=APPROVED&count=100',
+        { headers: restHeaders(accessToken) }
       )
     ).json();
 
-    return (elements || [])
+    return ((elements || []) as any[])
       .filter(
-        (e: any) =>
-          e['organizationalTarget~'] &&
-          ['ADMINISTRATOR', 'CONTENT_ADMINISTRATOR'].includes(e.role)
+        (e) =>
+          ['ADMINISTRATOR', 'CONTENT_ADMINISTRATOR'].includes(e.role) &&
+          (e.organization || e.organizationTarget)
       )
-      .map((e: any) => ({
-        id: e.organizationalTarget.split(':').pop(),
-        page: e.organizationalTarget.split(':').pop(),
-        username: e['organizationalTarget~'].vanityName,
-        name: e['organizationalTarget~'].localizedName,
-        picture:
-          e['organizationalTarget~'].logoV2?.['original~']?.elements?.[0]
-            ?.identifiers?.[0]?.identifier,
+      .map((e) => ({
+        pageId: String(e.organization || e.organizationTarget)
+          .split(':')
+          .pop() as string,
+        member: e.roleAssignee ? String(e.roleAssignee).split(':').pop() : '',
+      }));
+  }
+
+  async companies(accessToken: string) {
+    const pages = await this.administeredPages(accessToken);
+    const details = await Promise.all(
+      pages.map((p) =>
+        this.fetchPageInformation(accessToken, { page: p.pageId }).catch(
+          () => null
+        )
+      )
+    );
+
+    return details
+      .filter((d) => d && d.id)
+      .map((d) => ({
+        id: String(d!.id),
+        page: String(d!.id),
+        username: d!.username,
+        name: d!.name,
+        picture: d!.picture,
       }));
   }
 
@@ -194,23 +198,29 @@ export class LinkedinPageProvider
 
   async fetchPageInformation(accessToken: string, params: { page: string }) {
     const pageId = params.page;
-    const data = await (
+    let data = await (
       await fetch(
         `https://api.linkedin.com/v2/organizations/${pageId}?projection=(id,localizedName,vanityName,logoV2(original~:playableStreams))`,
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        }
+        { headers: { Authorization: `Bearer ${accessToken}` } }
       )
     ).json();
+
+    if (!data?.localizedName) {
+      // https://learn.microsoft.com/en-us/linkedin/marketing/community-management/organizations/organization-lookup-api
+      data = await (
+        await fetch(`https://api.linkedin.com/rest/organizations/${pageId}`, {
+          headers: restHeaders(accessToken),
+        })
+      ).json();
+    }
 
     return {
       id: data.id,
       name: data.localizedName,
       access_token: accessToken,
       picture:
-        data?.logoV2?.['original~']?.elements?.[0]?.identifiers?.[0].identifier,
+        data?.logoV2?.['original~']?.elements?.[0]?.identifiers?.[0]
+          ?.identifier,
       username: data.vanityName,
     };
   }
@@ -247,36 +257,22 @@ export class LinkedinPageProvider
 
     this.checkScopes(this.scopes, scope);
 
-    const {
-      name,
-      sub: id,
-      picture,
-    } = await (
-      await fetch('https://api.linkedin.com/v2/userinfo', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-    ).json();
-
-    const { vanityName } = await (
-      await fetch('https://api.linkedin.com/v2/me', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
-      })
-    ).json();
+    // No userinfo / member profile on a Community-Management-only app. The
+    // in-between row is identified by the member's id from organizationAcls;
+    // the real channel (a Page) replaces it in the page-selection step.
+    const pages = await this.administeredPages(accessToken);
+    const id = pages[0]?.member || makeSecureId(10);
 
     return {
       // namespaced placeholder so the in-between row never collides with the
-      // personal LinkedIn channel row (same org + same member sub)
+      // personal LinkedIn channel row (same org + same member id)
       id: `${this.identifier}_${id}`,
       accessToken,
       refreshToken,
       expiresIn,
-      name,
-      picture,
-      username: vanityName,
+      name: 'LinkedIn Pages',
+      picture: '',
+      username: '',
     };
   }
 
