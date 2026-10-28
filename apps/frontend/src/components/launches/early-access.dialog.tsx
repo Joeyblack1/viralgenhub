@@ -157,6 +157,9 @@ export const EarlyAccessDialog: FC<
   const [newsletter, setNewsletter] = useState(false);
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+  // Platforms with no step of their own can be approved on the spot
+  // (EARLY_ACCESS_AUTO_APPROVE): the row comes back already approved.
+  const [approved, setApproved] = useState(false);
   // Already asked (e.g. arriving again from a "Join the waitlist" link): say
   // where the request stands instead of showing the form again.
   const alreadyAsked = !!item.myRequest;
@@ -179,12 +182,48 @@ export const EarlyAccessDialog: FC<
         );
         return;
       }
+      const saved = await res.json().catch(() => ({}));
+      setApproved(saved?.status === 'approved');
       setDone(true);
       onRequested(item.identifier);
     } finally {
       setBusy(false);
     }
   }, [item, note, newsletter]);
+
+  if (done && approved) {
+    return (
+      <div className="flex flex-col gap-[16px] pt-[8px]">
+        <p className="text-[14px] text-textColor/80">
+          {t(
+            'vgh_tester_auto_approved',
+            "You're approved to test {{name}}. We've emailed you too.",
+            { name: item.name }
+          )}
+        </p>
+        {!!onConnect && (
+          <Button
+            type="button"
+            onClick={() => {
+              modals.closeCurrent();
+              onConnect(item.identifier);
+            }}
+          >
+            {t('vgh_connect_name_now', 'Connect {{name}} now', {
+              name: item.name,
+            })}
+          </Button>
+        )}
+        <Button
+          type="button"
+          secondary
+          onClick={() => modals.closeCurrent()}
+        >
+          {t('vgh_close', 'Close')}
+        </Button>
+      </div>
+    );
+  }
 
   if (done) {
     return (
