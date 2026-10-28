@@ -135,10 +135,24 @@ export class IntegrationManager {
     );
   }
 
+  // STAFF_PROVIDERS ("facebook,instagram,threads") are hidden providers that
+  // keep their public tier exactly as configured (coming soon, tester preview)
+  // but that the organizations in PREVIEW_ORGS can still connect. Only the
+  // env list counts: a database approval never opens a staff provider.
+  isStaffProvider(identifier: string, orgId?: string) {
+    return (
+      !!orgId &&
+      this.isHiddenProvider(identifier) &&
+      this.envList('STAFF_PROVIDERS').includes(identifier) &&
+      this.envList('PREVIEW_ORGS').includes(orgId)
+    );
+  }
+
   isAvailableTo(identifier: string, orgId?: string, approved: string[] = []) {
     return (
       !this.isHiddenProvider(identifier) ||
-      this.isPreviewProvider(identifier, orgId, approved)
+      this.isPreviewProvider(identifier, orgId, approved) ||
+      this.isStaffProvider(identifier, orgId)
     );
   }
 
@@ -201,13 +215,16 @@ export class IntegrationManager {
     const tiers = socialIntegrationList.filter(
       (p) =>
         this.isPreviewListed(p.identifier) ||
-        this.isComingSoonProvider(p.identifier)
+        this.isComingSoonProvider(p.identifier) ||
+        this.isStaffProvider(p.identifier, orgId)
     );
     const described = await this.describeIntegrations(tiers);
     return {
       social: described.map((p) => ({
         ...p,
-        ...(this.isComingSoonProvider(p.identifier)
+        ...(this.isStaffProvider(p.identifier, orgId)
+          ? { testerAccess: true, staff: true }
+          : this.isComingSoonProvider(p.identifier)
           ? { comingSoon: true }
           : {
               testerAccess: this.isPreviewProvider(

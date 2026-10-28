@@ -25,7 +25,7 @@ describe('AdminSettingsService', () => {
     expect(r['anthropic-key'].detail).toContain('No Anthropic key');
     expect(r.openai.status).toBe('warn');
     expect(r.extension.status).toBe('warn');
-    expect(r['hidden-providers'].detail).toBe('0 coming soon, 0 in tester preview.');
+    expect(r['hidden-providers'].detail).toBe('0 coming soon, 0 in tester preview, 0 staff-only.');
   });
 
   it('is green when configured', () => {
@@ -48,7 +48,7 @@ describe('AdminSettingsService', () => {
       expect(r[k].status).toBe('ok');
     }
     expect(r.ai.detail).toContain('claude-sonnet-5-5');
-    expect(r['hidden-providers'].detail).toBe('2 coming soon, 1 in tester preview.');
+    expect(r['hidden-providers'].detail).toBe('2 coming soon, 1 in tester preview, 0 staff-only.');
   });
 
   it('needs both reCAPTCHA keys and both Stripe keys', () => {

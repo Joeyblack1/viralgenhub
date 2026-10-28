@@ -159,11 +159,12 @@ export class AdminSettingsService {
 
     const comingSoon = listLength(env, 'COMING_SOON_PROVIDERS');
     const preview = listLength(env, 'PREVIEW_PROVIDERS');
+    const staff = listLength(env, 'STAFF_PROVIDERS');
     checks.push({
       key: 'hidden-providers',
       label: 'Hidden providers',
       status: 'ok',
-      detail: `${comingSoon} coming soon, ${preview} in tester preview.`,
+      detail: `${comingSoon} coming soon, ${preview} in tester preview, ${staff} staff-only.`,
     });
 
     return { checks };

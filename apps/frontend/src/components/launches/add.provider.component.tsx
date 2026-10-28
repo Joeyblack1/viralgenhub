@@ -516,6 +516,8 @@ export const AddProviderComponent: FC<{
     // early access tiers (see early-access.dialog.tsx)
     testerAccess?: boolean;
     comingSoon?: boolean;
+    // a staff-only platform this workspace may connect (STAFF_PROVIDERS)
+    staff?: boolean;
     waiting?: number;
     myRequest?: string;
     extensionCookies?: Array<{
@@ -1002,7 +1004,9 @@ export const AddProviderComponent: FC<{
                           'Only workspaces in the preview can connect this platform while it is being tested'
                         )}
                       >
-                        {t('preview', 'Preview')}
+                        {item.staff
+                          ? t('vgh_staff', 'Staff')
+                          : t('preview', 'Preview')}
                       </div>
                     )}
                     {!!item.toolTip && !isMobile && (
