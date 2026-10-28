@@ -9,8 +9,13 @@ const ALLOWED_ORIGINS =
 
 // EXT_BROWSER=firefox builds the AMO variant: same background code plus the
 // bridge content script (Firefox has no page-to-extension messaging).
+// EXT_BROWSER=safari builds the Safari variant (wrapped by the Xcode project in
+// apps/extension-safari): same code, Safari wording for the site-access hint.
 // Default 'chromium' = Chrome Web Store and Edge Add-ons (one package).
-const BROWSER = process.env.EXT_BROWSER === 'firefox' ? 'firefox' : 'chromium';
+const BROWSER =
+  process.env.EXT_BROWSER === 'firefox' || process.env.EXT_BROWSER === 'safari'
+    ? process.env.EXT_BROWSER
+    : 'chromium';
 
 const entry: Record<string, string> = {
   background: resolve(__dirname, 'src/background.ts'),

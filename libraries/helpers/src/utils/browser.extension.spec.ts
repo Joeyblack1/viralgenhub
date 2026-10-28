@@ -44,6 +44,7 @@ describe('parseExtensionIds', () => {
       edge: [EDGE],
       firefox: ['viralgenhub'],
       safari: [],
+      safariApp: [],
     });
   });
 
@@ -63,6 +64,15 @@ describe('parseExtensionIds', () => {
     expect(
       parseExtensionIds('safari:com.viralgenhub.Extension (ABCDE12345)').safari
     ).toEqual(['com.viralgenhub.Extension (ABCDE12345)']);
+  });
+
+  it('reads the Mac App Store app ID for the Safari install link', () => {
+    const t = parseExtensionIds(
+      'safari:com.viralgenhub.extension.Extension (ABCDE12345), Safari-App: 6740000000,safari-app:not-a-number'
+    );
+    expect(t.safari).toEqual(['com.viralgenhub.extension.Extension (ABCDE12345)']);
+    expect(t.safariApp).toEqual(['6740000000']);
+    expect(t.chrome).toEqual([]);
   });
 
   it('is empty when nothing is set', () => {
@@ -119,8 +129,27 @@ describe('messagingIds and installTarget', () => {
     expect(installTarget(chromeOnly, 'firefox')).toBeNull();
   });
 
-  it('Safari has no install target yet', () => {
+  it('Safari has no install target until both Safari values are set', () => {
     expect(installTarget(both, 'safari')).toBeNull();
+    expect(
+      installTarget(parseExtensionIds('safari-app:6740000000'), 'safari')
+    ).toBeNull();
+  });
+
+  it('Safari messages its bundle ID and links the Mac App Store', () => {
+    const safari = parseExtensionIds(
+      `chrome:${CHROME},safari:com.viralgenhub.extension.Extension (ABCDE12345),safari-app:6740000000`
+    );
+    expect(messagingIds(safari, 'safari')).toEqual([
+      'com.viralgenhub.extension.Extension (ABCDE12345)',
+    ]);
+    expect(installTarget(safari, 'safari')).toEqual({
+      store: 'safari',
+      storeName: 'Mac App Store',
+      url: 'https://apps.apple.com/app/id6740000000',
+    });
+    // Chrome users still get the Chrome Web Store
+    expect(installTarget(safari, 'chrome')?.store).toBe('chrome');
   });
 });
 
@@ -219,6 +248,46 @@ describe('createExtensionClient: runtime (Chromium)', () => {
     };
     const client = createExtensionClient({ runtime: rt, ids: [EDGE, CHROME] });
     await expect(client.send({ type: 'X' })).resolves.toEqual({ ok: 1 });
+  });
+});
+
+describe('createExtensionClient: runtime (Safari)', () => {
+  const SAFARI = 'com.viralgenhub.extension.Extension (ABCDE12345)';
+
+  it('takes the answer from a returned promise when the callback stays silent', async () => {
+    const rt: RuntimeLike = {
+      sendMessage: (id, msg: any) =>
+        Promise.resolve(id === SAFARI ? { status: 'ok', echo: msg.type } : undefined),
+    };
+    const client = createExtensionClient({ runtime: rt, ids: [SAFARI] });
+    await expect(client.send({ type: 'PING' }, 200)).resolves.toEqual({
+      status: 'ok',
+      echo: 'PING',
+    });
+  });
+
+  it('answers once when both the callback and the promise answer', async () => {
+    let calls = 0;
+    const rt: RuntimeLike = {
+      sendMessage: (_id, _msg, cb) => {
+        calls++;
+        cb({ via: 'callback' });
+        return Promise.resolve({ via: 'promise' });
+      },
+    };
+    const client = createExtensionClient({ runtime: rt, ids: [SAFARI] });
+    await expect(client.send({ type: 'PING' })).resolves.toEqual({ via: 'callback' });
+    expect(calls).toBe(1);
+  });
+
+  it('a rejected promise (extension gone) is a failure, not a hang', async () => {
+    const rt: RuntimeLike = {
+      sendMessage: () => Promise.reject(new Error('Invalid extension identifier')),
+    };
+    const client = createExtensionClient({ runtime: rt, ids: [SAFARI] });
+    await expect(client.send({ type: 'PING' }, 5000)).rejects.toThrow(
+      'Invalid extension identifier'
+    );
   });
 });
 

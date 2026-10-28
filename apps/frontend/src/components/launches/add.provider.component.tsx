@@ -385,6 +385,14 @@ const ExtensionNotFound: FC = () => {
               {t('vgh_extension_supported_browsers', 'Supported browsers')}
             </a>
           </p>
+          {browser === 'safari' && (
+            <p className="text-[13px] text-textColor/70">
+              {t(
+                'vgh_extension_safari_steps',
+                'Safari: open the ViralGenHub app once after installing, turn the extension on in Safari > Settings > Extensions, then click Edit Websites and allow skool.com and app.viralgenhub.com.'
+              )}
+            </p>
+          )}
         </>
       ) : (
         <p className="text-[14px] text-textColor/80">

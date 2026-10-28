@@ -1,12 +1,15 @@
 // Writes dist/manifest.json from manifest.json.
 //   EXT_ENV=staging      adds the staging origin and a visible name suffix.
 //   EXT_BROWSER=firefox  writes the AMO (Firefox) variant, see below.
+//   EXT_BROWSER=safari   writes the Safari variant (apps/extension-safari wraps it).
 // Production Chromium (Chrome Web Store + Edge Add-ons) is manifest.json as is.
 import fs from 'node:fs';
 
 const m = JSON.parse(fs.readFileSync('manifest.json', 'utf8'));
 const pkg = JSON.parse(fs.readFileSync('package.json', 'utf8'));
-const browser = process.env.EXT_BROWSER === 'firefox' ? 'firefox' : 'chromium';
+const browser = ['firefox', 'safari'].includes(process.env.EXT_BROWSER)
+  ? process.env.EXT_BROWSER
+  : 'chromium';
 const staging = process.env.EXT_ENV === 'staging';
 
 if (m.version !== pkg.version) {
@@ -60,6 +63,27 @@ if (browser === 'firefox') {
   };
   if (!fs.existsSync('dist/bridge.js')) {
     console.error('dist/bridge.js missing: build with EXT_BROWSER=firefox');
+    process.exit(1);
+  }
+} else if (browser === 'safari') {
+  // Safari (docs/launch/extension-other-browsers.md section 3 in the ops repo):
+  // - externally_connectable "matches" works as on Chromium (Safari 15.4+, "ids"
+  //   unsupported, we use none), so no bridge.
+  // - MV3 background: a background page, which Safari always runs non-persistent
+  //   under MV3 (Safari 16+). The same classic background.js as Firefox.
+  //   ("persistent" itself is unsupported in MV3 and the packager warns on it.)
+  // - strict_min_version keeps it off Safari versions whose MV3 background pages
+  //   we have not tested.
+  // - Safari Settings and the App Store show larger icons: add 96/256/512 from
+  //   safari/ (Apple asks for 48, 96, 128, 256, 512).
+  m.background = { scripts: ['background.js'] };
+  m.browser_specific_settings = { safari: { strict_min_version: '16.4' } };
+  for (const size of [96, 256, 512]) {
+    fs.copyFileSync(`safari/icon-${size}.png`, `dist/icon-${size}.png`);
+    m.icons[String(size)] = `icon-${size}.png`;
+  }
+  if (fs.existsSync('dist/bridge.js')) {
+    console.error('dist/bridge.js present in a Safari build: rebuild with EXT_BROWSER=safari');
     process.exit(1);
   }
 } else if (fs.existsSync('dist/bridge.js')) {

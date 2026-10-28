@@ -8,6 +8,8 @@
     "dev": "rm -rf dist && HOT_RELOAD_EXTENSION_VITE_PORT=8081 NODE_ENV=development dotenv -e ../../.env -- vite build --config vite.config.chrome.ts --mode development --watch",
     "build:staging": "rm -rf dist && EXT_ENV=staging vite build && EXT_ENV=staging node scripts/write-manifest.mjs && cd dist && zip -r ../extension-staging.zip . -x '.*'",
     "build:staging:firefox": "rm -rf dist && EXT_ENV=staging EXT_BROWSER=firefox vite build && EXT_ENV=staging EXT_BROWSER=firefox node scripts/write-manifest.mjs && cd dist && zip -r ../extension-staging-firefox.zip . -x '.*'",
+    "build:safari": "rm -rf dist && EXT_BROWSER=safari vite build && EXT_BROWSER=safari node scripts/write-manifest.mjs",
+    "build:staging:safari": "rm -rf dist && EXT_ENV=staging EXT_BROWSER=safari vite build && EXT_ENV=staging EXT_BROWSER=safari node scripts/write-manifest.mjs",
     "release": "sh scripts/make-release.sh ../../../brand/extension"
   },
   "type": "module"

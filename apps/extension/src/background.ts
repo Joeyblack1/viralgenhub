@@ -6,8 +6,9 @@ import { CookieProvider } from './providers/cookie-provider.interface';
 // https://app.viralgenhub.com. The staging build also allows staging.
 declare const __ALLOWED_ORIGINS__: string[];
 // 'chromium' (Chrome Web Store, Edge Add-ons; also Opera/Brave/Vivaldi via the
-// Chrome Web Store) or 'firefox' (AMO). Set by EXT_BROWSER, see vite.config.ts.
-declare const __BROWSER__: 'chromium' | 'firefox';
+// Chrome Web Store), 'firefox' (AMO) or 'safari' (Mac App Store, inside the
+// apps/extension-safari app). Set by EXT_BROWSER, see vite.config.ts.
+declare const __BROWSER__: 'chromium' | 'firefox' | 'safari';
 
 // Firefox exposes the promise-based `browser` namespace; Chrome MV3 returns
 // promises from `chrome.*`. Both have the same shape for the calls used here.
@@ -38,6 +39,10 @@ function isOriginAllowed(origin: string | undefined): boolean {
 function siteAccessHint(): string {
   if (__BROWSER__ === 'firefox') {
     return 'about:addons > ViralGenHub > Permissions';
+  }
+  if (__BROWSER__ === 'safari') {
+    // Safari grants website access per site and can take it back at any time.
+    return 'Safari > Settings > Extensions > ViralGenHub > Edit Websites: allow skool.com and app.viralgenhub.com';
   }
   const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
   if (/\bEdg\//.test(ua)) return 'edge://extensions > ViralGenHub > Details > Site access';
@@ -145,8 +150,10 @@ ext.alarms.onAlarm.addListener((alarm) => {
 
 // --- Message handling ---
 // The page talks to the extension in two ways:
-//  - Chromium (and Safari): runtime.sendMessage(<extension id>, ...) from the page,
-//    allowed by externally_connectable -> runtime.onMessageExternal.
+//  - Chromium and Safari: runtime.sendMessage(<extension id>, ...) from the page,
+//    allowed by externally_connectable -> runtime.onMessageExternal. Safari's ID is
+//    "<extension bundle id> (<team id>)" and it supports externally_connectable
+//    matches (not ids) since Safari 15.4.
 //  - Firefox: web pages cannot message an extension (externally_connectable is not
 //    supported, https://bugzil.la/1319168). bridge.ts, a content script injected
 //    only on the allowed origins, relays window.postMessage requests -> runtime.onMessage.

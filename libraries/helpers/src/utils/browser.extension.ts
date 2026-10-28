@@ -7,11 +7,17 @@
 //             message an extension by ID (no externally_connectable,
 //             https://bugzil.la/1319168), so the Firefox build answers through a
 //             content-script bridge on window.postMessage instead.
-//   safari  - "<bundle id> (<team id>)" if a Safari build ever ships.
+//   safari  - "<extension bundle id> (<team id>)", e.g.
+//             "com.viralgenhub.extension.Extension (ABCDE12345)": the ID a Safari
+//             page messages (externally_connectable, Safari 15.4+). The Safari
+//             build lives in apps/extension-safari (a Mac app from the App Store).
+//   safari-app - the Mac App Store app's numeric Apple ID (App Store Connect >
+//             App Information), only for the install link.
 //
-// Config: EXTENSION_IDS="chrome:<id>,edge:<id>,firefox:<amo slug>" (any order,
-// any subset). A bare value counts as chrome. The older EXTENSION_ID (Chrome) is
-// still read, so existing deployments keep working unchanged.
+// Config: EXTENSION_IDS="chrome:<id>,edge:<id>,firefox:<amo slug>,
+// safari:<bundle id> (<team id>),safari-app:<apple id>" (any order, any subset).
+// A bare value counts as chrome. The older EXTENSION_ID (Chrome) is still read,
+// so existing deployments keep working unchanged.
 
 export type ExtensionStore = 'chrome' | 'edge' | 'firefox' | 'safari';
 
@@ -20,6 +26,8 @@ export interface ExtensionTargets {
   edge: string[];
   firefox: string[];
   safari: string[];
+  // Mac App Store Apple ID of the app that carries the Safari extension
+  safariApp: string[];
 }
 
 export type BrowserKind =
@@ -34,15 +42,18 @@ export type BrowserKind =
 const CHROMIUM_ID = /^[a-p]{32}$/;
 const AMO_SLUG = /^[A-Za-z0-9._@{}-]{1,100}$/;
 
-const validFor: Record<ExtensionStore, (v: string) => boolean> = {
+type TargetKey = keyof ExtensionTargets;
+
+const validFor: Record<TargetKey, (v: string) => boolean> = {
   chrome: (v) => CHROMIUM_ID.test(v),
   edge: (v) => CHROMIUM_ID.test(v),
   firefox: (v) => AMO_SLUG.test(v),
   safari: (v) => /^[A-Za-z0-9.-]+ \([A-Z0-9]{10}\)$/.test(v),
+  safariApp: (v) => /^[0-9]{6,12}$/.test(v),
 };
 
 export function emptyTargets(): ExtensionTargets {
-  return { chrome: [], edge: [], firefox: [], safari: [] };
+  return { chrome: [], edge: [], firefox: [], safari: [], safariApp: [] };
 }
 
 export function parseExtensionIds(
@@ -50,7 +61,7 @@ export function parseExtensionIds(
   legacyChromeId?: string | null
 ): ExtensionTargets {
   const out = emptyTargets();
-  const add = (store: ExtensionStore, value: string) => {
+  const add = (store: TargetKey, value: string) => {
     const v = value.trim();
     if (v && validFor[store](v) && !out[store].includes(v)) {
       out[store].push(v);
@@ -59,9 +70,10 @@ export function parseExtensionIds(
   for (const part of (raw || '').split(',')) {
     const item = part.trim();
     if (!item) continue;
-    const m = item.match(/^(chrome|edge|firefox|safari)\s*:\s*(.+)$/i);
+    const m = item.match(/^(chrome|edge|firefox|safari-app|safari)\s*:\s*(.+)$/i);
     if (m) {
-      add(m[1].toLowerCase() as ExtensionStore, m[2]);
+      const key = m[1].toLowerCase();
+      add(key === 'safari-app' ? 'safariApp' : (key as ExtensionStore), m[2]);
     } else {
       add('chrome', item);
     }
@@ -155,7 +167,15 @@ export function installTarget(
       }
       return t.chrome[0] ? chromeStore(t.chrome[0]) : null;
     case 'safari':
-      return null;
+      // Only with a page-messaging ID too: an install the app cannot talk to
+      // would not help.
+      return t.safariApp[0] && t.safari[0]
+        ? {
+            store: 'safari',
+            storeName: 'Mac App Store',
+            url: `https://apps.apple.com/app/id${t.safariApp[0]}`,
+          }
+        : null;
     default:
       // Chrome, Brave, Opera, Vivaldi, other Chromium: Chrome Web Store.
       return t.chrome[0] ? chromeStore(t.chrome[0]) : null;
@@ -169,11 +189,13 @@ export const BRIDGE_RESPONSE = 'vgh-ext-response';
 
 export interface RuntimeLike {
   lastError?: { message?: string } | undefined;
+  // Chrome answers through the callback; Safari's promise-based `browser`
+  // namespace documents the callback too, but may also return a promise.
   sendMessage(
     extensionId: string,
     message: unknown,
     callback: (response: any) => void
-  ): void;
+  ): void | PromiseLike<any>;
 }
 
 export interface BridgeWindowLike {
@@ -209,23 +231,38 @@ export function createExtensionClient(
   const viaRuntime = (id: string, message: unknown, timeoutMs: number) =>
     new Promise<any>((resolve, reject) => {
       const runtime = opts.runtime!;
+      let settled = false;
+      const finish = (fn: () => void) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        fn();
+      };
       const timer = setTimeout(
-        () => reject(new Error('Extension did not answer')),
+        () => finish(() => reject(new Error('Extension did not answer'))),
         timeoutMs
       );
+      const fail = (e: unknown) =>
+        finish(() => reject(e instanceof Error ? e : new Error(String(e))));
       try {
-        runtime.sendMessage(id, message, (response) => {
-          clearTimeout(timer);
+        const returned = runtime.sendMessage(id, message, (response) => {
           const err = runtime.lastError;
           if (err || response === undefined) {
-            reject(new Error(err?.message || 'Extension not reachable'));
+            fail(new Error(err?.message || 'Extension not reachable'));
           } else {
-            resolve(response);
+            finish(() => resolve(response));
           }
         });
+        if (returned && typeof (returned as PromiseLike<any>).then === 'function') {
+          (returned as PromiseLike<any>).then(
+            (response) => {
+              if (response !== undefined) finish(() => resolve(response));
+            },
+            fail
+          );
+        }
       } catch (e) {
-        clearTimeout(timer);
-        reject(e instanceof Error ? e : new Error(String(e)));
+        fail(e);
       }
     });
 

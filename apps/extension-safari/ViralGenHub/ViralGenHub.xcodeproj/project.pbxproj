@@ -1,0 +1,625 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		84D4BA0A3091825400CB03E5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84D4BA093091825400CB03E5 /* AppDelegate.swift */; };
+		84D4BA0E3091825400CB03E5 /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 84D4BA0C3091825400CB03E5 /* Main.html */; };
+		84D4BA103091825400CB03E5 /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 84D4BA0F3091825400CB03E5 /* Icon.png */; };
+		84D4BA123091825400CB03E5 /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 84D4BA113091825400CB03E5 /* Style.css */; };
+		84D4BA143091825400CB03E5 /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 84D4BA133091825400CB03E5 /* Script.js */; };
+		84D4BA163091825400CB03E5 /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84D4BA153091825400CB03E5 /* ViewController.swift */; };
+		84D4BA193091825400CB03E5 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 84D4BA173091825400CB03E5 /* Main.storyboard */; };
+		84D4BA1B3091825500CB03E5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 84D4BA1A3091825500CB03E5 /* Assets.xcassets */; };
+		84D4BA223091825500CB03E5 /* ViralGenHub Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 84D4BA213091825500CB03E5 /* ViralGenHub Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		84D4BA273091825500CB03E5 /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 84D4BA263091825500CB03E5 /* SafariWebExtensionHandler.swift */; };
+		84D4BA3C3091825500CB03E5 /* icon-16.png in Resources */ = {isa = PBXBuildFile; fileRef = 84D4BA333091825500CB03E5 /* icon-16.png */; };
+		84D4BA3D3091825500CB03E5 /* icon-256.png in Resources */ = {isa = PBXBuildFile; fileRef = 84D4BA343091825500CB03E5 /* icon-256.png */; };
+		84D4BA3E3091825500CB03E5 /* background.js in Resources */ = {isa = PBXBuildFile; fileRef = 84D4BA353091825500CB03E5 /* background.js */; };
+		84D4BA3F3091825500CB03E5 /* icon-48.png in Resources */ = {isa = PBXBuildFile; fileRef = 84D4BA363091825500CB03E5 /* icon-48.png */; };
+		84D4BA403091825500CB03E5 /* icon-96.png in Resources */ = {isa = PBXBuildFile; fileRef = 84D4BA373091825500CB03E5 /* icon-96.png */; };
+		84D4BA413091825500CB03E5 /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 84D4BA383091825500CB03E5 /* manifest.json */; };
+		84D4BA423091825500CB03E5 /* icon-128.png in Resources */ = {isa = PBXBuildFile; fileRef = 84D4BA393091825500CB03E5 /* icon-128.png */; };
+		84D4BA433091825500CB03E5 /* icon-32.png in Resources */ = {isa = PBXBuildFile; fileRef = 84D4BA3A3091825500CB03E5 /* icon-32.png */; };
+		84D4BA443091825500CB03E5 /* icon-512.png in Resources */ = {isa = PBXBuildFile; fileRef = 84D4BA3B3091825500CB03E5 /* icon-512.png */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		84D4BA233091825500CB03E5 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 84D4B9FE3091825300CB03E5 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 84D4BA203091825500CB03E5;
+			remoteInfo = "ViralGenHub Extension";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		84D4BA2E3091825500CB03E5 /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				84D4BA223091825500CB03E5 /* ViralGenHub Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		84D4BA063091825300CB03E5 /* ViralGenHub.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = ViralGenHub.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		84D4BA093091825400CB03E5 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		84D4BA0D3091825400CB03E5 /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		84D4BA0F3091825400CB03E5 /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		84D4BA113091825400CB03E5 /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		84D4BA133091825400CB03E5 /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		84D4BA153091825400CB03E5 /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		84D4BA183091825400CB03E5 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		84D4BA1A3091825500CB03E5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		84D4BA1C3091825500CB03E5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		84D4BA213091825500CB03E5 /* ViralGenHub Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "ViralGenHub Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		84D4BA263091825500CB03E5 /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		84D4BA283091825500CB03E5 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		84D4BA333091825500CB03E5 /* icon-16.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "icon-16.png"; path = "Resources/icon-16.png"; sourceTree = "<group>"; };
+		84D4BA343091825500CB03E5 /* icon-256.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "icon-256.png"; path = "Resources/icon-256.png"; sourceTree = "<group>"; };
+		84D4BA353091825500CB03E5 /* background.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; name = background.js; path = Resources/background.js; sourceTree = "<group>"; };
+		84D4BA363091825500CB03E5 /* icon-48.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "icon-48.png"; path = "Resources/icon-48.png"; sourceTree = "<group>"; };
+		84D4BA373091825500CB03E5 /* icon-96.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "icon-96.png"; path = "Resources/icon-96.png"; sourceTree = "<group>"; };
+		84D4BA383091825500CB03E5 /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = Resources/manifest.json; sourceTree = "<group>"; };
+		84D4BA393091825500CB03E5 /* icon-128.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "icon-128.png"; path = "Resources/icon-128.png"; sourceTree = "<group>"; };
+		84D4BA3A3091825500CB03E5 /* icon-32.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "icon-32.png"; path = "Resources/icon-32.png"; sourceTree = "<group>"; };
+		84D4BA3B3091825500CB03E5 /* icon-512.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = "icon-512.png"; path = "Resources/icon-512.png"; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		84D4BA033091825300CB03E5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		84D4BA1E3091825500CB03E5 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		84D4B9FD3091825300CB03E5 = {
+			isa = PBXGroup;
+			children = (
+				84D4BA083091825300CB03E5 /* ViralGenHub */,
+				84D4BA253091825500CB03E5 /* ViralGenHub Extension */,
+				84D4BA073091825300CB03E5 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		84D4BA073091825300CB03E5 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				84D4BA063091825300CB03E5 /* ViralGenHub.app */,
+				84D4BA213091825500CB03E5 /* ViralGenHub Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		84D4BA083091825300CB03E5 /* ViralGenHub */ = {
+			isa = PBXGroup;
+			children = (
+				84D4BA093091825400CB03E5 /* AppDelegate.swift */,
+				84D4BA153091825400CB03E5 /* ViewController.swift */,
+				84D4BA173091825400CB03E5 /* Main.storyboard */,
+				84D4BA1A3091825500CB03E5 /* Assets.xcassets */,
+				84D4BA1C3091825500CB03E5 /* Info.plist */,
+				84D4BA0B3091825400CB03E5 /* Resources */,
+			);
+			path = ViralGenHub;
+			sourceTree = "<group>";
+		};
+		84D4BA0B3091825400CB03E5 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				84D4BA0C3091825400CB03E5 /* Main.html */,
+				84D4BA0F3091825400CB03E5 /* Icon.png */,
+				84D4BA113091825400CB03E5 /* Style.css */,
+				84D4BA133091825400CB03E5 /* Script.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		84D4BA253091825500CB03E5 /* ViralGenHub Extension */ = {
+			isa = PBXGroup;
+			children = (
+				84D4BA323091825500CB03E5 /* Resources */,
+				84D4BA263091825500CB03E5 /* SafariWebExtensionHandler.swift */,
+				84D4BA283091825500CB03E5 /* Info.plist */,
+			);
+			path = "ViralGenHub Extension";
+			sourceTree = "<group>";
+		};
+		84D4BA323091825500CB03E5 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				84D4BA333091825500CB03E5 /* icon-16.png */,
+				84D4BA343091825500CB03E5 /* icon-256.png */,
+				84D4BA353091825500CB03E5 /* background.js */,
+				84D4BA363091825500CB03E5 /* icon-48.png */,
+				84D4BA373091825500CB03E5 /* icon-96.png */,
+				84D4BA383091825500CB03E5 /* manifest.json */,
+				84D4BA393091825500CB03E5 /* icon-128.png */,
+				84D4BA3A3091825500CB03E5 /* icon-32.png */,
+				84D4BA3B3091825500CB03E5 /* icon-512.png */,
+			);
+			name = Resources;
+			path = "ViralGenHub Extension";
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		84D4BA053091825300CB03E5 /* ViralGenHub */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 84D4BA2F3091825500CB03E5 /* Build configuration list for PBXNativeTarget "ViralGenHub" */;
+			buildPhases = (
+				84D4BA023091825300CB03E5 /* Sources */,
+				84D4BA033091825300CB03E5 /* Frameworks */,
+				84D4BA043091825300CB03E5 /* Resources */,
+				84D4BA2E3091825500CB03E5 /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				84D4BA243091825500CB03E5 /* PBXTargetDependency */,
+			);
+			name = ViralGenHub;
+			packageProductDependencies = (
+			);
+			productName = ViralGenHub;
+			productReference = 84D4BA063091825300CB03E5 /* ViralGenHub.app */;
+			productType = "com.apple.product-type.application";
+		};
+		84D4BA203091825500CB03E5 /* ViralGenHub Extension */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 84D4BA2B3091825500CB03E5 /* Build configuration list for PBXNativeTarget "ViralGenHub Extension" */;
+			buildPhases = (
+				84D4BA1D3091825500CB03E5 /* Sources */,
+				84D4BA1E3091825500CB03E5 /* Frameworks */,
+				84D4BA1F3091825500CB03E5 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "ViralGenHub Extension";
+			packageProductDependencies = (
+			);
+			productName = "ViralGenHub Extension";
+			productReference = 84D4BA213091825500CB03E5 /* ViralGenHub Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		84D4B9FE3091825300CB03E5 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2620;
+				LastUpgradeCheck = 2620;
+				TargetAttributes = {
+					84D4BA053091825300CB03E5 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+					84D4BA203091825500CB03E5 = {
+						CreatedOnToolsVersion = 26.2;
+					};
+				};
+			};
+			buildConfigurationList = 84D4BA013091825300CB03E5 /* Build configuration list for PBXProject "ViralGenHub" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 84D4B9FD3091825300CB03E5;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 84D4BA073091825300CB03E5 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				84D4BA053091825300CB03E5 /* ViralGenHub */,
+				84D4BA203091825500CB03E5 /* ViralGenHub Extension */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		84D4BA043091825300CB03E5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				84D4BA103091825400CB03E5 /* Icon.png in Resources */,
+				84D4BA193091825400CB03E5 /* Main.storyboard in Resources */,
+				84D4BA143091825400CB03E5 /* Script.js in Resources */,
+				84D4BA0E3091825400CB03E5 /* Main.html in Resources */,
+				84D4BA1B3091825500CB03E5 /* Assets.xcassets in Resources */,
+				84D4BA123091825400CB03E5 /* Style.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		84D4BA1F3091825500CB03E5 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				84D4BA3F3091825500CB03E5 /* icon-48.png in Resources */,
+				84D4BA433091825500CB03E5 /* icon-32.png in Resources */,
+				84D4BA443091825500CB03E5 /* icon-512.png in Resources */,
+				84D4BA3D3091825500CB03E5 /* icon-256.png in Resources */,
+				84D4BA403091825500CB03E5 /* icon-96.png in Resources */,
+				84D4BA3E3091825500CB03E5 /* background.js in Resources */,
+				84D4BA423091825500CB03E5 /* icon-128.png in Resources */,
+				84D4BA413091825500CB03E5 /* manifest.json in Resources */,
+				84D4BA3C3091825500CB03E5 /* icon-16.png in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		84D4BA023091825300CB03E5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				84D4BA163091825400CB03E5 /* ViewController.swift in Sources */,
+				84D4BA0A3091825400CB03E5 /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		84D4BA1D3091825500CB03E5 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				84D4BA273091825500CB03E5 /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		84D4BA243091825500CB03E5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 84D4BA203091825500CB03E5 /* ViralGenHub Extension */;
+			targetProxy = 84D4BA233091825500CB03E5 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		84D4BA0C3091825400CB03E5 /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				84D4BA0D3091825400CB03E5 /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		84D4BA173091825400CB03E5 /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				84D4BA183091825400CB03E5 /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		84D4BA293091825500CB03E5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		84D4BA2A3091825500CB03E5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		84D4BA2C3091825500CB03E5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "ViralGenHub Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = ViralGenHub;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Talkiru Communications Ltd. Licensed under the GNU AGPL v3.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MARKETING_VERSION = 1.0.2;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.viralgenhub.extension.Extension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		84D4BA2D3091825500CB03E5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "ViralGenHub Extension/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = ViralGenHub;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Talkiru Communications Ltd. Licensed under the GNU AGPL v3.";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 12.0;
+				MARKETING_VERSION = 1.0.2;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.viralgenhub.extension.Extension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		84D4BA303091825500CB03E5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ViralGenHub/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ViralGenHub;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Talkiru Communications Ltd. Licensed under the GNU AGPL v3.";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.2;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.viralgenhub.extension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		84D4BA313091825500CB03E5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = ViralGenHub/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = ViralGenHub;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Talkiru Communications Ltd. Licensed under the GNU AGPL v3.";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MARKETING_VERSION = 1.0.2;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.viralgenhub.extension;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				REGISTER_APP_GROUPS = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		84D4BA013091825300CB03E5 /* Build configuration list for PBXProject "ViralGenHub" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				84D4BA293091825500CB03E5 /* Debug */,
+				84D4BA2A3091825500CB03E5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		84D4BA2B3091825500CB03E5 /* Build configuration list for PBXNativeTarget "ViralGenHub Extension" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				84D4BA2C3091825500CB03E5 /* Debug */,
+				84D4BA2D3091825500CB03E5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		84D4BA2F3091825500CB03E5 /* Build configuration list for PBXNativeTarget "ViralGenHub" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				84D4BA303091825500CB03E5 /* Debug */,
+				84D4BA313091825500CB03E5 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 84D4B9FE3091825300CB03E5 /* Project object */;
+}
