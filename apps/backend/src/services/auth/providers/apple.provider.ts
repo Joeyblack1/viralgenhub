@@ -22,8 +22,25 @@ const getConfig = () => {
     clientId: APPLE_CLIENT_ID,
     teamId: APPLE_TEAM_ID,
     keyId: APPLE_KEY_ID,
-    privateKey: APPLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
+    privateKey: normalizeApplePrivateKey(APPLE_PRIVATE_KEY),
   };
+};
+
+// The .p8 key reaches the env in whatever shape the deploy tool kept it: one
+// line with literal \n (deploy/staging/set-apple-keys.sh), real newlines, the
+// whole file base64-encoded (safe through any env editor), or just the key body.
+export const normalizeApplePrivateKey = (raw: string): string => {
+  let value = raw.trim().replace(/^["']|["']$/g, '').replace(/\\n/g, '\n');
+  if (!value.includes('-----BEGIN')) {
+    const decoded = Buffer.from(value.replace(/\s+/g, ''), 'base64').toString('utf8');
+    if (decoded.includes('-----BEGIN')) {
+      value = decoded;
+    } else {
+      const body = value.replace(/\s+/g, '').match(/.{1,64}/g) || [];
+      value = ['-----BEGIN PRIVATE KEY-----', ...body, '-----END PRIVATE KEY-----'].join('\n');
+    }
+  }
+  return value.trim() + '\n';
 };
 
 const defaultRedirect = () =>

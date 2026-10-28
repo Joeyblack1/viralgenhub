@@ -13,6 +13,15 @@ export const GoogleProvider = () => {
   return (
     <div
       onClick={gotoLogin}
+      role="button"
+      tabIndex={0}
+      aria-label={t('continue_with_google', 'Continue with Google')}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          gotoLogin();
+        }
+      }}
       className={`cursor-pointer flex-1 bg-white h-[52px] rounded-[10px] flex justify-center items-center text-[#0E0E0E] gap-[5px]`}
     >
       <div>

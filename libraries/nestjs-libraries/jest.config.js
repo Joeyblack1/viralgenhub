@@ -26,6 +26,7 @@ module.exports = {
     '<rootDir>/apps/backend/src/api/routes/admin.controller.*.spec.ts',
     '<rootDir>/apps/backend/src/public-api/routes/v1/*.spec.ts',
     '<rootDir>/apps/backend/src/services/auth/permissions/*.spec.ts',
+    '<rootDir>/apps/backend/src/services/auth/providers/apple.provider.spec.ts',
   ],
   transform: {
     '^.+\\.ts$': [
