@@ -20,13 +20,66 @@ interface EarlyAccessRow {
   user: { email: string };
 }
 
+// What the platform itself needs before an approved tester can connect
+// (early.access.platform.ts on the backend)
+interface PlatformStep {
+  kind: 'none' | 'manual' | 'limited';
+  adminText: string;
+  adminLink?: string;
+  adminLinkLabel?: string;
+}
+
 interface EarlyAccessResponse {
   providers: Array<{
     provider: string;
     waiting: number;
     requests: EarlyAccessRow[];
+    platformStep?: PlatformStep;
+    autoApprove?: boolean;
   }>;
 }
+
+const PlatformStepNote: FC<{ step?: PlatformStep; autoApprove?: boolean }> = ({
+  step,
+  autoApprove,
+}) => {
+  if (!step) {
+    return null;
+  }
+  return (
+    <div
+      className={
+        step.kind === 'manual'
+          ? 'text-[13px] rounded-[6px] p-[8px] border border-amber-500/60 bg-amber-500/10'
+          : 'text-[13px] opacity-80'
+      }
+    >
+      <span className="font-[600]">
+        {step.kind === 'manual'
+          ? 'Platform step before approving: '
+          : step.kind === 'limited'
+          ? 'Platform limit: '
+          : ''}
+      </span>
+      {step.adminText}{' '}
+      {!!step.adminLink && (
+        <a
+          href={step.adminLink}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline"
+        >
+          {step.adminLinkLabel || 'Open'}
+        </a>
+      )}
+      {autoApprove && (
+        <span className="block mt-[4px] opacity-80">
+          Auto-approved on request (EARLY_ACCESS_AUTO_APPROVE).
+        </span>
+      )}
+    </div>
+  );
+};
 
 // Shared by this page and the /admin index card: one SWR key, so Approve's
 // mutate() refreshes the heading counts and the card together.
@@ -115,6 +168,10 @@ export const AdminEarlyAccessComponent: FC = () => {
                 </Button>
               )}
             </div>
+            <PlatformStepNote
+              step={group.platformStep}
+              autoApprove={group.autoApprove}
+            />
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="text-start opacity-70">
@@ -145,7 +202,10 @@ export const AdminEarlyAccessComponent: FC = () => {
                             post(
                               row.id,
                               `/admin/early-access/${row.id}/approve`,
-                              () => 'Approved'
+                              (b) =>
+                                b?.platformStep?.kind === 'manual'
+                                  ? 'Approved. Add them on the platform too (see the note above)'
+                                  : 'Approved'
                             )
                           }
                         >

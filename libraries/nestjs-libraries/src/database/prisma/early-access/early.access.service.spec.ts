@@ -26,7 +26,7 @@ const make = () => {
     listForOrganization: jest.fn(),
   };
   const manager: any = {
-    isPreviewListed: (p: string) => p === 'facebook',
+    isPreviewListed: (p: string) => ['facebook', 'whop'].includes(p),
     isComingSoonProvider: (p: string) => p === 'mewe',
     getSocialIntegration: () => ({ name: 'MeWe' }),
   };
@@ -210,5 +210,82 @@ describe('EarlyAccessService', () => {
       ['mewe', 0],
     ]);
     expect(providers[0].requests).toHaveLength(2);
+  });
+
+  describe('platform steps and auto-approval (#412)', () => {
+    const env = { ...process.env };
+    beforeEach(() => {
+      process.env.EARLY_ACCESS_NOTIFY_EMAIL = 'admin@x.com';
+      process.env.FRONTEND_URL = 'https://app.example.com';
+      process.env.FACEBOOK_APP_ID = '123';
+    });
+    afterEach(() => {
+      process.env = { ...env };
+    });
+
+    it('approves a listed no-step platform at once and emails only the requester', async () => {
+      process.env.EARLY_ACCESS_AUTO_APPROVE = 'whop, mastodon-custom';
+      const { service, repo, email } = make();
+      repo.findById.mockResolvedValue({
+        id: '1',
+        kind: 'tester',
+        provider: 'whop',
+        user: { email: 't@x.com' },
+      });
+      const row = await service.request('o', 'u', { provider: 'whop' });
+      expect(row).toMatchObject({ status: 'approved' });
+      expect(repo.approveIfRequested).toHaveBeenCalledWith('1');
+      expect(email.sendEmailSync).toHaveBeenCalledTimes(1);
+      expect(email.sendEmailSync.mock.calls[0][0]).toBe('t@x.com');
+    });
+
+    it('never auto-approves a platform that needs a manual step', async () => {
+      process.env.EARLY_ACCESS_AUTO_APPROVE = 'facebook,whop';
+      const { service, repo, email } = make();
+      const row = await service.request('o', 'u', { provider: 'facebook' });
+      expect(row).not.toMatchObject({ status: 'approved' });
+      expect(repo.approveIfRequested).not.toHaveBeenCalled();
+      // the admin is told instead
+      expect(email.sendEmailSync.mock.calls[0][0]).toBe('admin@x.com');
+    });
+
+    it('leaves tester requests for the admin when the list is empty', async () => {
+      delete process.env.EARLY_ACCESS_AUTO_APPROVE;
+      const { service, repo } = make();
+      await service.request('o', 'u', { provider: 'whop' });
+      expect(repo.approveIfRequested).not.toHaveBeenCalled();
+    });
+
+    it('tells a Meta tester how to accept the invite, and the admin where to add them', async () => {
+      const { service, repo, email } = make();
+      repo.findById.mockResolvedValue({
+        id: '1',
+        kind: 'tester',
+        provider: 'facebook',
+        user: { email: 't@x.com' },
+      });
+      const res = await service.approve('1');
+      expect(res.platformStep).toMatchObject({
+        kind: 'manual',
+        adminLink: 'https://developers.facebook.com/apps/123/roles/roles/',
+      });
+      expect(email.sendEmailSync.mock.calls[0][2]).toContain(
+        'Settings &gt; Apps and websites &gt; Requests'
+      );
+    });
+
+    it('puts the platform step on each admin group', async () => {
+      process.env.EARLY_ACCESS_AUTO_APPROVE = 'whop';
+      const { service, repo } = make();
+      repo.listAll.mockResolvedValue([
+        { id: 'a', provider: 'threads', kind: 'tester', status: 'requested' },
+        { id: 'b', provider: 'whop', kind: 'tester', status: 'approved' },
+      ]);
+      const { providers } = await service.adminList();
+      expect(providers[0].platformStep.kind).toBe('manual');
+      expect(providers[0].autoApprove).toBe(false);
+      expect(providers[1].platformStep.kind).toBe('none');
+      expect(providers[1].autoApprove).toBe(true);
+    });
   });
 });

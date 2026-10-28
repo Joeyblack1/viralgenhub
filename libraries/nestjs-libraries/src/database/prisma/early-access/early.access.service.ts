@@ -3,6 +3,10 @@ import { EarlyAccessRepository } from '@gitroom/nestjs-libraries/database/prisma
 import { IntegrationManager } from '@gitroom/nestjs-libraries/integrations/integration.manager';
 import { EmailService } from '@gitroom/nestjs-libraries/services/email.service';
 import { EarlyAccessRequestDto } from '@gitroom/nestjs-libraries/dtos/integrations/early.access.dto';
+import {
+  autoApproves,
+  platformStep,
+} from '@gitroom/nestjs-libraries/database/prisma/early-access/early.access.platform';
 
 // Workspace and platform names go into email HTML; workspace names are typed
 // by users.
@@ -58,6 +62,13 @@ export class EarlyAccessService {
       note: body.note?.trim() || undefined,
       newsletter: !!body.newsletter,
     });
+    // A platform that needs no step of its own (EARLY_ACCESS_AUTO_APPROVE)
+    // is approved at once: the requester gets the approval email and nobody
+    // has to press Approve, so the admin is not emailed either.
+    if (isNewTester && autoApproves(body.provider)) {
+      await this.approve(row.id);
+      return { ...row, status: 'approved' };
+    }
     if (isNewTester) {
       await this.notifyAdmin(body.provider, kind, workspaceName);
     }
@@ -142,7 +153,13 @@ export class EarlyAccessService {
       group.requests.push(row);
       providers.set(row.provider, group);
     }
-    return { providers: [...providers.values()] };
+    return {
+      providers: [...providers.values()].map((group) => ({
+        ...group,
+        platformStep: platformStep(group.provider),
+        autoApprove: autoApproves(group.provider),
+      })),
+    };
   }
 
   async approve(id: string) {
@@ -153,6 +170,7 @@ export class EarlyAccessService {
     if (row.kind !== 'tester') {
       throw new BadRequestException('Only tester requests can be approved');
     }
+    const step = platformStep(row.provider);
     // Email the requester only when this press actually approved the row, so
     // the approval email goes out once however many times Approve is pressed.
     if (await this._earlyAccessRepository.approveIfRequested(id)) {
@@ -166,13 +184,15 @@ export class EarlyAccessService {
           `You're approved to test ${name} on ViralGenHub`,
           `<p>You're approved to test ${escapeHtml(
             name
-          )} on ViralGenHub.</p><p>Connect it now: <a href="${link}">${link}</a></p>`
+          )} on ViralGenHub.</p>${
+            step.userText ? `<p>${escapeHtml(step.userText)}</p>` : ''
+          }<p>Connect it now: <a href="${link}">${link}</a></p>`
         );
       } catch (err) {
         console.log('early-access approval email failed', id, err);
       }
     }
-    return { id, status: 'approved' };
+    return { id, status: 'approved', platformStep: step };
   }
 
   // Emails everyone on the waitlist for a platform that has gone live, then
