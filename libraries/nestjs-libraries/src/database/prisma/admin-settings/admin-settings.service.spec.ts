@@ -40,7 +40,7 @@ describe('AdminSettingsService', () => {
       OPENAI_API_KEY: 'sk-proj-1',
       X_MONTHLY_BUDGET_USD: '50',
       X_PAUSE_AT_USD: '45',
-      EXTENSION_ID: 'abc',
+      EXTENSION_ID: 'coagigbelglppjcbopmeaapehmgjbffe',
       COMING_SOON_PROVIDERS: 'mewe, tumblr',
       PREVIEW_PROVIDERS: 'facebook',
     });
@@ -73,6 +73,20 @@ describe('AdminSettingsService', () => {
     });
     expect(r.storage.status).toBe('warn');
     expect(r['x-budget'].status).toBe('error');
+  });
+
+  it('reads the extension per store from EXTENSION_IDS', () => {
+    const r = run({
+      EXTENSION_IDS:
+        'edge:abcdefghijklmnopabcdefghijklmnop,firefox:viralgenhub',
+      EXTENSION_ID: 'coagigbelglppjcbopmeaapehmgjbffe',
+    });
+    expect(r.extension.status).toBe('ok');
+    expect(r.extension.detail).toBe('Extension configured for: chrome, edge, firefox.');
+  });
+
+  it('a malformed extension ID does not count as set', () => {
+    expect(run({ EXTENSION_ID: 'abc' }).extension.status).toBe('warn');
   });
 
   it('never includes a secret value in the output', () => {

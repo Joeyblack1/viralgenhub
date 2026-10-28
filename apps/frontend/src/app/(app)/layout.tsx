@@ -90,6 +90,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           tiktokAudited={process.env.TIKTOK_AUDITED === 'true'}
           sentryDsn={process.env.NEXT_PUBLIC_SENTRY_DSN!}
           extensionId={process.env.EXTENSION_ID || ''}
+          extensionIds={process.env.EXTENSION_IDS || ''}
           googleAdsId={process.env.NEXT_PUBLIC_GTM_ID}
           googleAdsTrialTracking={process.env.NEXT_PUBLIC_TRACKING_TRIAL}
           language={language}

@@ -1,11 +1,14 @@
 {
   "name": "viralgenhub-extension",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "ViralGenHub browser extension: connects cookie-based channels (Skool)",
   "scripts": {
     "build": "rm -rf dist && vite build && node scripts/write-manifest.mjs && cd dist && zip -r ../extension.zip . -x '.*'",
+    "build:firefox": "rm -rf dist && EXT_BROWSER=firefox vite build && EXT_BROWSER=firefox node scripts/write-manifest.mjs && cd dist && zip -r ../extension-firefox.zip . -x '.*'",
     "dev": "rm -rf dist && HOT_RELOAD_EXTENSION_VITE_PORT=8081 NODE_ENV=development dotenv -e ../../.env -- vite build --config vite.config.chrome.ts --mode development --watch",
-    "build:staging": "rm -rf dist && EXT_ENV=staging vite build && EXT_ENV=staging node scripts/write-manifest.mjs && cd dist && zip -r ../extension-staging.zip . -x '.*'"
+    "build:staging": "rm -rf dist && EXT_ENV=staging vite build && EXT_ENV=staging node scripts/write-manifest.mjs && cd dist && zip -r ../extension-staging.zip . -x '.*'",
+    "build:staging:firefox": "rm -rf dist && EXT_ENV=staging EXT_BROWSER=firefox vite build && EXT_ENV=staging EXT_BROWSER=firefox node scripts/write-manifest.mjs && cd dist && zip -r ../extension-staging-firefox.zip . -x '.*'",
+    "release": "sh scripts/make-release.sh ../../../brand/extension"
   },
   "type": "module"
 }

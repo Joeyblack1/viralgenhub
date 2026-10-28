@@ -15,6 +15,7 @@ import {
   readExtensionCode,
 } from '@gitroom/frontend/components/launches/extension.code.stash';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
+import { useBrowserExtension } from '@gitroom/frontend/components/launches/helpers/use.browser.extension';
 
 interface TwoStepState {
   integrationId: string;
@@ -36,7 +37,8 @@ export const ContinueIntegration: FC<{
   const { push } = useRouter();
   const t = useT();
   const fetch = useFetch();
-  const { extensionId, backendUrl } = useVariables();
+  const { backendUrl } = useVariables();
+  const extension = useBrowserExtension();
   const [error, setError] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [twoStepState, setTwoStepState] = useState<TwoStepState | null>(null);
@@ -187,31 +189,18 @@ export const ContinueIntegration: FC<{
       const onboarding = resOnboarding || searchParams.onboarding === 'true';
 
       // Store refresh token in extension for background cookie refresh
-      if (
-        extensionToken &&
-        extensionId &&
-        typeof chrome !== 'undefined' &&
-        chrome?.runtime?.sendMessage
-      ) {
-        try {
-          chrome.runtime.sendMessage(
-            extensionId,
-            {
-              type: 'STORE_REFRESH_TOKEN',
-              provider,
-              integrationId: id,
-              jwt: extensionToken,
-              backendUrl,
-            },
-            () => {
-              if (chrome.runtime.lastError) {
-                return;
-              }
-            }
-          );
-        } catch {
-          // Silently ignore — extension may not be available
-        }
+      if (extensionToken && extension.configured) {
+        // Fire and forget: the connection works without it, only the daily
+        // cookie refresh needs it.
+        extension.client
+          .send({
+            type: 'STORE_REFRESH_TOKEN',
+            provider,
+            integrationId: id,
+            jwt: extensionToken,
+            backendUrl,
+          })
+          .catch(() => undefined);
       }
 
       // If it's a two-step provider, show the selection UI inline

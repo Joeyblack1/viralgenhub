@@ -14,6 +14,8 @@ import { ApiKeyDto } from '@gitroom/nestjs-libraries/dtos/integrations/api.key.d
 import { useRouter } from 'next/navigation';
 import { TopTitle } from '@gitroom/frontend/components/launches/helpers/top.title.component';
 import { useVariables } from '@gitroom/react/helpers/variable.context';
+import { useBrowserExtension } from '@gitroom/frontend/components/launches/helpers/use.browser.extension';
+import { browserLabel } from '@gitroom/helpers/utils/browser.extension';
 import { useToaster } from '@gitroom/react/toaster/toaster';
 import { object, string } from 'yup';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -356,44 +358,64 @@ export const CustomVariables: FC<{
 };
 const ExtensionNotFound: FC = () => {
   const modals = useModals();
-  const { extensionId } = useVariables();
+  const { install, browser } = useBrowserExtension();
   const t = useT();
   return (
     <div className="flex flex-col gap-[16px] pt-[8px]">
-      <p className="text-[14px] text-textColor/80">
-        {t(
-          'extension_not_available',
-          'The ViralGenHub browser extension is not installed. You need to install it before connecting this channel.'
-        )}
-      </p>
-      <p className="text-[13px] text-textColor/70">
-        {t(
-          'vgh_extension_in_review',
-          "If the Chrome Web Store says the item isn't available, our extension is still in Google's review. Check back soon."
-        )}{' '}
-        <a
-          href="https://viralgenhub.com/help/connect"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="underline hover:font-bold"
-        >
-          {t('vgh_connect_help_all', 'Help: connecting accounts')}
-        </a>
-      </p>
+      {install ? (
+        <>
+          <p className="text-[14px] text-textColor/80">
+            {t(
+              'extension_not_available',
+              'The ViralGenHub browser extension is not installed. You need to install it before connecting this channel.'
+            )}
+          </p>
+          <p className="text-[13px] text-textColor/70">
+            {t(
+              'vgh_extension_install_from',
+              'Install it from the {{store}}, then click the channel again.',
+              { store: install.storeName }
+            )}{' '}
+            <a
+              href="https://viralgenhub.com/help/connect/skool"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:font-bold"
+            >
+              {t('vgh_extension_supported_browsers', 'Supported browsers')}
+            </a>
+          </p>
+        </>
+      ) : (
+        <p className="text-[14px] text-textColor/80">
+          {t(
+            'vgh_extension_not_for_browser',
+            'The ViralGenHub extension is not available for {{browser}} yet. Connect this channel from Chrome or Microsoft Edge; once it is connected you can schedule posts from any browser.',
+            { browser: browserLabel(browser) }
+          )}{' '}
+          <a
+            href="https://viralgenhub.com/help/connect/skool"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline hover:font-bold"
+          >
+            {t('vgh_extension_supported_browsers', 'Supported browsers')}
+          </a>
+        </p>
+      )}
       <div className="flex gap-[10px]">
-        <Button
-          type="button"
-          className="flex-1"
-          onClick={() => {
-            window.open(
-              `https://chromewebstore.google.com/detail/${extensionId}`,
-              '_blank'
-            );
-            modals.closeCurrent();
-          }}
-        >
-          {t('install_extension', 'Install Extension')}
-        </Button>
+        {install && (
+          <Button
+            type="button"
+            className="flex-1"
+            onClick={() => {
+              window.open(install.url, '_blank');
+              modals.closeCurrent();
+            }}
+          >
+            {t('install_extension', 'Install Extension')}
+          </Button>
+        )}
         <Button
           type="button"
           className="flex-1 !bg-transparent border border-tableBorder text-textColor"
@@ -513,7 +535,8 @@ export const AddProviderComponent: FC<{
 }> = (props) => {
   const { update, social, article, onboarding, isMobile, autoOpenEarly } =
     props;
-  const { isGeneral, extensionId } = useVariables();
+  const { isGeneral } = useVariables();
+  const extension = useBrowserExtension();
   const toaster = useToaster();
   const router = useRouter();
   const fetch = useFetch();
@@ -698,55 +721,31 @@ export const AddProviderComponent: FC<{
           if (!confirmed) {
             return;
           }
-          if (
-            !extensionId ||
-            typeof chrome === 'undefined' ||
-            !chrome?.runtime?.sendMessage
-          ) {
+          const notFound = () =>
             modal.openModal({
               title: t('extension_not_available_title', 'Extension Not Found'),
               withCloseButton: true,
               children: <ExtensionNotFound />,
             });
+          if (!extension.configured) {
+            notFound();
             return;
           }
           try {
-            await new Promise<void>((resolve, reject) => {
-              chrome.runtime.sendMessage(
-                extensionId,
-                { type: 'PING' },
-                (response: any) => {
-                  if (chrome.runtime.lastError || !response?.status) {
-                    reject(new Error('Extension not reachable'));
-                  } else {
-                    resolve();
-                  }
-                }
-              );
-            });
+            // Chromium/Safari by extension ID, Firefox via the extension's
+            // page bridge; a short wait is enough for a local extension.
+            const pong = await extension.client.send({ type: 'PING' }, 2500);
+            if (!pong?.status) {
+              throw new Error('Extension not reachable');
+            }
           } catch {
-            toaster.show(
-              t(
-                'extension_not_installed',
-                'ViralGenHub browser extension is not installed or not reachable.'
-              ),
-              'warning'
-            );
+            notFound();
             return;
           }
           try {
-            const cookieResponse = await new Promise<any>((resolve, reject) => {
-              chrome.runtime.sendMessage(
-                extensionId,
-                { type: 'GET_COOKIES', provider: identifier },
-                (response: any) => {
-                  if (chrome.runtime.lastError) {
-                    reject(new Error(chrome.runtime.lastError.message));
-                  } else {
-                    resolve(response);
-                  }
-                }
-              );
+            const cookieResponse = await extension.client.send({
+              type: 'GET_COOKIES',
+              provider: identifier,
             });
             if (!cookieResponse.success) {
               toaster.show(
@@ -839,7 +838,7 @@ export const AddProviderComponent: FC<{
         }
         await gotoIntegration();
       },
-    [onboarding]
+    [onboarding, extension]
   );
 
   // After a waitlist / tester request, offer a few platforms that can be
@@ -849,7 +848,7 @@ export const AddProviderComponent: FC<{
       (p) =>
         !p.preview &&
         !isLockedTile(p) &&
-        (!p.isChromeExtension || !!extensionId)
+        (!p.isChromeExtension || extension.configured)
     );
     openEarlyAccess(item, {
       suggest: live.slice(0, 4).map((p) => ({
@@ -891,7 +890,7 @@ export const AddProviderComponent: FC<{
               // Locked (coming-soon / early-access) tiles stay.
               if (
                 item.isChromeExtension &&
-                !extensionId &&
+                !extension.configured &&
                 !isLockedTile(item)
               ) {
                 return false;

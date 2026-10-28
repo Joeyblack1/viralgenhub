@@ -7,19 +7,34 @@ const ALLOWED_ORIGINS =
     ? ['https://app.viralgenhub.com', 'https://staging.viralgenhub.com']
     : ['https://app.viralgenhub.com'];
 
+// EXT_BROWSER=firefox builds the AMO variant: same background code plus the
+// bridge content script (Firefox has no page-to-extension messaging).
+// Default 'chromium' = Chrome Web Store and Edge Add-ons (one package).
+const BROWSER = process.env.EXT_BROWSER === 'firefox' ? 'firefox' : 'chromium';
+
+const entry: Record<string, string> = {
+  background: resolve(__dirname, 'src/background.ts'),
+};
+if (BROWSER === 'firefox') {
+  entry.bridge = resolve(__dirname, 'src/bridge.ts');
+}
+
 export default defineConfig({
-  define: { __ALLOWED_ORIGINS__: JSON.stringify(ALLOWED_ORIGINS) },
+  define: {
+    __ALLOWED_ORIGINS__: JSON.stringify(ALLOWED_ORIGINS),
+    __BROWSER__: JSON.stringify(BROWSER),
+  },
   build: {
     outDir: resolve(__dirname, 'dist'),
     emptyOutDir: true,
     lib: {
-      entry: resolve(__dirname, 'src/background.ts'),
+      entry,
       formats: ['es'],
-      fileName: () => 'background.js',
+      fileName: (_format, name) => `${name}.js`,
     },
     rollupOptions: {
       output: {
-        entryFileNames: 'background.js',
+        entryFileNames: '[name].js',
       },
     },
     target: 'esnext',

@@ -21,6 +21,7 @@ module.exports = {
     '<rootDir>/libraries/helpers/src/utils/early.access.intent.spec.ts',
     '<rootDir>/libraries/helpers/src/utils/workspace.roles.spec.ts',
     '<rootDir>/libraries/helpers/src/utils/whats.new.spec.ts',
+    '<rootDir>/libraries/helpers/src/utils/browser.extension.spec.ts',
     '<rootDir>/apps/backend/src/api/routes/users.controller.*.spec.ts',
     '<rootDir>/apps/backend/src/api/routes/admin.controller.*.spec.ts',
     '<rootDir>/apps/backend/src/public-api/routes/v1/*.spec.ts',

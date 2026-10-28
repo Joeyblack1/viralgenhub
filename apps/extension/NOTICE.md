@@ -7,4 +7,6 @@ origins restricted to app.viralgenhub.com, narrower host permissions, origin che
 the refresh backend URL.
 
 Build: `pnpm --filter ./apps/extension run build` (zip at apps/extension/extension.zip);
-`... run build:staging` for the staging variant.
+`... run build:firefox` for the Firefox (AMO) variant, `build:staging` /
+`build:staging:firefox` for the staging variants. Store releases: `sh scripts/make-release.sh <dir>`
+builds the Chrome/Edge zip, the Firefox zip and the AMO source zip from one clean copy.

@@ -383,3 +383,5 @@ $RECYCLE.BIN/
 public/manifest.json
 
 extension.zip
+extension-*.zip
+amo-source*.zip

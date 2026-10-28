@@ -1,4 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import {
+  hasExtension,
+  parseExtensionIds,
+} from '@gitroom/helpers/utils/browser.extension';
 import { aiTextConfig } from '@gitroom/nestjs-libraries/ai/ai.config';
 import { getXSpendConfig } from '@gitroom/nestjs-libraries/integrations/social/x.spend';
 
@@ -136,14 +140,20 @@ export class AdminSettingsService {
         : { fix: 'Set X_MONTHLY_BUDGET_USD and X_PAUSE_AT_USD in the app env.' }),
     });
 
-    const extension = has(env, 'EXTENSION_ID');
+    // EXTENSION_ID (Chrome, original) and/or EXTENSION_IDS (per store:
+    // chrome:<id>,edge:<id>,firefox:<amo slug>), see helpers/utils/browser.extension.ts
+    const extTargets = parseExtensionIds(env.EXTENSION_IDS, env.EXTENSION_ID);
+    const extension = hasExtension(extTargets);
+    const stores = (['chrome', 'edge', 'firefox', 'safari'] as const).filter(
+      (k) => extTargets[k].length
+    );
     checks.push({
       key: 'extension',
       label: 'Browser extension',
       status: extension ? 'ok' : 'warn',
       detail: extension
-        ? 'EXTENSION_ID is set.'
-        : 'EXTENSION_ID not set: the extension install prompts stay hidden.',
+        ? `Extension configured for: ${stores.join(', ')}.`
+        : 'EXTENSION_ID / EXTENSION_IDS not set: the extension install prompts stay hidden.',
       ...(extension ? {} : { fix: 'Set it once published: ./deploy/app/set-extension-id.sh' }),
     });
 

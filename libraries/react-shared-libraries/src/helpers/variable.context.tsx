@@ -37,6 +37,8 @@ interface VariableContextInterface {
   mediaProcessing: boolean;
   sentryDsn: string;
   extensionId: string;
+  // EXTENSION_IDS: per-store extension IDs, see helpers/utils/browser.extension.ts
+  extensionIds?: string;
   googleAdsId?: string;
   googleAdsTrialTracking?: string;
   recaptchaSiteKey?: string;
@@ -74,6 +76,7 @@ const VariableContext = createContext({
   mediaProcessing: false,
   sentryDsn: '',
   extensionId: '',
+  extensionIds: '',
   recaptchaSiteKey: '',
 } as VariableContextInterface);
 export const VariableContextComponent: FC<
