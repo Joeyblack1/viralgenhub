@@ -524,6 +524,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = ViralGenHub;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Talkiru Communications Ltd. Licensed under the GNU AGPL v3.";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -564,6 +565,7 @@
 				INFOPLIST_KEY_CFBundleDisplayName = ViralGenHub;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2026 Talkiru Communications Ltd. Licensed under the GNU AGPL v3.";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.social-networking";
+				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_NSMainStoryboardFile = Main;
 				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
 				LD_RUNPATH_SEARCH_PATHS = (
