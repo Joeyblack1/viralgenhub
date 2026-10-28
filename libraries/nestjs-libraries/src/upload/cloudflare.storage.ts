@@ -17,6 +17,11 @@ import axios from 'axios';
 import { isSafePublicHttpsUrl } from '@gitroom/nestjs-libraries/dtos/webhooks/webhook.url.validator';
 import { ssrfSafeDispatcher } from '@gitroom/nestjs-libraries/dtos/webhooks/ssrf.safe.dispatcher';
 import { parseDataUrl } from '@gitroom/nestjs-libraries/upload/data.url';
+import {
+  r2Endpoint,
+  r2ForcePathStyle,
+  r2KeyFromUrl,
+} from '@gitroom/nestjs-libraries/upload/r2.config';
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { fileTypeFromBuffer } = require('file-type');
 
@@ -46,8 +51,11 @@ class CloudflareStorage implements IUploadProvider {
     private _bucketName: string,
     private _uploadUrl: string
   ) {
+    // a trailing slash on the bucket URL would make every public URL `//key`
+    this._uploadUrl = (_uploadUrl || '').replace(/\/+$/, '');
     this._client = new S3Client({
-      endpoint: `https://${accountID}.r2.cloudflarestorage.com`,
+      endpoint: r2Endpoint({ ...process.env, CLOUDFLARE_ACCOUNT_ID: accountID }),
+      forcePathStyle: r2ForcePathStyle(),
       region,
       credentials: {
         accessKeyId: accessKey,
@@ -243,9 +251,13 @@ class CloudflareStorage implements IUploadProvider {
     );
   }
 
-  // Accepts either the public URL or the bare key
+  // Accepts either the public URL or the bare key. Files moved from local
+  // storage keep their folders in the key, so the key is everything after the
+  // bucket URL, not only the last segment.
   async removeFile(filePath: string): Promise<void> {
-    const fileName = filePath.split('/').pop();
+    const fileName = r2KeyFromUrl(filePath, {
+      CLOUDFLARE_BUCKET_URL: this._uploadUrl,
+    });
     if (!fileName) {
       return;
     }

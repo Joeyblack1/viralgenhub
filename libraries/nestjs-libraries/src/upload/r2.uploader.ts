@@ -17,6 +17,11 @@ import path from 'path';
 import { makeId } from '@gitroom/nestjs-libraries/services/make.is';
 import { UploadFactory } from '@gitroom/nestjs-libraries/upload/upload.factory';
 import {
+  r2BucketUrl,
+  r2Endpoint,
+  r2ForcePathStyle,
+} from '@gitroom/nestjs-libraries/upload/r2.config';
+import {
   MAX_MULTIPART_PARTS,
   isValidPartNumber,
   isWithinMaxSize,
@@ -51,22 +56,24 @@ function normalizeExtension(filename: string): string | null {
   return multipartExtToMime()[ext] ? ext : null;
 }
 
-const {
-  CLOUDFLARE_ACCOUNT_ID,
-  CLOUDFLARE_ACCESS_KEY,
-  CLOUDFLARE_SECRET_ACCESS_KEY,
-  CLOUDFLARE_BUCKETNAME,
-  CLOUDFLARE_BUCKET_URL,
-} = process.env;
+const { CLOUDFLARE_ACCESS_KEY, CLOUDFLARE_SECRET_ACCESS_KEY, CLOUDFLARE_BUCKETNAME } =
+  process.env;
+const CLOUDFLARE_BUCKET_URL = r2BucketUrl();
 
-const R2 = new S3Client({
-  region: 'auto',
-  endpoint: `https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-  credentials: {
-    accessKeyId: CLOUDFLARE_ACCESS_KEY!,
-    secretAccessKey: CLOUDFLARE_SECRET_ACCESS_KEY!,
-  },
-});
+// Built on first use: this module is imported by the media controller even on
+// local storage, where there is no account and a bad jurisdiction must not
+// stop the app from starting
+let r2Client: S3Client | undefined;
+const r2 = () =>
+  (r2Client ||= new S3Client({
+    region: 'auto',
+    endpoint: r2Endpoint(),
+    forcePathStyle: r2ForcePathStyle(),
+    credentials: {
+      accessKeyId: CLOUDFLARE_ACCESS_KEY!,
+      secretAccessKey: CLOUDFLARE_SECRET_ACCESS_KEY!,
+    },
+  }));
 
 // Function to generate a random string
 function generateRandomString() {
@@ -116,7 +123,7 @@ export async function simpleUpload(
   };
 
   const command = new PutObjectCommand({ ...params });
-  await R2.send(command);
+  await r2().send(command);
 
   return CLOUDFLARE_BUCKET_URL + '/' + randomFilename;
 }
@@ -146,7 +153,7 @@ export async function createMultipartUpload(req: Request, res: Response) {
     };
 
     const command = new CreateMultipartUploadCommand({ ...params });
-    const response = await R2.send(command);
+    const response = await r2().send(command);
     return res.status(200).json({
       uploadId: response.UploadId,
       key: response.Key,
@@ -182,7 +189,7 @@ export async function prepareUploadParts(req: Request, res: Response) {
         UploadId: partData.uploadId,
       };
       const command = new UploadPartCommand({ ...params });
-      const url = await getSignedUrl(R2, command, { expiresIn: 3600 });
+      const url = await getSignedUrl(r2(), command, { expiresIn: 3600 });
 
       // @ts-ignore
       response.presignedUrls[part.number] = url;
@@ -205,7 +212,7 @@ export async function listParts(req: Request, res: Response) {
       UploadId: uploadId,
     };
     const command = new ListPartsCommand({ ...params });
-    const response = await R2.send(command);
+    const response = await r2().send(command);
 
     return res.status(200).json(response['Parts']);
   } catch (err) {
@@ -223,7 +230,7 @@ export async function completeMultipartUpload(req: Request, res: Response) {
   ) {
     // the parts already uploaded would otherwise sit in the bucket
     try {
-      await R2.send(
+      await r2().send(
         new AbortMultipartUploadCommand({
           Bucket: CLOUDFLARE_BUCKETNAME,
           Key: key,
@@ -243,18 +250,18 @@ export async function completeMultipartUpload(req: Request, res: Response) {
       UploadId: uploadId,
       MultipartUpload: { Parts: parts },
     });
-    const response = await R2.send(command);
+    const response = await r2().send(command);
 
     const safeExt = normalizeExtension(key || '');
     if (!safeExt) {
-      await R2.send(
+      await r2().send(
         new DeleteObjectCommand({ Bucket: CLOUDFLARE_BUCKETNAME, Key: key })
       );
       return res.status(400).json({ message: 'Unsupported file type.' });
     }
     const expectedMime = multipartExtToMime()[safeExt];
 
-    const head = await R2.send(
+    const head = await r2().send(
       new GetObjectCommand({
         Bucket: CLOUDFLARE_BUCKETNAME,
         Key: key,
@@ -279,7 +286,7 @@ export async function completeMultipartUpload(req: Request, res: Response) {
         ? ['video/quicktime', 'video/mp4']
         : [expectedMime];
     if (!detected || !acceptedMimes.includes(detected.mime)) {
-      await R2.send(
+      await r2().send(
         new DeleteObjectCommand({ Bucket: CLOUDFLARE_BUCKETNAME, Key: key })
       );
       return res
@@ -291,14 +298,14 @@ export async function completeMultipartUpload(req: Request, res: Response) {
     // the size declared at create time was the client's word only
     const totalSize = await multipartObjectSize(key, head.ContentRange);
     if (!isWithinMaxSize(detected.mime, totalSize)) {
-      await R2.send(
+      await r2().send(
         new DeleteObjectCommand({ Bucket: CLOUDFLARE_BUCKETNAME, Key: key })
       );
       return res.status(400).json({ message: 'File is too large.' });
     }
 
     response.Location =
-      process.env.CLOUDFLARE_BUCKET_URL +
+      CLOUDFLARE_BUCKET_URL +
       '/' +
       response?.Location?.split('/').at(-1);
     return response;
@@ -316,7 +323,7 @@ async function multipartObjectSize(key: string, contentRange?: string) {
   if (fromRange) {
     return Number(fromRange[1]);
   }
-  const head = await R2.send(
+  const head = await r2().send(
     new HeadObjectCommand({ Bucket: CLOUDFLARE_BUCKETNAME, Key: key })
   );
   return head.ContentLength;
@@ -332,7 +339,7 @@ export async function abortMultipartUpload(req: Request, res: Response) {
       UploadId: uploadId,
     };
     const command = new AbortMultipartUploadCommand({ ...params });
-    const response = await R2.send(command);
+    const response = await r2().send(command);
 
     return res.status(200).json(response);
   } catch (err) {
@@ -357,7 +364,7 @@ export async function signPart(req: Request, res: Response) {
   };
 
   const command = new UploadPartCommand({ ...params });
-  const url = await getSignedUrl(R2, command, { expiresIn: 3600 });
+  const url = await getSignedUrl(r2(), command, { expiresIn: 3600 });
 
   return res.status(200).json({
     url: url,
