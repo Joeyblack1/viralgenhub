@@ -8,8 +8,14 @@ jest.mock(
   () => ({ AccountPurgeRepository: class {} })
 );
 
+const cloudRemove = jest.fn().mockResolvedValue(undefined);
+jest.mock('@gitroom/nestjs-libraries/upload/upload.factory', () => ({
+  UploadFactory: { createStorage: () => ({ removeFile: cloudRemove }) },
+}));
+
 import {
   AccountPurgeService,
+  cloudUploadKey,
   localUploadFile,
 } from './account-purge.service';
 import { accountPurgeDate, ACCOUNT_PURGE_DAYS } from './account-purge.config';
@@ -244,6 +250,38 @@ describe('account purge (#393)', () => {
     expect(localUploadFile('https://app.test/uploads/2026/a.png')).toBe(
       undefined
     );
+  });
+
+  it('deletes R2 objects of the purged workspace on cloud storage', async () => {
+    process.env.STORAGE_PROVIDER = 'cloudflare';
+    process.env.CLOUDFLARE_BUCKET_URL = 'https://media.test/';
+    cloudRemove.mockClear();
+    const own = 'https://media.test/2026/10/27/a.mp4';
+    const shared = 'https://media.test/b.png';
+    const foreign = 'https://elsewhere.test/c.png';
+    const orgs: FakeOrg[] = [
+      {
+        id: 'a',
+        deletedAt: DELETED,
+        purgeAfter: day(-1),
+        purgedAt: null,
+        liveMembers: 0,
+        files: [own, shared, foreign],
+      },
+    ];
+    const { repo } = fakeRepository(orgs, [shared]);
+    const run = await new AccountPurgeService(repo as any).purgeDue();
+    expect(cloudRemove.mock.calls).toEqual([[own]]);
+    expect(run.files).toBe(1);
+  });
+
+  it('cloudUploadKey only maps this bucket on cloud storage', () => {
+    process.env.CLOUDFLARE_BUCKET_URL = 'https://media.test';
+    expect(cloudUploadKey('https://media.test/x/a.png')).toBe(undefined);
+    process.env.STORAGE_PROVIDER = 'cloudflare';
+    expect(cloudUploadKey('https://media.test/x/a.png')).toBe('x/a.png');
+    expect(cloudUploadKey('https://media.test.evil/a.png')).toBe(undefined);
+    expect(cloudUploadKey('https://media.test/../a.png')).toBe(undefined);
   });
 
   it('reports counts for /admin', async () => {
