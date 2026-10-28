@@ -1,4 +1,9 @@
-import { planPostsLimitError, pricing } from './pricing';
+import {
+  adminPlanLabel,
+  planDisplayName,
+  planPostsLimitError,
+  pricing,
+} from './pricing';
 
 describe('planPostsLimitError, monthly X posts per plan', () => {
   it('caps X at 0 on Free, 20 on Creator and 60 on Business', () => {
@@ -50,5 +55,20 @@ describe('Free plan taste of the paid features (2026-10-18)', () => {
     expect(pricing.FREE.autoPost).toBe(false);
     expect(pricing.FREE.x_posts_per_month).toBe(0);
     expect(pricing.FREE.ai).toBe(false);
+  });
+});
+
+describe('plan names shown to customers and to admins', () => {
+  it('uses our plan names, never the upstream tier keys', () => {
+    expect(planDisplayName('STANDARD')).toBe('Creator');
+    expect(planDisplayName('TEAM')).toBe('Business');
+    expect(planDisplayName('free')).toBe('Free');
+  });
+  it('labels admin choices with the stored key and flags unsold tiers', () => {
+    expect(adminPlanLabel('STANDARD')).toBe('Creator (STANDARD)');
+    expect(adminPlanLabel('TEAM')).toBe('Business (TEAM)');
+    expect(adminPlanLabel('')).toBe('Free (FREE)');
+    expect(adminPlanLabel('PRO')).toBe('Pro (PRO, not sold)');
+    expect(adminPlanLabel('ULTIMATE')).toBe('Ultimate (ULTIMATE, not sold)');
   });
 });

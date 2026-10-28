@@ -6,7 +6,8 @@ import {
 } from '@gitroom/frontend/components/launches/add.provider.component';
 import { FC, useCallback, useEffect, useMemo, useState } from 'react';
 import SafeImage from '@gitroom/react/helpers/safe.image';
-import { capitalize, groupBy, orderBy } from 'lodash';
+import { groupBy, orderBy } from 'lodash';
+import { planDisplayName } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { CalendarWeekProvider } from '@gitroom/frontend/components/launches/calendar.context';
 import { Filters } from '@gitroom/frontend/components/launches/filters';
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
@@ -759,7 +760,7 @@ export const LaunchesComponent = () => {
             </div>
             <div className="mt-[5px] text-center flex flex-col mobile:hidden">
               {billingEnabled && user?.isLifetime && (
-                <div>{capitalize(user?.tier?.current || '')} tier</div>
+                <div>{planDisplayName(user?.tier?.current || '')} plan</div>
               )}
               <div>
                 {process.env.NEXT_PUBLIC_VERSION

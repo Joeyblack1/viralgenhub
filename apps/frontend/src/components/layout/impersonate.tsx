@@ -5,8 +5,10 @@ import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { Select } from '@gitroom/react/form/select';
 import {
+  adminPlanLabel,
+  CURRENCY_SYMBOL,
   planDisplayName,
-  pricing,
+  SOLD_TIERS,
 } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { workspaceRoleLabel } from '@gitroom/helpers/utils/workspace.roles';
 import { deleteDialog } from '@gitroom/react/helpers/delete.dialog';
@@ -209,8 +211,9 @@ const ApplyCouponModal: FC<{ close: () => void }> = ({ close }) => {
         <>
           <div className="flex flex-col gap-[4px] text-[14px]">
             <div>
-              {t('apply_coupon_plan', 'Plan:')} {info.tier || 'FREE'}
-              {!!info.tier && ` - $${info.planPrice}`}
+              {t('apply_coupon_plan', 'Plan:')}{' '}
+              {adminPlanLabel(info.tier || 'FREE')}
+              {!!info.tier && ` - ${CURRENCY_SYMBOL}${info.planPrice}`}
             </div>
             <div>
               {t('apply_coupon_period', 'Period:')}{' '}
@@ -234,7 +237,7 @@ const ApplyCouponModal: FC<{ close: () => void }> = ({ close }) => {
                   -{' '}
                   {coupon.type === 'percentage'
                     ? `${coupon.value}%`
-                    : `$${coupon.value}`}{' '}
+                    : `${CURRENCY_SYMBOL}${coupon.value}`}{' '}
                   {t('apply_coupon_off', 'off,')}{' '}
                   {coupon.duration === 'repeating'
                     ? `${coupon.durationInMonths} ${t(
@@ -600,13 +603,11 @@ export const Subscription = () => {
       <option>
         {t('add_free_subscription', '-- ADD FREE SUBSCRIPTION --')}
       </option>
-      {Object.keys(pricing)
-        .filter((f) => !f.includes('FREE'))
-        .map((key) => (
-          <option key={key} value={key}>
-            {key}
-          </option>
-        ))}
+      {SOLD_TIERS.filter((f) => f !== 'FREE').map((key) => (
+        <option key={key} value={key}>
+          {adminPlanLabel(key)}
+        </option>
+      ))}
     </Select>
   );
 };

@@ -3,7 +3,10 @@
 import { useFetch } from '@gitroom/helpers/utils/custom.fetch';
 import { useUser } from '@gitroom/frontend/components/layout/user.context';
 import { useCallback, useMemo, useState } from 'react';
-import { pricing } from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
+import {
+  planDisplayName,
+  pricing,
+} from '@gitroom/nestjs-libraries/database/prisma/subscriptions/pricing';
 import { Input } from '@gitroom/react/form/input';
 import { Button } from '@gitroom/react/form/button';
 import { useSWRConfig } from 'swr';
@@ -109,7 +112,9 @@ export const LifetimeDeal = () => {
       <div className="border border-customColor6 bg-sixth p-[24px] flex flex-col gap-[20px] flex-1 rounded-[4px]">
         <div className="text-[30px]">
           {t('current_package', 'Current Package:')}
-          {user?.totalChannels > 8 ? 'EXTRA' : user?.tier?.current}
+          {user?.totalChannels > 8
+            ? 'EXTRA'
+            : planDisplayName(user?.tier?.current || '')}
         </div>
 
         <div className="flex flex-col gap-[10px] justify-center text-[16px] text-customColor18">
@@ -140,11 +145,13 @@ export const LifetimeDeal = () => {
           {t('next_package', 'Next Package:')}
           {user?.tier?.current === 'PRO'
             ? 'EXTRA'
-            : !user?.tier?.current
-            ? 'FREE'
-            : user?.tier?.current === 'STANDARD'
-            ? 'PRO'
-            : 'STANDARD'}
+            : planDisplayName(
+                !user?.tier?.current
+                  ? 'FREE'
+                  : user?.tier?.current === 'STANDARD'
+                  ? 'PRO'
+                  : 'STANDARD'
+              )}
         </div>
 
         <div className="flex flex-col gap-[10px] justify-center text-[16px] text-customColor18">

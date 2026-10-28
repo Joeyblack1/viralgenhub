@@ -171,6 +171,14 @@ export const formatPrice = (amount: number) =>
 // Tiers shown on the billing pages. PRO and ULTIMATE stay in `pricing` for
 // upstream compatibility but are not sold.
 export const SOLD_TIERS = ['FREE', 'STANDARD', 'TEAM'];
+// Admin screens name a plan together with its stored tier key, so staff can
+// match it to the database: "Creator (STANDARD)", "Pro (PRO, not sold)".
+export const adminPlanLabel = (tier: string) => {
+  const key = (tier || 'FREE').toUpperCase();
+  return `${planDisplayName(key)} (${key}${
+    SOLD_TIERS.includes(key) ? '' : ', not sold'
+  })`;
+};
 
 // Plan fields that cap the posts of one platform a month. A provider opts in
 // with `planPostsLimit` (X: x_posts_per_month).
