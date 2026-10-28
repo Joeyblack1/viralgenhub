@@ -42,10 +42,17 @@ export const useBrowserExtension = (): BrowserExtension => {
         : g.browser?.runtime?.sendMessage
         ? g.browser.runtime
         : null;
+    const ids = messagingIds(targets, browser);
     const client = createExtensionClient({
       runtime,
-      ids: messagingIds(targets, browser),
-      bridge: typeof window !== 'undefined' ? window : null,
+      ids,
+      // The postMessage bridge exists only in the Firefox build. Elsewhere a
+      // missing runtime means "not installed": fail at once instead of waiting
+      // for a bridge that will never answer.
+      bridge:
+        typeof window !== 'undefined' && (browser === 'firefox' || !ids.length)
+          ? window
+          : null,
     });
     return {
       targets,
