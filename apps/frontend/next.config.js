@@ -1,22 +1,21 @@
 // @ts-check
 import { withSentryConfig } from '@sentry/nextjs';
+import { securityHeaders } from './security-headers.mjs';
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   experimental: {
     proxyTimeout: 90_000,
   },
-  // Document-Policy header for browser profiling
+  // Do not advertise the framework.
+  poweredByHeader: false,
+  // Security headers (incl. the Document-Policy Sentry profiling needs) live in
+  // security-headers.mjs so scripts/check-security-headers.mjs can test them.
   async headers() {
     return [
       {
         source: '/:path*',
-        headers: [
-          {
-            key: 'Document-Policy',
-            value: 'js-profiling',
-          },
-        ],
+        headers: securityHeaders,
       },
     ];
   },
