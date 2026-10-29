@@ -62,6 +62,9 @@ async function start() {
     },
   });
 
+  // Do not advertise the framework (Express adds X-Powered-By by default).
+  (app.getHttpAdapter().getInstance() as any).disable('x-powered-by');
+
   // Baseline security headers (helmet is not a dependency). No CSP: it would
   // break the app's inline scripts and embeds.
   app.use((req: any, res: any, next: any) => {
