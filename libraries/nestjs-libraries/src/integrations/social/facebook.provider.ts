@@ -38,6 +38,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
     'pages_manage_posts',
     'pages_manage_engagement',
     'pages_read_engagement',
+    'pages_read_user_content',
     'read_insights',
   ];
   override maxConcurrentJob = 500; // Facebook has reasonable rate limits
@@ -1074,7 +1075,7 @@ export class FacebookProvider extends SocialAbstract implements SocialProvider {
             : d.name === 'page_daily_follows'
             ? 'Page followers'
             : 'Media views',
-        percentageChange: 5,
+        percentageChange: 0,
         data: d?.values?.map((v: any) => ({
           total: sumValue(v.value),
           date: dayjs(v.end_time).format('YYYY-MM-DD'),
